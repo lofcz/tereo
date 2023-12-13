@@ -1,0 +1,9 @@
+*.cache
+*.info
+.idea
+bin
+obj
+appCfg.json
+ScioSkoly.Chat.sln.DotSettings.user
+.vs
+.vscode
