@@ -7,11 +7,19 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="DeepL.net" Version="1.10.0" />
+      <PackageReference Include="Json5Core" Version="1.0.9" />
       <PackageReference Include="Nanoid" Version="3.1.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\TeReoLocalizer.Annotations\TeReoLocalizer.Annotations.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="appCfg.json5">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>
