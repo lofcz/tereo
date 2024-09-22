@@ -459,6 +459,9 @@ var moduleCommonFunctions = {
         console.log(data);  
     },
     focus: (id : string) => {
+        
+        console.log("focus fired: " + id);
+        
         var el = document.getElementById(id);
         
         if (el) {

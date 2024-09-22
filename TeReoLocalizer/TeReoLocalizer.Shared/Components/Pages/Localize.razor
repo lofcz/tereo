@@ -116,8 +116,8 @@
         if (decl.Keys.TryAdd(localKey.Name, localKey))
         {
             await SaveDecl();
-            newKey = string.Empty;
             inputToFocus = $"input_CS_{newKey}";
+            newKey = string.Empty;
             StateHasChanged();   
         }
         else
@@ -144,7 +144,7 @@
         {
             try
             {
-                
+                await Js.Focus(inputToFocus);
                 inputToFocus = null;
             }
             catch (Exception e)

@@ -359,6 +359,7 @@ var moduleCommonFunctions = {
         console.log(data);
     },
     focus: (id) => {
+        console.log("focus fired: " + id);
         var el = document.getElementById(id);
         if (el) {
             el.focus();
