@@ -19,11 +19,12 @@ public partial class Localizer(Decl decl, LangsData langsData)
                         // Date generated: {{DateTime.Now}}
                         """);
         sb.AppendLine("using System.Globalization;");
+        sb.AppendLine("using System.Collections.Frozen;");
         sb.AppendLine("using Languages = ScioSkoly.Priprava.Code.Languages;");
         sb.AppendLine();
         sb.AppendLine("namespace ScioSkoly.Priprava.I18N;");
         sb.AppendLine();
-        sb.AppendLine("public class Resource2");
+        sb.AppendLine("public class Reo");
         sb.AppendLine("{");
         sb.AppendLine($$"""
                           public enum KnownLangs
@@ -37,17 +38,17 @@ public partial class Localizer(Decl decl, LangsData langsData)
                           
                           public KnownLangs? Language { get; set; }
                           
-                          public Resource2()
+                          public Reo()
                           {
                               
                           }
                           
-                          public Resource2(KnownLangs lang)
+                          public Reo(KnownLangs lang)
                           {
                               Language = lang;
                           }
                           
-                          public Resource2(Languages? lang)
+                          public Reo(Languages? lang)
                           {
                               Language = GetLanguage(lang);
                           }
@@ -71,6 +72,8 @@ public partial class Localizer(Decl decl, LangsData langsData)
                                 {{DumpDictionaries()}}
                           };
                           
+                          private static readonly FrozenDictionary<KnownLangs, Dictionary<string, string>> FrozenData = Data.ToFrozenDictionary();
+                          
                           private static readonly Dictionary<int, KnownLangs> LcidDict = new Dictionary<int, KnownLangs>
                           {
                               {{DumpLcId()}}
@@ -81,7 +84,7 @@ public partial class Localizer(Decl decl, LangsData langsData)
                               // if no known lang is set, use current culture
                               KnownLangs lang = Language ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
                               
-                              if (Data[lang].TryGetValue(key, out string? translated))
+                              if (FrozenData[lang].TryGetValue(key, out string? translated))
                               {
                                   return translated;
                               }
@@ -92,19 +95,19 @@ public partial class Localizer(Decl decl, LangsData langsData)
                           private static string GetString(string key)
                           {
                               KnownLangs lang = LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
-                              return Data[lang].TryGetValue(key, out string? translated) ? translated : key;
+                              return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
                           private static string GetString(string key, KnownLangs? knownLang)
                           {
                               KnownLangs lang = knownLang ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
-                              return Data[lang].TryGetValue(key, out string? translated) ? translated : key;
+                              return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
                           private static string GetString(string key, Languages? knownLang)
                           {
                               KnownLangs lang = GetLanguage(knownLang) ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
-                              return Data[lang].TryGetValue(key, out string? translated) ? translated : key;
+                              return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
                           {{DumpProps()}}

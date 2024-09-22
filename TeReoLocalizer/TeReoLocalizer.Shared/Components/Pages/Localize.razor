@@ -249,9 +249,9 @@
         Localizer l = new Localizer(decl, langsData);
         string code = await l.Generate();
 
-        if (File.Exists($"{basePath}/I18N/Resource2.cs"))
+        if (File.Exists($"{basePath}/I18N/Reo.cs"))
         {
-            await File.WriteAllTextAsync($"{basePath}/I18N/Resource2.cs", code);
+            await File.WriteAllTextAsync($"{basePath}/I18N/Reo.cs", code);
             await Js.Toast(ToastTypes.Success, "Kód vygenerován a zapsán");
             return code;
         }
