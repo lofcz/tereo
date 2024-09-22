@@ -1,4 +1,5 @@
-﻿namespace TeReoLocalizer;
+﻿
+namespace TeReoLocalizer;
 
 public partial class App : Application
 {

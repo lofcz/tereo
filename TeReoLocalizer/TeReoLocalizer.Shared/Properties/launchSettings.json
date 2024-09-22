@@ -14,7 +14,7 @@
         "dotnetRunMessages": true,
         "launchBrowser": true,
         "applicationUrl": "https://localhost:44309;http://localhost:44308",
-        "commandLineArgs": "watch run",
+        "commandLineArgs": "watch run --appType=WEB",
         "environmentVariables": {
           "ASPNETCORE_ENVIRONMENT": "Development",
           "ELECTRON": "false",
@@ -27,7 +27,7 @@
         "hotReloadProfile": "aspnetcore",
         "executablePath": "dotnet.exe",
         "workingDirectory": "$(ProjectDir)",
-        "commandLineArgs": "watch run",
+        "commandLineArgs": "watch run --appType=WEB",
         "applicationUrl": "https://localhost:44309",
         "environmentVariables": {
           "ASPNETCORE_ENVIRONMENT": "Development",

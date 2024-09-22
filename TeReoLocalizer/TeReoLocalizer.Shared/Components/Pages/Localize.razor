@@ -1,0 +1,317 @@
+@page "/localize"
+@using System.Collections.Concurrent
+@using System.Text
+@using System.Text.Json
+@using TeReoLocalizer.Annotations
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@code {
+
+    string langCode = "";
+    string basePath = AppDomain.CurrentDomain.BaseDirectory;
+    List<string> existingFiles = [];
+    string key = "";
+    Decl decl = new Decl();
+    LangsData langsData = new LangsData();
+    bool showLangs;
+
+    class Key
+    {
+        public string Name { get; set; }
+    }
+
+    class Decl
+    {
+        public ConcurrentDictionary<string, Key> Keys { get; set; } = [];
+    }
+
+    class LangsData
+    {
+        public ConcurrentDictionary<Languages, LangData> Langs { get; set; } = [];
+    }
+
+    class LangData
+    {
+        public ConcurrentDictionary<string, string> Data { get; set; } = [];
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await ShowLanguages();
+        showLangs = false;
+     
+        if (!Directory.Exists($"{basePath}/TeReo"))
+        {
+            Directory.CreateDirectory($"{basePath}/TeReo");
+        }
+
+        if (File.Exists($"{basePath}/TeReo/decl.json"))
+        {
+            string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
+            decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();   
+        }
+    }
+
+    async Task AddLanguage()
+    {
+        if (!File.Exists($"{basePath}/TeReo/lang_{langCode}.json"))
+        {
+            await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{langCode}.json", "{}");
+        }
+    }
+    
+    async Task ShowLanguages()
+    {
+        showLangs = true;
+        existingFiles = Directory.GetFiles($"{basePath}/TeReo").ToList();
+        
+        await Parallel.ForEachAsync(existingFiles, async (str, ctx) =>
+        {
+            string lang = Path.GetFileName(str).Replace(".json", string.Empty).Replace("lang_", string.Empty);
+
+            if (!Enum.TryParse(lang, out Languages result))
+            {
+                return;
+            }
+            
+            string data = await File.ReadAllTextAsync(str, ctx);
+            LangData? parsed = JsonSerializer.Deserialize<LangData>(data);
+
+            langsData.Langs.TryAdd(result, parsed ?? new LangData());
+        });
+        
+        StateHasChanged();
+    }
+
+    async Task AddKey()
+    {
+        if (key.IsNullOrWhiteSpace())
+        {
+            return;
+        }
+
+        key = key.Trim();
+        
+        Key localKey = new Key
+        {
+            Name = key
+        };
+
+        if (decl.Keys.TryAdd(localKey.Name, localKey))
+        {
+            await SaveDecl();
+            key = "";
+            StateHasChanged();   
+        }
+        else
+        {
+            await Js.InvokeVoidAsync("alert", $"Klíč '{localKey.Name}' už existuje");
+        }
+    }
+
+    async Task SaveDecl()
+    {
+        string data = JsonSerializer.Serialize(decl);
+        await File.WriteAllTextAsync($"{basePath}/TeReo/decl.json", data);
+    }
+
+    async Task HandleKeyUpdate(Languages language, string key, string value)
+    {
+        LangData lang = langsData.Langs[language];
+        
+        lang.Data[key] = value;
+        
+        if (!File.Exists($"{basePath}/TeReo/lang_{language}.json"))
+        {
+            await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", "{}");
+        }
+        
+        string data = JsonSerializer.Serialize(lang);
+        await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
+
+    }
+
+    async Task SaveLanguage(Languages language)
+    {
+        string data = JsonSerializer.Serialize(langsData.Langs[language]);
+        await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
+    }
+
+    async Task UpdateKey(string key)
+    {
+        string str = await Js.InvokeAsync<string>("prompt", "Nový název klíče", key);
+
+        if (!str.IsNullOrWhiteSpace())
+        {
+            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+            {
+                if (x.Value.Data.TryGetValue(key, out string? strValue))
+                {
+                    x.Value.Data.TryAdd(str, strValue);
+                    x.Value.Data.TryRemove(key, out _);
+
+                    await SaveLanguage(x.Key);
+                }
+            }
+
+            if (decl.Keys.TryGetValue(key, out Key? kVal))
+            {
+                kVal.Name = str;
+                decl.Keys.TryRemove(key, out _);
+                decl.Keys.TryAdd(str, kVal);
+
+
+                await SaveDecl();
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    async Task Delete(string key)
+    {
+        bool delete = await Js.InvokeAsync<bool>("confirm", $"Potvrďte odstranění klíče '{key}'");
+
+        if (delete)
+        {
+            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+            {
+                if (x.Value.Data.TryGetValue(key, out string? _))
+                {
+                    x.Value.Data.TryRemove(key, out _);
+                    await SaveLanguage(x.Key);
+                }
+            }
+
+            if (decl.Keys.TryGetValue(key, out Key? _))
+            {
+                decl.Keys.TryRemove(key, out _);
+                await SaveDecl();
+            }
+            
+            StateHasChanged();
+        }
+    }
+
+    async Task Generate()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("using System.Globalization;");
+        sb.AppendLine("using Languages = ScioSkoly.Priprava.Code.Languages;");
+        sb.AppendLine();
+        sb.AppendLine("namespace ScioSkoly.Priprava.I18N;");
+        sb.AppendLine();
+        sb.AppendLine("public class Resource2");
+        sb.AppendLine("{");
+        sb.AppendLine($$"""
+                          public enum KnownLangs
+                          {
+                              Unk,
+                              Czech,
+                              English,
+                              German
+                          }
+
+                          private Dictionary<string, string> currentLangDict;
+                          private KnownLangs currentLang;
+                          
+                          public Resource2()
+                          {
+                              
+                          }
+                          
+                          public Resource2(KnownLangs lang)
+                          {
+                              Language = lang;
+                          }
+                          
+                          public Resource2(Languages? lang)
+                          {
+                              Language = lang switch
+                              {
+                                  Languages.Czech => KnownLangs.Czech,
+                                  Languages.English => KnownLangs.English,
+                                  Languages.German => KnownLangs.German,
+                                  _ => KnownLangs.Czech
+                              };
+                          }
+                          
+                          private static readonly Dictionary<KnownLangs, Dictionary<string, string>> Data = new Dictionary<KnownLangs, Dictionary<string, string>>
+                          {
+                                {{DumpDictionaries()}}
+                          }
+                      """);
+
+        sb.AppendLine("}");
+        
+        return;
+
+        string DumpDictionaries()
+        {
+            return string.Empty;
+        }
+    }
+}
+
+<p>Cesta: @basePath</p>
+
+<div style="margin-bottom: 2rem;">
+    <button @onclick="AddLanguage">Přidat jazyk</button>
+    <input @bind="langCode" placeholder="Kód jazyka" />
+
+    <button @onclick="ShowLanguages">Zobrazit existující jazyky</button>
+
+    @if (showLangs && existingFiles.Count > 0)
+    {
+        foreach (string lang in existingFiles)
+        {
+            <div>@lang</div>
+        }
+    }
+</div>
+
+<div style="margin-bottom: 1rem;">
+    <button @onclick="Generate">Generovat kód</button>
+</div>
+
+<div style="margin-bottom: 1rem;">
+    <button @onclick="AddKey">Přidat klíč</button>
+    <input @bind="key" placeholder="Klíč" />
+</div>
+
+<table class="table table-sm table-bordered table-responsive">
+    <thead>
+    <tr>
+        <td>Akce</td>
+        <td>Klíč</td>
+
+        @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+        {
+            <td>@local.Key</td>
+        }
+    </tr>
+    </thead>
+    <tbody>
+        @foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
+        {
+            <tr>
+                <td>
+                    <button @onclick="@(async () => await Delete(x.Key))">Smazat</button>
+                    <button @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
+                </td>
+                <td>
+                    <div>@x.Key</div>
+                </td>
+
+                @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                {
+                    string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
+                    <td>
+                        <input @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>

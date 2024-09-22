@@ -1,4 +1,16 @@
-﻿<!DOCTYPE html>
+﻿@code {
+    private static string GetBlazorScript()
+    {
+        if (SharedProxy.IsMaui)
+        {
+            return "_framework/blazor.webview.js";
+        }
+        
+        return "_framework/blazor.web.js";
+    }
+}
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -13,8 +25,8 @@
 </head>
 
 <body>
-<Routes/>
-<script src="_framework/blazor.web.js"></script>
+<Routes @rendermode="InteractiveServer"/>
+<script src="@GetBlazorScript()"></script>
 </body>
 
 </html>

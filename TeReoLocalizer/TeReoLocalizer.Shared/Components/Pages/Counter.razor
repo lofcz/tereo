@@ -16,14 +16,6 @@
 
     private async Task IncrementCount()
     {
-        Nm.NavigateTo("/");
-        
-        string path = Directory.GetCurrentDirectory();
-        string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
-        string exeFolder2 = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
-        await File.WriteAllTextAsync("test.txt", "o la la");
-        
         currentCount++;
     }
 }
