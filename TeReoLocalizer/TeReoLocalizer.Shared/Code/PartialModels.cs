@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using TeReoLocalizer.Annotations;
 
 namespace TeReoLocalizer.Shared.Code;
@@ -21,4 +22,16 @@ public class LangsData
 public class LangData
 {
     public ConcurrentDictionary<string, string> Data { get; set; } = [];
+}
+
+public enum ToastTypes
+{
+    [StringValue("ok")]
+    Success,
+    [StringValue("info")]
+    Info,
+    [StringValue("warning")]
+    Warning,
+    [StringValue("error")]
+    Error
 }

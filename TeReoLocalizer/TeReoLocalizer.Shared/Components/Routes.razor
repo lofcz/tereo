@@ -1,4 +1,8 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿<div id="commonCss"></div>
+<script src="/Scripts/jquery.js"></script>
+<script src="/Scripts/nanoMcf.js"></script>
+
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)"/>
         <FocusOnNavigate RouteData="routeData" Selector="h1"/>

@@ -72,10 +72,31 @@
     <ItemGroup>
       <Content Remove="Components\RoutesWeb.razor" />
       <Content Remove="Pages\_Host.cshtml" />
+      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\toastr.css">
+        <Link>wwwroot\Content\toastr.css</Link>
+      </Content>
+      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\jquery.js">
+        <Link>wwwroot\Scripts\jquery.js</Link>
+      </Content>
+      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\nanoMcf.js">
+        <Link>wwwroot\Scripts\nanoMcf.js</Link>
+      </Content>
+      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\nanoMcf.js.map">
+        <Link>wwwroot\Scripts\nanoMcf.js.map</Link>
+      </Content>
+      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\toastr.js">
+        <Link>wwwroot\Scripts\toastr.js</Link>
+      </Content>
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\TeReoLocalizer.Shared\TeReoLocalizer.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <TypeScriptCompile Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\nanoMcf.ts">
+        <Link>wwwroot\Scripts\nanoMcf.ts</Link>
+      </TypeScriptCompile>
     </ItemGroup>
 
 </Project>

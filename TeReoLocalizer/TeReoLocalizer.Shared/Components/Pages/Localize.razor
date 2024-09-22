@@ -8,6 +8,7 @@
 @using DeepL.Model
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
 @inject IJSRuntime Js
 @code {
 
@@ -22,6 +23,7 @@
     bool ready;
     bool translating;
     string search = string.Empty;
+    string? inputToFocus;
 
     protected override bool ShouldRender()
     {
@@ -104,7 +106,7 @@
             return;
         }
 
-        newKey = newKey.Trim();
+        newKey = newKey.Trim().ToBaseLatin(false).Replace(" ", "_");
         
         Key localKey = new Key
         {
@@ -114,7 +116,8 @@
         if (decl.Keys.TryAdd(localKey.Name, localKey))
         {
             await SaveDecl();
-            newKey = "";
+            newKey = string.Empty;
+            inputToFocus = $"input_CS_{newKey}";
             StateHasChanged();   
         }
         else
@@ -128,9 +131,27 @@
         string data = JsonSerializer.Serialize(decl, new JsonSerializerOptions
         {
             WriteIndented = true,
-            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
         await File.WriteAllTextAsync($"{basePath}/TeReo/decl.json", data);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (inputToFocus is not null)
+        {
+            try
+            {
+                
+                inputToFocus = null;
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
     }
 
     async Task HandleKeyUpdate(Languages language, string key, string value)
@@ -152,7 +173,7 @@
         string data = JsonSerializer.Serialize(langsData.Langs[language], new JsonSerializerOptions
         {
             WriteIndented = true,
-            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
         await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
     }
@@ -231,7 +252,7 @@
         if (File.Exists($"{basePath}/I18N/Resource2.cs"))
         {
             await File.WriteAllTextAsync($"{basePath}/I18N/Resource2.cs", code);
-            await Js.InvokeVoidAsync("alert", "Kód vygenerován a zapsán");
+            await Js.Toast(ToastTypes.Success, "Kód vygenerován a zapsán");
             return code;
         }
         
@@ -241,12 +262,12 @@
         return code;
     }
 
-    string DeeplCode(Languages lang)
+    static string DeeplCode(Languages lang)
     {
         return lang switch
         {
             Languages.CS => LanguageCode.Czech,
-            Languages.EN => LanguageCode.English,
+            Languages.EN => LanguageCode.EnglishAmerican,
             Languages.PL => LanguageCode.Polish,
             Languages.ES => LanguageCode.Spanish,
             Languages.SL => LanguageCode.Slovak,
@@ -432,7 +453,7 @@
                     string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
                     <td>
                         <div class="input-group">
-                            <input class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
+                            <input id="@($"input_{local.Key}_{x.Key}")" @key="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
                         </div>
                     </td>
                 }
