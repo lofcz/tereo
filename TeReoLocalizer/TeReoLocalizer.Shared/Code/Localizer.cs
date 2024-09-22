@@ -146,6 +146,18 @@ public partial class Localizer(Decl decl, LangsData langsData)
             return dictBuilder.ToString().Trim();
         }
 
+        void DumpPropXmlDoc(StringBuilder sbLocal, string propName)
+        {
+            if (langsData.Langs[Languages.CS].Data.TryGetValue(propName, out string? csVal))
+            {
+                sbLocal.AppendLine($$"""
+                                     /// <summary>
+                                     /// {{csVal}}
+                                     /// </summary>
+                                     """);   
+            }
+        }
+
         string DumpProps()
         {
             StringBuilder propsBuilder = new StringBuilder();
@@ -156,7 +168,8 @@ public partial class Localizer(Decl decl, LangsData langsData)
                 {
                     continue;
                 }
-                
+
+                DumpPropXmlDoc(propsBuilder, x.Key);
                 propsBuilder.AppendLine($"public static string {CsIdentifier(x.Key)} => GetString(\"{x.Key.Trim()}\");");
             }
 
@@ -169,6 +182,7 @@ public partial class Localizer(Decl decl, LangsData langsData)
                     continue;
                 }
                 
+                DumpPropXmlDoc(propsBuilder, x.Key);
                 propsBuilder.AppendLine($"public static string Get{CsIdentifier(x.Key)}(Languages lang) {{ return GetString(\"{x.Key.Trim()}\", lang); }}");
             }
             
@@ -181,6 +195,7 @@ public partial class Localizer(Decl decl, LangsData langsData)
                     continue;
                 }
                 
+                DumpPropXmlDoc(propsBuilder, x.Key);
                 propsBuilder.AppendLine($"public string Local{CsIdentifier(x.Key)} => GetString(\"{x.Key.Trim()}\", Language);");
             }
 
