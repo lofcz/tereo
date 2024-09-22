@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeReo", "TeReo\TeReo.csproj", "{B5D6F627-C654-4E4D-9564-251DBCA27AFE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeReo.Tests", "TeReo.Tests\TeReo.Tests.csproj", "{63372313-7D86-4622-89FA-CC58E1DFA5F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeReo.Analyzer", "TeReo.Analyzer\TeReo.Analyzer.csproj", "{791A547D-1900-43BE-92EB-81E2D8BBB130}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{B5D6F627-C654-4E4D-9564-251DBCA27AFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B5D6F627-C654-4E4D-9564-251DBCA27AFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B5D6F627-C654-4E4D-9564-251DBCA27AFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63372313-7D86-4622-89FA-CC58E1DFA5F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63372313-7D86-4622-89FA-CC58E1DFA5F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63372313-7D86-4622-89FA-CC58E1DFA5F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63372313-7D86-4622-89FA-CC58E1DFA5F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{791A547D-1900-43BE-92EB-81E2D8BBB130}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{791A547D-1900-43BE-92EB-81E2D8BBB130}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{791A547D-1900-43BE-92EB-81E2D8BBB130}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{791A547D-1900-43BE-92EB-81E2D8BBB130}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
