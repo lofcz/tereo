@@ -1,0 +1,29 @@
+﻿@page "/counter"
+@inject NavigationManager Nm
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private int currentCount = 0;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    private async Task IncrementCount()
+    {
+        Nm.NavigateTo("/");
+        
+        string path = Directory.GetCurrentDirectory();
+        string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
+        string exeFolder2 = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+        await File.WriteAllTextAsync("test.txt", "o la la");
+        
+        currentCount++;
+    }
+}

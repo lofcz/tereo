@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+    "iisSettings": {
+      "windowsAuthentication": false,
+      "anonymousAuthentication": true,
+      "iisExpress": {
+        "applicationUrl": "http://localhost:59260",
+        "sslPort": 44317
+      }
+    },
+    "profiles": {
+      "https": {
+        "commandName": "Project",
+        "dotnetRunMessages": true,
+        "launchBrowser": true,
+        "applicationUrl": "https://localhost:44309;http://localhost:44308",
+        "commandLineArgs": "watch run",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "ELECTRON": "false",
+          "APP_TYPE": "WEB"
+        }
+      },
+      "Watch": {
+        "commandName": "Executable",
+        "hotReloadEnabled": true,
+        "hotReloadProfile": "aspnetcore",
+        "executablePath": "dotnet.exe",
+        "workingDirectory": "$(ProjectDir)",
+        "commandLineArgs": "watch run",
+        "applicationUrl": "https://localhost:44309",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "DOTNET_WATCH_RESTART_ON_RUDE_EDIT": "true",
+          "APP_TYPE": "WEB"
+        }
+      }
+    }
+  }
