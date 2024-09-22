@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Maui.LifecycleEvents;
+using Microsoft.Web.WebView2.Core;
 using TeReoLocalizer.Shared;
 
 namespace TeReoLocalizer;
@@ -18,7 +20,7 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
-
+		
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
