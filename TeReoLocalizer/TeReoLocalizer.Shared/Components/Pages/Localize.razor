@@ -21,6 +21,7 @@
     string? generatedCode;
     bool ready;
     bool translating;
+    string search = string.Empty;
 
     protected override bool ShouldRender()
     {
@@ -227,6 +228,13 @@
         Localizer l = new Localizer(decl, langsData);
         string code = await l.Generate();
 
+        if (File.Exists($"{basePath}/I18N/Resource2.cs"))
+        {
+            await File.WriteAllTextAsync($"{basePath}/I18N/Resource2.cs", code);
+            await Js.InvokeVoidAsync("alert", "Kód vygenerován a zapsán");
+            return code;
+        }
+        
         generatedCode = code;
         StateHasChanged();
 
@@ -322,14 +330,22 @@
         await SaveDecl();
         await SaveLanguages();
     }
+
+    async Task AfterSearchUpdate(string val)
+    {
+        search = val;
+        
+        
+    }
 }
 
 <div style="display: flex; gap: 100px;">
     <div style="margin-bottom: 2rem;">
-        <button @onclick="AddLanguage">Přidat jazyk</button>
-        <input @bind="langCode" placeholder="Kód jazyka" />
-
-        <button @onclick="@(async () => await ShowLanguages(true))">Zobrazit existující jazyky</button>
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
+            <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka" />
+            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm"  @onclick="@(async () => await ShowLanguages(true))">Zobrazit existující jazyky</button>
+        </div>
 
         @if (showLangs && existingFiles.Count > 0)
         {
@@ -341,14 +357,18 @@
     </div>
 
     <div style="margin-bottom: 1rem;">
-        <button @onclick="Generate">Generovat kód</button>
-        <button @onclick="GenerateMissing">Doplnit chybějící překlady</button>
-        <button @onclick="ForceSave">Vynutit uložení</button>
+        <button class="btn btn-secondary btn-sm"  @onclick="Generate">Generovat kód</button>
+        <button class="btn btn-secondary btn-sm"  @onclick="GenerateMissing">Doplnit chybějící překlady</button>
+        <button class="btn btn-secondary btn-sm"  @onclick="ForceSave">Vynutit uložení</button>
     </div>
 
-    <div style="margin-bottom: 1rem;">
-        <button @onclick="AddKey">Přidat klíč</button>
-        <input @bind="newKey" placeholder="Klíč" />
+    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
+        <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddKey">Přidat klíč</button>
+        <input class="form-control form-control-sm" @bind="newKey" placeholder="Klíč" />
+    </div>
+
+    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
+        <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat" />
     </div>
 </div>
 
@@ -370,32 +390,50 @@
     <table class="table table-sm table-bordered table-responsive">
         <thead>
         <tr>
-            <td>Akce</td>
-            <td>Klíč</td>
+            <td>
+                <b>Akce</b>
+            </td>
+            <td>
+                <b>Klíč</b>
+            </td>
 
             @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
             {
-                <td>@local.Key</td>
+                <td>
+                    <b>@local.Key</b>
+                </td>
             }
         </tr>
         </thead>
         <tbody>
         @foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
         {
+            if (!search.IsNullOrWhiteSpace())
+            {
+                if (!x.Key.ToBaseLatin().Contains(search.ToBaseLatin()))
+                {
+                    continue;
+                }       
+            }
+        
             <tr>
-                <td style="display: flex; flex-flow: nowrap;">
-                    <button @onclick="@(async () => await Delete(x.Key))">Smazat</button>
-                    <button @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
+                <td style="display: flex; gap: 5px; flex-flow: nowrap;">
+                    <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await Delete(x.Key))">Smazat</button>
+                    <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
                 </td>
                 <td>
-                    <div>@x.Key</div>
+                    <div>
+                        <code>@x.Key</code>
+                    </div>
                 </td>
 
                 @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                 {
                     string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
                     <td>
-                        <input @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
+                        <div class="input-group">
+                            <input class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
+                        </div>
                     </td>
                 }
             </tr>

@@ -2,6 +2,7 @@
 using Microsoft.Maui.LifecycleEvents;
 using Microsoft.Web.WebView2.Core;
 using TeReoLocalizer.Shared;
+using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer;
 
@@ -9,6 +10,8 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		InitService.Init();
+		
 		Console.WriteLine(typeof(MauiProgram).Assembly);
 		
 		var builder = MauiApp.CreateBuilder();

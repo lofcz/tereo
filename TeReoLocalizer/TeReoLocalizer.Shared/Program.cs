@@ -1,4 +1,6 @@
+using System.Text;
 using Microsoft.AspNetCore.Diagnostics;
+using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components;
 
 namespace TeReoLocalizer.Shared;
@@ -7,6 +9,8 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        InitService.Init();
+        
         string appType = "WEB";
         
         foreach (var arg in args)
