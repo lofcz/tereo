@@ -318,7 +318,8 @@
                         {
                             TextResult result = await translator.TranslateTextAsync(csValue, LanguageCode.Czech, DeeplCode(x.Key), new TextTranslateOptions
                             {
-                                Context = "Aplikace pro přípravu podkladů na vyučovací hodiny"
+                                Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
+                                TagHandling = "html"
                             });
 
                             if (adding)

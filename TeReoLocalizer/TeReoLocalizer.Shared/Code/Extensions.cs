@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Text.Unicode;
 
 namespace TeReoLocalizer.Shared.Code;
@@ -65,6 +66,13 @@ public static class Extensions
         }
 
         return str.ToUpper();
+    }
+    
+    private static readonly Regex HtmlHeuristicRegex = new Regex("<\\s*([a-z][a-z0-9]*)\\b[^>]*>(.*?<\\s*\\/\\s*\\1\\s*>)?", RegexOptions.Compiled);
+
+    public static bool ProbablyContainsHtml(this string? str)
+    {
+        return str is not null && HtmlHeuristicRegex.IsMatch(str);
     }
     
     public static string? ToCsv(this IEnumerable? elems, string separator = ",")

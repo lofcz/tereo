@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using TeReoLocalizer.Annotations;
 
 namespace TeReoLocalizer.Shared.Code;
@@ -7,6 +8,8 @@ namespace TeReoLocalizer.Shared.Code;
 public class Key
 {
     public string Name { get; set; }
+    [JsonIgnore]
+    public bool DefaultLangContainsHtml { get; set; }
 }
 
 public class Decl
