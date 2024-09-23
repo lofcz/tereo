@@ -52,6 +52,21 @@ public static class Extensions
         return StringEnum.GetTypeValue<T>(e);
     }
     
+    public static string FirstLetterToUpper(this string? str)
+    {
+        if (str is null)
+        {
+            return string.Empty;
+        }
+
+        if (str.Length > 1)
+        {
+            return char.ToUpper(str[0]) + str[1..];
+        }
+
+        return str.ToUpper();
+    }
+    
     public static string? ToCsv(this IEnumerable? elems, string separator = ",")
     {
         if (elems == null)

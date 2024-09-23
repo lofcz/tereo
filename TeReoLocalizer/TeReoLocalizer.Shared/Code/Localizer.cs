@@ -283,7 +283,7 @@ public partial class Localizer(Decl decl, LangsData langsData)
             identifier = "@" + identifier;
         }
 
-        return identifier;
+        return identifier.FirstLetterToUpper();
     }
 
     [GeneratedRegex(@"[^\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\p{Cf}]", RegexOptions.Compiled)]
