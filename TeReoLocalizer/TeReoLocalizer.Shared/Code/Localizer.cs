@@ -22,12 +22,14 @@ public partial class Localizer(Decl decl, LangsData langsData)
                       using System.Globalization;
                       using System.Collections.Frozen;
                       using Microsoft.AspNetCore.Components;
+                      using System.CodeDom.Compiler;
                       using Languages = ScioSkoly.Priprava.Code.Languages;
                       """);
         sb.AppendLine();
         sb.AppendLine("namespace ScioSkoly.Priprava.I18N;");
         sb.AppendLine();
-        sb.AppendLine("public class Reo");
+        sb.AppendLine($"[GeneratedCode(\"TeReoLocalizer\", \"1.0.0\")]");
+        sb.AppendLine("public sealed class Reo");
         sb.AppendLine("{");
         sb.AppendLine($$"""
                           public enum KnownLangs
@@ -194,6 +196,11 @@ public partial class Localizer(Decl decl, LangsData langsData)
 
                 DumpPropXmlDoc(propsBuilder, x.Key);
                 propsBuilder.AppendLine($"public static {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} {CsIdentifier(x.Key)} => {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\");");
+
+                if (x.Value.DefaultLangContainsHtml)
+                {
+                    propsBuilder.AppendLine($"public static string {CsIdentifier(x.Key)}String => GetString(\"{x.Key.Trim()}\");");
+                }
             }
 
             propsBuilder.AppendLine();
