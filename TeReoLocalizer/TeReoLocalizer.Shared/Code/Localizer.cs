@@ -95,19 +95,19 @@ public partial class Localizer(Decl decl, LangsData langsData)
                               return key;
                           }
                           
-                          private static string GetString(string key)
+                          public static string GetString(string key)
                           {
                               KnownLangs lang = LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
                               return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
-                          private static string GetString(string key, KnownLangs? knownLang)
+                          public static string GetString(string key, KnownLangs? knownLang)
                           {
                               KnownLangs lang = knownLang ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
                               return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
-                          private static string GetString(string key, Languages? knownLang)
+                          public static string GetString(string key, Languages? knownLang)
                           {
                               KnownLangs lang = GetLanguage(knownLang) ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
                               return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
@@ -221,6 +221,19 @@ public partial class Localizer(Decl decl, LangsData langsData)
                 DumpPropXmlDoc(propsBuilder, x.Key);
                 propsBuilder.AppendLine($"public {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} Local{CsIdentifier(x.Key)} => {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\", Language);");
             }
+            
+            propsBuilder.AppendLine();
+            
+            foreach (KeyValuePair<string, Key> x in decl.Keys)
+            {
+                if (x.Key.IsNullOrWhiteSpace())
+                {
+                    continue;
+                }
+                
+                DumpPropXmlDoc(propsBuilder, x.Key);
+                propsBuilder.AppendLine($"public const string Key{CsIdentifier(x.Key)} = \"{x.Key.Trim()}\";");
+            }
 
             return propsBuilder.ToString().Trim();
         }
@@ -282,30 +295,39 @@ public partial class Localizer(Decl decl, LangsData langsData)
         return string.Join(Environment.NewLine, formattedLines);
     }
 
-
-    public static string CsIdentifier(string name)
+    public static string BaseIdentifier(string name)
     {
         if (string.IsNullOrEmpty(name))
         {
             return "_";
         }
 
-        string identifier = name.Trim();
-        identifier = IdentRegex().Replace(identifier, "_");
+        name = name.ToBaseLatin(false).Trim().FirstLetterToUpper();
         
-        if (char.IsDigit(identifier[0]))
+        string[] words = name.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
+        string identifier = string.Join(string.Empty, words.Select(x => x.Length > 0 ? char.ToUpper(x[0]) + (x.Length > 1 ? x[1..] : string.Empty) : string.Empty));
+        identifier = MyRegex().Replace(identifier, string.Empty);
+
+        return identifier;
+    }
+    
+    public static string CsIdentifier(string name)
+    {
+        string identifier = BaseIdentifier(name);
+        
+        if (identifier.Length > 0 && char.IsDigit(identifier[0]))
         {
-            identifier = "_" + identifier;
+            identifier = $"_{identifier}";
         }
         
         if (SyntaxFacts.IsKeywordKind(SyntaxFacts.GetKeywordKind(identifier)))
         {
-            identifier = "@" + identifier;
+            identifier = $"@{identifier}";
         }
 
-        return identifier.FirstLetterToUpper();
+        return identifier;
     }
 
     [GeneratedRegex(@"[^\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\p{Cf}]", RegexOptions.Compiled)]
-    private static partial Regex IdentRegex();
+    private static partial Regex MyRegex();
 }

@@ -116,7 +116,7 @@
             return;
         }
 
-        newKey = newKey.Trim().ToBaseLatin(false).Replace(" ", "_").FirstLetterToUpper();
+        newKey = Localizer.BaseIdentifier(newKey);
         
         Key localKey = new Key
         {
