@@ -24,6 +24,16 @@
     bool translating;
     string search = string.Empty;
     string? inputToFocus;
+    TranslationModes translationMode = TranslationModes.Default;
+
+    enum TranslationModes
+    {
+        Unknown,
+        [StringValue("Výchozí")]
+        Default,
+        [StringValue("Zneplatnění")]
+        Invalidate
+    }
 
     protected override bool ShouldRender()
     {
@@ -106,7 +116,7 @@
             return;
         }
 
-        newKey = newKey.Trim().ToBaseLatin(false).Replace(" ", "_");
+        newKey = newKey.Trim().ToBaseLatin(false).Replace(" ", "_").FirstLetterToUpper();
         
         Key localKey = new Key
         {
@@ -165,7 +175,19 @@
             await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", "{}");
         }
 
-        await SaveLanguage(language);
+        if (translationMode is TranslationModes.Default)
+        {
+            await SaveLanguage(language);   
+        }
+        else
+        {
+            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.Where(x => x.Key != language))
+            {
+                x.Value.Data.TryRemove(key, out _);
+            }
+            
+            await SaveLanguages();
+        }
     }
 
     async Task SaveLanguage(Languages language)
@@ -359,6 +381,20 @@
         
         
     }
+
+    async Task CycleTranslationMode()
+    {
+        if (translationMode < TranslationModes.Invalidate)
+        {
+            translationMode++;
+        }
+        else
+        {
+            translationMode = TranslationModes.Default;
+        }
+        
+        StateHasChanged();
+    }
 }
 
 <div style="display: flex; gap: 100px;">
@@ -379,9 +415,10 @@
     </div>
 
     <div style="margin-bottom: 1rem;">
-        <button class="btn btn-secondary btn-sm"  @onclick="Generate">Generovat kód</button>
-        <button class="btn btn-secondary btn-sm"  @onclick="GenerateMissing">Doplnit chybějící překlady</button>
-        <button class="btn btn-secondary btn-sm"  @onclick="ForceSave">Vynutit uložení</button>
+        <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
+        <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
+        <button class="btn btn-secondary btn-sm" @onclick="ForceSave">Vynutit uložení</button>
+        <button class="@($"btn btn-sm {(translationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Režim: @(translationMode.GetStringValue())</button>
     </div>
 
     <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
