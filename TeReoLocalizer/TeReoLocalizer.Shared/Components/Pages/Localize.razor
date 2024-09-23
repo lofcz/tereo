@@ -116,6 +116,9 @@
             return;
         }
 
+        newKey = newKey.Trim().FirstLetterToUpper();
+        string baseKey = newKey;
+        
         newKey = Localizer.BaseIdentifier(newKey);
         
         Key localKey = new Key
@@ -127,6 +130,12 @@
         {
             await SaveDecl();
             inputToFocus = $"input_CS_{newKey}";
+
+            if (newKey != baseKey)
+            {
+                await SetKey(Languages.CS, newKey, baseKey);
+            }
+            
             newKey = string.Empty;
             StateHasChanged();   
         }
@@ -164,7 +173,7 @@
         }
     }
 
-    async Task HandleKeyUpdate(Languages language, string key, string value)
+    async Task SetKey(Languages language, string key, string value)
     {
         LangData lang = langsData.Langs[language];
         
@@ -188,6 +197,11 @@
             
             await SaveLanguages();
         }
+    }
+
+    async Task HandleKeyUpdate(Languages language, string key, string value)
+    {
+        await SetKey(language, key, value);
     }
 
     async Task SaveLanguage(Languages language)

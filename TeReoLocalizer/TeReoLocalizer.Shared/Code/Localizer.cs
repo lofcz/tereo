@@ -302,9 +302,9 @@ public partial class Localizer(Decl decl, LangsData langsData)
             return "_";
         }
 
-        name = name.ToBaseLatin(false).Trim().FirstLetterToUpper();
+        name = name.ToBaseLatin(false).Trim().FirstLetterToUpper().Replace("-", string.Empty);
         
-        string[] words = name.Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries);
+        string[] words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string identifier = string.Join(string.Empty, words.Select(x => x.Length > 0 ? char.ToUpper(x[0]) + (x.Length > 1 ? x[1..] : string.Empty) : string.Empty));
         identifier = MyRegex().Replace(identifier, string.Empty);
 
