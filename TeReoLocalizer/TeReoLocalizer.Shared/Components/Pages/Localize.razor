@@ -398,11 +398,12 @@
 }
 
 <div style="display: flex; gap: 100px;">
+    
     <div style="margin-bottom: 2rem;">
         <div style="display: flex; gap: 10px; align-items: flex-start;">
             <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
-            <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka" />
-            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm"  @onclick="@(async () => await ShowLanguages(true))">Zobrazit existující jazyky</button>
+            <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
+            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="@(async () => await ShowLanguages(true))">Zobrazit existující jazyky</button>
         </div>
 
         @if (showLangs && existingFiles.Count > 0)
@@ -414,6 +415,10 @@
         }
     </div>
 
+    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
+        <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat" />
+    </div>
+
     <div style="margin-bottom: 1rem;">
         <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
         <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
@@ -423,11 +428,7 @@
 
     <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
         <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddKey">Přidat klíč</button>
-        <input class="form-control form-control-sm" @bind="newKey" placeholder="Klíč" />
-    </div>
-
-    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
-        <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat" />
+        <input class="form-control form-control-sm" @bind="newKey" placeholder="Klíč"/>
     </div>
 </div>
 
