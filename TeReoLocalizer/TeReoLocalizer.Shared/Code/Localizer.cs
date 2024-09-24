@@ -23,6 +23,7 @@ public partial class Localizer(Decl decl, LangsData langsData)
                       using System.Collections.Frozen;
                       using Microsoft.AspNetCore.Components;
                       using System.CodeDom.Compiler;
+                      using System.Runtime.CompilerServices;
                       using Languages = ScioSkoly.Priprava.Code.Languages;
                       """);
         sb.AppendLine();
@@ -87,31 +88,36 @@ public partial class Localizer(Decl decl, LangsData langsData)
                           private string GetStringLocal(string key)
                           {
                               // if no known lang is set, use current culture
-                              KnownLangs lang = Language ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
-                              
-                              if (FrozenData[lang].TryGetValue(key, out string? translated))
-                              {
-                                  return translated;
-                              }
+                              KnownLangs lang = Language ?? GetLanguageInternal();
+                              return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
+                          }
                           
-                              return key;
+                          public static KnownLangs GetLanguage()
+                          {
+                              return LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
+                          }
+                          
+                          [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                          private static KnownLangs GetLanguageInternal()
+                          {
+                              return LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
                           }
                           
                           public static string GetString(string key)
                           {
-                              KnownLangs lang = LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
+                              KnownLangs lang = GetLanguageInternal();
                               return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
                           public static string GetString(string key, KnownLangs? knownLang)
                           {
-                              KnownLangs lang = knownLang ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
+                              KnownLangs lang = knownLang ?? GetLanguageInternal();
                               return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
                           public static string GetString(string key, Languages? knownLang)
                           {
-                              KnownLangs lang = GetLanguage(knownLang) ?? LcidDict.GetValueOrDefault(CultureInfo.CurrentUICulture.LCID, KnownLangs.CS);
+                              KnownLangs lang = GetLanguage(knownLang) ?? GetLanguageInternal();
                               return FrozenData[lang].TryGetValue(key, out string? translated) ? translated : key;
                           }
                           
