@@ -12,8 +12,9 @@ namespace TeReoLocalizer.Shared.Code;
 
 public class InvertedIndex : IDisposable
 {
-    private const string IndexVersion = "1.0.6";
+    private const string IndexVersion = "1.0.7";
     private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
+    private const int MinNGramLength = 2;
     private const int MaxNGramLength = 10;
     
     private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r'];
@@ -171,14 +172,24 @@ public class InvertedIndex : IDisposable
             doc.Add(new StringField("whole_word", word.ToLowerInvariant(), Field.Store.NO));
         }
         
-        for (int i = 0; i < content.Length - MaxNGramLength - 1; i++)
-        {
-            string chunk = content.Substring(i, Math.Min(MaxNGramLength, content.Length - i)).ToLowerInvariant();
-            doc.Add(new StringField("content_chunk", chunk, Field.Store.NO));
-        }
+        IndexVariableLengthNGrams(doc, content);
 
         writer.UpdateDocument(new Term("id", id), doc);
         indexedStrings[content] = id;
+    }
+    
+    private static void IndexVariableLengthNGrams(Document doc, string text)
+    {
+        string lowerText = text.ToLowerInvariant();
+        
+        for (int length = MinNGramLength; length <= Math.Min(MaxNGramLength, lowerText.Length); length++)
+        {
+            for (int i = 0; i <= lowerText.Length - length; i++)
+            {
+                string ngram = lowerText.Substring(i, length);
+                doc.Add(new StringField($"ngram_{length}", ngram, Field.Store.NO));
+            }
+        }
     }
 
     public void SynchronizeIndex(List<IndexDocument> sourceDocuments, IProgress<int>? progress = null)
@@ -269,29 +280,23 @@ public class InvertedIndex : IDisposable
                 query = new TermQuery(new Term("single_char", substring.ToLowerInvariant()));
                 break;
             }
-            case <= 10:
-            {
-                query = new TermQuery(new Term("content", substring.ToLowerInvariant()));
-                break;
-            }
             default:
             {
                 BooleanQuery booleanQuery = [];
             
-                for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+                int ngramLength = Math.Min(substring.Length, MaxNGramLength);
+                string searchNgram = substring.ToLowerInvariant();
+
+                TermQuery ngramQuery = new TermQuery(new Term($"ngram_{ngramLength}", searchNgram));
+                booleanQuery.Add(ngramQuery, Occur.SHOULD);
+                
+                for (int i = MinNGramLength; i < ngramLength; i++)
                 {
-                    string ngram = substring.Substring(i, Math.Min(MaxNGramLength, substring.Length - i)).ToLowerInvariant();
-                    TermQuery ngramQuery = new TermQuery(new Term("content", ngram));
-                    booleanQuery.Add(ngramQuery, Occur.SHOULD);
+                    string partialNgram = searchNgram[..i];
+                    TermQuery partialQuery = new TermQuery(new Term($"ngram_{i}", partialNgram));
+                    booleanQuery.Add(partialQuery, Occur.SHOULD);
                 }
-            
-                for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
-                {
-                    string chunk = substring.Substring(i, MaxNGramLength).ToLowerInvariant();
-                    TermQuery chunkQuery = new TermQuery(new Term("content_chunk", chunk));
-                    booleanQuery.Add(chunkQuery, Occur.SHOULD);
-                }
-            
+
                 booleanQuery.MinimumNumberShouldMatch = 1;
                 query = booleanQuery;
                 break;
@@ -416,7 +421,7 @@ public class InvertedIndex : IDisposable
     {
         protected override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
         {
-            NGramTokenizer tokenizer = new NGramTokenizer(matchVersion, reader, 2, MaxNGramLength);
+            NGramTokenizer tokenizer = new NGramTokenizer(matchVersion, reader, MinNGramLength, MaxNGramLength);
             return new TokenStreamComponents(tokenizer);
         }
     }

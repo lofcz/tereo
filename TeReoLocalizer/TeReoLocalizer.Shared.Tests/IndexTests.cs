@@ -35,7 +35,8 @@ public class Tests
             new IndexDocument { Content = "ahoCorasick4", Id = "8" },
             new IndexDocument { Content = "ahoCorasick5 ú", Id = "9" },
             new IndexDocument { Content = "ahoCorasick6", Id = "10" },
-            new IndexDocument { Content = "superlongtestlongerthanmaxngram", Id = "11" }
+            new IndexDocument { Content = "superlongtestlongerthanmaxngram", Id = "11" },
+            new IndexDocument { Content = "this is a random very long text which we should be able to search and index correctly", Id = "12" }
         ];
 
         index.SynchronizeIndex(sourceDocuments);
@@ -50,6 +51,7 @@ public class Tests
     [TestCase("if", 1)]
     [TestCase("ahoCorasick", 6)]
     [TestCase("uperlongtestlongerthanmaxngra", 1)]
+    [TestCase("his is a random very long text which we should be able to search and index correctl", 1)]
     public void CaseInsensitive(string query, int expected)
     {
         List<SearchResult> results = SharedIndex.Search(query);
@@ -60,6 +62,7 @@ public class Tests
     [TestCase("X = 5 * 3", 0)]
     [TestCase("uperlongtestlongerthanmaxngra", 1)]
     [TestCase("uperlongtestlonGerthanmaxngra", 0)]
+    [TestCase("his is a random very long text which we should be able to search and index correctl", 1)]
     public void CaseSensitive(string query, int expected)
     {
         List<SearchResult> results = SharedIndex.Search(query, true);
