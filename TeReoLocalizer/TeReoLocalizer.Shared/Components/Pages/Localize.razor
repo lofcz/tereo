@@ -17,7 +17,7 @@
     List<string> existingFiles = [];
     string newKey = "";
     Decl decl = new Decl();
-    LangsData langsData = new LangsData();
+    readonly LangsData langsData = new LangsData();
     bool showLangs;
     string? generatedCode;
     bool ready;
@@ -25,7 +25,8 @@
     string search = string.Empty;
     string? inputToFocus;
     TranslationModes translationMode = TranslationModes.Default;
-
+    InvertedIndex index;
+    
     enum TranslationModes
     {
         Unknown,
@@ -49,7 +50,7 @@
         
         await base.OnInitializedAsync();
         await ShowLanguages(false);
-     
+        
         if (!Directory.Exists($"{basePath}/TeReo"))
         {
             Directory.CreateDirectory($"{basePath}/TeReo");
@@ -61,6 +62,7 @@
             decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();   
         }
 
+        index = new InvertedIndex($"{basePath}/.reoindex");
         ready = true;
     }
 
@@ -102,7 +104,7 @@
 
             langsData.Langs.TryAdd(result, parsed ?? new LangData());
         });
-
+        
         if (sl)
         {
             StateHasChanged();   
@@ -123,7 +125,8 @@
         
         Key localKey = new Key
         {
-            Name = newKeyCopy
+            Name = newKeyCopy,
+            Id = General.IIID()
         };
 
         if (decl.Keys.TryAdd(localKey.Name, localKey))

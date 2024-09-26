@@ -8,6 +8,7 @@ namespace TeReoLocalizer.Shared.Code;
 public class Key
 {
     public string Name { get; set; }
+    public string Id { get; set; }
     [JsonIgnore]
     public bool DefaultLangContainsHtml { get; set; }
 }

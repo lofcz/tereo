@@ -20,7 +20,7 @@ public class Tests
 
     private static InvertedIndex SetupIndex(string str)
     {
-        InvertedIndex index = new InvertedIndex($"{Consts.Cfg.Repository}\\.reoindex_{str}");
+        InvertedIndex index = new InvertedIndex($".reoindex_{str}");
         
         List<IndexDocument> sourceDocuments =
         [
