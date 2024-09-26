@@ -25,7 +25,7 @@
 </head>
 
 <body data-bs-theme="dark" >
-    <Routes @rendermode="InteractiveServer"/>
+    <Routes @rendermode="@(new InteractiveServerRenderMode(false))" />
     <script src="@GetBlazorScript()"></script>
 </body>
 

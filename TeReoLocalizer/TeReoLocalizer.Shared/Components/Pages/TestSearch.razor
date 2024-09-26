@@ -1,0 +1,32 @@
+@page "/test-index"
+@using TeReoLocalizer.Shared.Code
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        InvertedIndex index = new InvertedIndex($"{Consts.Cfg.Repository}\\.reoindex");
+        
+        List<IndexDocument> sourceDocuments =
+        [
+            new IndexDocument { Content = "public void Method()", Id = "1" },
+            new IndexDocument { Content = "int x = 5 * 3;", Id = "2" },
+            new IndexDocument { Content = "if (condition) { }", Id = "3" }
+        ];
+
+        index.SynchronizeIndex(sourceDocuments);
+        
+        string searchPattern = "* 3";
+        List<IndexDocument> results = index.Search(searchPattern);
+        List<SearchResult> results2 = index.SearchWithHighlights(searchPattern);
+
+        foreach (IndexDocument result in results)
+        {
+            Console.WriteLine(result);
+        }
+        
+        index.Dispose();
+    }
+
+}
