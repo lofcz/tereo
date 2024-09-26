@@ -12,8 +12,9 @@ namespace TeReoLocalizer.Shared.Code;
 
 public class InvertedIndex : IDisposable
 {
-    private const string IndexVersion = "1.0.3";
+    private const string IndexVersion = "1.0.5";
     private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
+    private const int MaxNGramLength = 10;
     
     private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r'];
     
@@ -158,10 +159,15 @@ public class InvertedIndex : IDisposable
         ];
         
         string[] words = content.Split(WordDelimiters, StringSplitOptions.RemoveEmptyEntries);
-        
         foreach (string word in words)
         {
             doc.Add(new StringField("whole_word", word.ToLowerInvariant(), Field.Store.NO));
+        }
+        
+        for (int i = 0; i < content.Length - MaxNGramLength - 1; i++)
+        {
+            string chunk = content.Substring(i, Math.Min(MaxNGramLength, content.Length - i)).ToLowerInvariant();
+            doc.Add(new StringField("content_chunk", chunk, Field.Store.NO));
         }
 
         writer.UpdateDocument(new Term("id", id), doc);
@@ -232,7 +238,7 @@ public class InvertedIndex : IDisposable
         writer.Commit();
     }
 
-    public List<SearchResult> Search(string substring, bool caseSensitive = false, bool wholeWords = false, int page = 1, int pageSize = 150)
+   public List<SearchResult> Search(string substring, bool caseSensitive = false, bool wholeWords = false, int page = 1, int pageSize = 150)
     {
         using DirectoryReader? reader = writer.GetReader(true);
         IndexSearcher searcher = new IndexSearcher(reader);
@@ -242,7 +248,7 @@ public class InvertedIndex : IDisposable
         if (wholeWords)
         {
             BooleanQuery booleanQuery = [];
-            string[] words = substring.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+            string[] words = substring.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             
             foreach (string word in words)
             {
@@ -252,27 +258,98 @@ public class InvertedIndex : IDisposable
             
             query = booleanQuery;
         }
-        else
+        else if (substring.Length <= 10)
         {
             query = new TermQuery(new Term("content", substring.ToLowerInvariant()));
+        }
+        else
+        {
+            BooleanQuery booleanQuery = [];
+            
+            for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+            {
+                string ngram = substring.Substring(i, Math.Min(MaxNGramLength, substring.Length - i)).ToLowerInvariant();
+                TermQuery ngramQuery = new TermQuery(new Term("content", ngram));
+                booleanQuery.Add(ngramQuery, Occur.SHOULD);
+            }
+            
+            for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+            {
+                string chunk = substring.Substring(i, MaxNGramLength).ToLowerInvariant();
+                TermQuery chunkQuery = new TermQuery(new Term("content_chunk", chunk));
+                booleanQuery.Add(chunkQuery, Occur.SHOULD);
+            }
+            
+            booleanQuery.MinimumNumberShouldMatch = 1;
+            query = booleanQuery;
         }
         
         int start = (page - 1) * pageSize;
         
         TopDocs topDocs = searcher.Search(query, start + pageSize);
         ScoreDoc[]? hits = topDocs.ScoreDocs;
-
-        List<SearchResult> results = [];
         
+        return hits.Length <= 5 ? PruneContains(searcher, hits, substring, caseSensitive, wholeWords, start, pageSize) : PruneAhoCorasick(searcher, hits, substring, caseSensitive, wholeWords, start, pageSize);
+    }
+   
+    private static List<SearchResult> PruneContains(IndexSearcher searcher, ScoreDoc[] hits, string substring, bool caseSensitive, bool wholeWords, int start, int pageSize)
+    {
+        List<SearchResult> results = [];
+
         for (int i = start; i < Math.Min(start + pageSize, hits.Length); i++)
         {
             Document? doc = searcher.Doc(hits[i].Doc);
             string content = doc.Get("content_original");
             string id = doc.Get("id");
-            int matchIndex = wholeWords ? FindWholeWordMatchIndex(content, substring, caseSensitive) : content.IndexOf(substring, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+            int matchIndex = wholeWords 
+                ? FindWholeWordMatchIndex(content, substring, caseSensitive) 
+                : content.IndexOf(substring, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 
             if (matchIndex >= 0)
             {
+                results.Add(new SearchResult
+                {
+                    Content = content,
+                    Id = id,
+                    MatchStartIndex = matchIndex
+                });
+            }
+        }
+
+        return results;
+    }
+
+    private static List<SearchResult> PruneAhoCorasick(IndexSearcher searcher, ScoreDoc[] hits, string substring, bool caseSensitive, bool wholeWords, int start, int pageSize)
+    {
+        List<SearchResult> results = [];
+
+        AhoCorasick ahoCorasick = new AhoCorasick();
+        ahoCorasick.AddPattern(caseSensitive ? substring : substring.ToLowerInvariant());
+        ahoCorasick.BuildFailureAndOutputLinks();
+
+        for (int i = start; i < Math.Min(start + pageSize, hits.Length); i++)
+        {
+            Document? doc = searcher.Doc(hits[i].Doc);
+            string content = doc.Get("content_original");
+            string id = doc.Get("id");
+
+            List<(int Index, string Pattern)> matches = ahoCorasick.Search(caseSensitive ? content : content.ToLowerInvariant());
+
+            foreach ((int Index, string Pattern) match in matches)
+            {
+                int matchIndex = match.Index;
+
+                if (wholeWords)
+                {
+                    bool isWholeWord = (matchIndex == 0 || char.IsWhiteSpace(content[matchIndex - 1])) &&
+                                       (matchIndex + substring.Length == content.Length || char.IsWhiteSpace(content[matchIndex + substring.Length]));
+
+                    if (!isWholeWord)
+                    {
+                        continue;
+                    }
+                }
+
                 results.Add(new SearchResult
                 {
                     Content = content,
@@ -320,6 +397,15 @@ public class InvertedIndex : IDisposable
         analyzer.Dispose();
         GC.SuppressFinalize(this);
     }
+    
+    private class NGramAnalyzer(LuceneVersion matchVersion) : Analyzer
+    {
+        protected override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
+        {
+            NGramTokenizer tokenizer = new NGramTokenizer(matchVersion, reader, 1, MaxNGramLength);
+            return new TokenStreamComponents(tokenizer);
+        }
+    }
 }
 
 public class IndexDocument
@@ -334,13 +420,4 @@ public class SearchResult
     public string Content { get; set; }
     public string Id { get; set; }
     public int MatchStartIndex { get; set; }
-}
-
-public class NGramAnalyzer(LuceneVersion matchVersion) : Analyzer
-{
-    protected override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
-    {
-        NGramTokenizer tokenizer = new NGramTokenizer(matchVersion, reader, 3, 10);
-        return new TokenStreamComponents(tokenizer);
-    }
 }

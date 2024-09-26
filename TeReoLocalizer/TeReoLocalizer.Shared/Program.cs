@@ -13,7 +13,7 @@ public class Program
         
         string appType = "WEB";
         
-        foreach (var arg in args)
+        foreach (string? arg in args)
         {
             if (arg.StartsWith("--appType="))
             {
@@ -31,7 +31,7 @@ public class Program
             SharedProxy.IsMaui = false;
         }
         
-        var builder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
         builder.Services.AddRazorComponents()
@@ -40,7 +40,7 @@ public class Program
                 x.DetailedErrors = true;
             });
 
-        var app = builder.Build();
+        WebApplication? app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
         {
@@ -51,8 +51,8 @@ public class Program
                     context.Response.StatusCode = 500;
                     context.Response.ContentType = "text/html";
 
-                    var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-                    var exception = exceptionHandlerPathFeature?.Error;
+                    IExceptionHandlerPathFeature? exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+                    Exception? exception = exceptionHandlerPathFeature?.Error;
 
                     await context.Response.WriteAsync("<html><body>\n");
                     await context.Response.WriteAsync("<h2>Error:</h2>\n");
