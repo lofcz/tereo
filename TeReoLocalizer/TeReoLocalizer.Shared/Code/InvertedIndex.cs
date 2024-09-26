@@ -12,7 +12,7 @@ namespace TeReoLocalizer.Shared.Code;
 
 public class InvertedIndex : IDisposable
 {
-    private const string IndexVersion = "1.0.5";
+    private const string IndexVersion = "1.0.6";
     private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
     private const int MaxNGramLength = 10;
     
@@ -158,6 +158,13 @@ public class InvertedIndex : IDisposable
             new StringField("content_original", content, Field.Store.YES)
         ];
         
+        HashSet<char> uniqueChars = [..content.ToLowerInvariant()];
+        
+        foreach (char c in uniqueChars)
+        {
+            doc.Add(new StringField("single_char", c.ToString(), Field.Store.NO));
+        }
+        
         string[] words = content.Split(WordDelimiters, StringSplitOptions.RemoveEmptyEntries);
         foreach (string word in words)
         {
@@ -258,30 +265,40 @@ public class InvertedIndex : IDisposable
             
             query = booleanQuery;
         }
-        else if (substring.Length <= 10)
+        else switch (substring.Length)
         {
-            query = new TermQuery(new Term("content", substring.ToLowerInvariant()));
-        }
-        else
-        {
-            BooleanQuery booleanQuery = [];
-            
-            for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+            case 1:
             {
-                string ngram = substring.Substring(i, Math.Min(MaxNGramLength, substring.Length - i)).ToLowerInvariant();
-                TermQuery ngramQuery = new TermQuery(new Term("content", ngram));
-                booleanQuery.Add(ngramQuery, Occur.SHOULD);
+                query = new TermQuery(new Term("single_char", substring.ToLowerInvariant()));
+                break;
             }
-            
-            for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+            case <= 10:
             {
-                string chunk = substring.Substring(i, MaxNGramLength).ToLowerInvariant();
-                TermQuery chunkQuery = new TermQuery(new Term("content_chunk", chunk));
-                booleanQuery.Add(chunkQuery, Occur.SHOULD);
+                query = new TermQuery(new Term("content", substring.ToLowerInvariant()));
+                break;
             }
+            default:
+            {
+                BooleanQuery booleanQuery = [];
             
-            booleanQuery.MinimumNumberShouldMatch = 1;
-            query = booleanQuery;
+                for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+                {
+                    string ngram = substring.Substring(i, Math.Min(MaxNGramLength, substring.Length - i)).ToLowerInvariant();
+                    TermQuery ngramQuery = new TermQuery(new Term("content", ngram));
+                    booleanQuery.Add(ngramQuery, Occur.SHOULD);
+                }
+            
+                for (int i = 0; i < substring.Length - (MaxNGramLength - 1); i++)
+                {
+                    string chunk = substring.Substring(i, MaxNGramLength).ToLowerInvariant();
+                    TermQuery chunkQuery = new TermQuery(new Term("content_chunk", chunk));
+                    booleanQuery.Add(chunkQuery, Occur.SHOULD);
+                }
+            
+                booleanQuery.MinimumNumberShouldMatch = 1;
+                query = booleanQuery;
+                break;
+            }
         }
         
         int start = (page - 1) * pageSize;
@@ -402,7 +419,7 @@ public class InvertedIndex : IDisposable
     {
         protected override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
         {
-            NGramTokenizer tokenizer = new NGramTokenizer(matchVersion, reader, 1, MaxNGramLength);
+            NGramTokenizer tokenizer = new NGramTokenizer(matchVersion, reader, 2, MaxNGramLength);
             return new TokenStreamComponents(tokenizer);
         }
     }
