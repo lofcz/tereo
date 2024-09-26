@@ -115,29 +115,34 @@
         {
             return;
         }
-
-        newKey = newKey.Trim().FirstLetterToUpper();
+        
+        string newKeyCopy = newKey.Trim().FirstLetterToUpper();
         string baseKey = newKey;
         
-        newKey = Localizer.BaseIdentifier(newKey);
+        newKeyCopy = Localizer.BaseIdentifier(newKeyCopy);
         
         Key localKey = new Key
         {
-            Name = newKey
+            Name = newKeyCopy
         };
 
         if (decl.Keys.TryAdd(localKey.Name, localKey))
         {
             await SaveDecl();
-            inputToFocus = $"input_CS_{newKey}";
-
-            if (newKey != baseKey)
+            
+            if (newKeyCopy != baseKey)
             {
-                await SetKey(Languages.CS, newKey, baseKey);
+                await SetKey(Languages.CS, newKeyCopy, baseKey);
+            }
+            
+            if (!search.Contains(newKeyCopy))
+            {
+                search = string.Empty;   
             }
             
             newKey = string.Empty;
-            StateHasChanged();   
+            inputToFocus = $"input_CS_{newKeyCopy}";
+            StateHasChanged();
         }
         else
         {
@@ -250,6 +255,13 @@
 
                 await SaveDecl();
             }
+
+            if (!search.Contains(str))
+            {
+                search = string.Empty;   
+            }
+            
+            inputToFocus = str;
         }
         
         StateHasChanged();
