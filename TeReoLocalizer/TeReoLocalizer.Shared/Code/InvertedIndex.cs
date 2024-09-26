@@ -196,11 +196,8 @@ public class InvertedIndex : IDisposable
         int processed = 0;
         int lastReportedProgress = 0;
     
-        foreach (KeyValuePair<string, string> kvp in sourceDocumentMap)
+        foreach ((string? id, string? content) in sourceDocumentMap)
         {
-            string id = kvp.Key;
-            string content = kvp.Value;
-
             if (!indexedStrings.TryGetValue(content, out string? existingId) || existingId != id)
             {
                 IndexDocument(content, id);
