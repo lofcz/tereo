@@ -1,10 +1,8 @@
 using System.Collections.Concurrent;
 using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.NGram;
-using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
-using Lucene.Net.QueryParsers.Classic;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
@@ -16,6 +14,8 @@ public class InvertedIndex : IDisposable
 {
     private const string IndexVersion = "1.0.3";
     private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
+    
+    private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r'];
     
     private readonly FSDirectory directory;
     private readonly Analyzer analyzer;
@@ -157,7 +157,7 @@ public class InvertedIndex : IDisposable
             new StringField("content_original", content, Field.Store.YES)
         ];
         
-        string[] words = content.Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
+        string[] words = content.Split(WordDelimiters, StringSplitOptions.RemoveEmptyEntries);
         
         foreach (string word in words)
         {
@@ -288,8 +288,8 @@ public class InvertedIndex : IDisposable
     private static int FindWholeWordMatchIndex(string content, string searchString, bool caseSensitive)
     {
         StringComparison comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        string[] contentWords = content.Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
-        string[] searchWords = searchString.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        string[] contentWords = content.Split(WordDelimiters, StringSplitOptions.RemoveEmptyEntries);
+        string[] searchWords = searchString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         for (int i = 0; i <= contentWords.Length - searchWords.Length; i++)
         {
@@ -306,7 +306,7 @@ public class InvertedIndex : IDisposable
 
             if (match)
             {
-                return content.IndexOf(contentWords[i], i == 0 ? 0 : content.IndexOf(contentWords[i - 1], StringComparison.Ordinal) + contentWords[i - 1].Length, comparison);
+                return content.IndexOf(contentWords[i], i is 0 ? 0 : content.IndexOf(contentWords[i - 1], StringComparison.Ordinal) + contentWords[i - 1].Length, comparison);
             }
         }
 
@@ -334,12 +334,6 @@ public class SearchResult
     public string Content { get; set; }
     public string Id { get; set; }
     public int MatchStartIndex { get; set; }
-}
-
-public class MatchPosition
-{
-    public int Start { get; set; }
-    public int End { get; set; }
 }
 
 public class NGramAnalyzer(LuceneVersion matchVersion) : Analyzer
