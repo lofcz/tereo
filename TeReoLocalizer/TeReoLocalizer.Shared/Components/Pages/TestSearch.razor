@@ -12,16 +12,16 @@
         [
             new IndexDocument { Content = "public void Method()", Id = "1" },
             new IndexDocument { Content = "int x = 5 * 3;", Id = "2" },
-            new IndexDocument { Content = "if (condition) { }", Id = "3" }
+            new IndexDocument { Content = "if (condition) { }", Id = "3" },
+            new IndexDocument { Content = "tohle je test", Id = "4" }
         ];
 
         index.SynchronizeIndex(sourceDocuments);
         
-        string searchPattern = "* 3";
-        List<IndexDocument> results = index.Search(searchPattern);
-        List<SearchResult> results2 = index.SearchWithHighlights(searchPattern);
-
-        foreach (IndexDocument result in results)
+        string searchPattern = "X = 5 * 3";
+        List<SearchResult> results = index.Search(searchPattern);
+        
+        foreach (SearchResult result in results)
         {
             Console.WriteLine(result);
         }

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.NGram;
+using Lucene.Net.Analysis.TokenAttributes;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.QueryParsers.Classic;
@@ -13,7 +14,7 @@ namespace TeReoLocalizer.Shared.Code;
 
 public class InvertedIndex : IDisposable
 {
-    private const string IndexVersion = "1.0";
+    private const string IndexVersion = "1.0.2";
     private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
     
     private readonly FSDirectory directory;
@@ -149,12 +150,14 @@ public class InvertedIndex : IDisposable
     
     public void IndexDocument(string content, string id)
     {
-        writer.UpdateDocument(new Term("id", id), new Document
-        {
+        Document doc =
+        [
             new StringField("id", id, Field.Store.YES),
-            new TextField("content", content, Field.Store.YES)
-        });
+            new TextField("content", content.ToLowerInvariant(), Field.Store.NO),
+            new StringField("content_original", content, Field.Store.YES)
+        ];
 
+        writer.UpdateDocument(new Term("id", id), doc);
         indexedStrings[content] = id;
     }
 
@@ -213,66 +216,53 @@ public class InvertedIndex : IDisposable
         writer.Commit();
     }
 
-    public List<IndexDocument> Search(string substring)
+    public List<SearchResult> Search(string substring, bool caseSensitive = false, int page = 1, int pageSize = 150)
     {
         using DirectoryReader? reader = writer.GetReader(true);
         IndexSearcher searcher = new IndexSearcher(reader);
         
-        string escapedSubstring = QueryParserBase.Escape(substring);
-        WildcardQuery query = new WildcardQuery(new Term("content", $"*{escapedSubstring}*"));
-        ScoreDoc[]? hits = searcher.Search(query, int.MaxValue).ScoreDocs;
-
-        List<IndexDocument> results = [];
-
-        foreach (ScoreDoc? hit in hits)
+        NGramTokenizer tokenizer = new NGramTokenizer(AppLuceneVersion, new StringReader(substring), 3, Math.Min(10, substring.Length));
+        ICharTermAttribute termAtt = tokenizer.AddAttribute<ICharTermAttribute>();
+    
+        PhraseQuery phraseQuery = [];
+    
+        tokenizer.Reset();
+        while (tokenizer.IncrementToken())
         {
-            Document? doc = searcher.Doc(hit.Doc);
-            string content = doc.Get("content");
-            string id = doc.Get("id");
-            results.Add(new IndexDocument { Content = content, Id = id });
+            string token = termAtt.ToString();
+            phraseQuery.Add(new Term("content", caseSensitive ? token : token.ToLowerInvariant()));
         }
-
-        return results;
-    }
-
-    public List<SearchResult> SearchWithHighlights(string substring)
-    {
-        using DirectoryReader? reader = writer.GetReader(true);
-        IndexSearcher searcher = new IndexSearcher(reader);
-
-        string escapedSubstring = QueryParserBase.Escape(substring);
-
-        WildcardQuery query = new WildcardQuery(new Term("content", $"*{escapedSubstring}*"));
-        ScoreDoc[]? hits = searcher.Search(query, int.MaxValue).ScoreDocs;
+        
+        phraseQuery.Slop = int.MaxValue;
+        
+        int start = (page - 1) * pageSize;
+        
+        TopDocs topDocs = searcher.Search(phraseQuery, start + pageSize);
+        ScoreDoc[]? hits = topDocs.ScoreDocs;
 
         List<SearchResult> results = [];
-
-        foreach (ScoreDoc? hit in hits)
+        
+        for (int i = start; i < Math.Min(start + pageSize, hits.Length); i++)
         {
-            Document? doc = searcher.Doc(hit.Doc);
-            string content = doc.Get("content");
+            Document? doc = searcher.Doc(hits[i].Doc);
+            string content = doc.Get("content_original");
             string id = doc.Get("id");
 
-            List<MatchPosition> offsets = [];
-
-            int index = content.IndexOf(substring, StringComparison.InvariantCulture);
-            while (index >= 0)
+            int matchIndex = content.IndexOf(substring, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+            
+            if (matchIndex >= 0)
             {
-                offsets.Add(new MatchPosition { Start = index, End = index + substring.Length });
-                index = content.IndexOf(substring, index + 1, StringComparison.InvariantCulture);
+                results.Add(new SearchResult
+                {
+                    Content = content,
+                    Id = id,
+                    MatchStartIndex = matchIndex
+                });
             }
-
-            results.Add(new SearchResult
-            {
-                Id = id,
-                Content = content,
-                Matches = offsets
-            });
         }
 
         return results;
     }
-
 
     public void Dispose()
     {
@@ -287,13 +277,14 @@ public class IndexDocument
 {
     public string Content { get; set; }
     public string Id { get; set; }
+    public int MatchStartIndex { get; set; }
 }
 
 public class SearchResult
 {
-    public string Id { get; set; }
     public string Content { get; set; }
-    public List<MatchPosition> Matches { get; set; }
+    public string Id { get; set; }
+    public int MatchStartIndex { get; set; }
 }
 
 public class MatchPosition
