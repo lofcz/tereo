@@ -584,6 +584,11 @@
 
                 @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                 {
+                    if (local.Key is not (Languages.CS or Languages.PL))
+                    {
+                        continue;
+                    }
+                    
                     <td>
                         <b>@local.Key</b>
                     </td>
@@ -614,6 +619,11 @@
 
                     @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                     {
+                        if (local.Key is not (Languages.CS or Languages.PL))
+                        {
+                            continue;
+                        }
+                        
                         string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
                         <td>
                             <div class="input-group">
