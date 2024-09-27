@@ -11,6 +11,8 @@ public class Key
     public string Id { get; set; }
     [JsonIgnore]
     public bool DefaultLangContainsHtml { get; set; }
+    [JsonIgnore] 
+    public bool IsVisible { get; set; } = true;
 }
 
 public class Decl

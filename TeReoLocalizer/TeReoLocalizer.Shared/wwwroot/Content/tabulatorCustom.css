@@ -1,0 +1,26 @@
+:root {
+    interpolate-size: allow-keywords;
+}
+
+.tabulator-row .tabulator-cell {
+    overflow: hidden;
+}
+.tabulator-row.expanded-row {
+    background-color: #000 !important;
+}
+.expanded-row .tabulator-cell {
+    background-color: #000 !important;
+    max-height: 1000px;
+}
+.expanded-row:hover .tabulator-cell {
+    background-color: #000 !important;
+    overflow-wrap: anywhere !important;
+    white-space: break-spaces !important;
+}
+
+.tabulator-row .tabulator-cell textarea {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    resize: vertical;
+}

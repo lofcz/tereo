@@ -1,5 +1,6 @@
 @page "/localize"
 @using System.Collections.Concurrent
+@using System.Diagnostics
 @using System.Text
 @using System.Text.Encodings.Web
 @using System.Text.Json
@@ -10,8 +11,15 @@
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Code.Services
 @inject IJSRuntime Js
+@implements IAsyncDisposable
+@inherits ComponentBaseEx
 @code {
 
+    InvertedIndex Index => Program.Index;
+    
+    DotNetObjectReference<Localize>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+    
     string langCode = "";
     string basePath = AppDomain.CurrentDomain.BaseDirectory;
     List<string> existingFiles = [];
@@ -25,7 +33,9 @@
     string search = string.Empty;
     string? inputToFocus;
     TranslationModes translationMode = TranslationModes.Default;
-    InvertedIndex index;
+    bool synchronizingIndex;
+    string id = General.IIID();
+    bool jsInitialized;
     
     enum TranslationModes
     {
@@ -36,6 +46,12 @@
         Invalidate
     }
 
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        JsRef = DotNetObjectReference.Create(this);   
+    }
+    
     protected override bool ShouldRender()
     {
         return ready;
@@ -62,7 +78,23 @@
             decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();   
         }
 
-        index = new InvertedIndex($"{basePath}/.reoindex");
+        if (Consts.Cfg.Experimental)
+        {
+            synchronizingIndex = true;
+
+            AsyncService.Fire(async () =>
+            {
+                Index.SynchronizeIndex(decl.Keys.Select(x => new IndexDocument
+                {
+                    Id = x.Value.Id,
+                    Content = x.Value.Name
+                }).ToList());
+
+                synchronizingIndex = false;
+                StateHasChanged();
+            });   
+        }
+        
         ready = true;
     }
 
@@ -173,6 +205,27 @@
             {
                 await Js.Focus(inputToFocus);
                 inputToFocus = null;
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
+        
+        if (ready && !jsInitialized && Consts.Cfg.Experimental)
+        {
+            jsInitialized = true;
+
+            try
+            {
+                JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/tabulator.js");
+                await JsObjectRef.InvokeVoidAsync("Init", new
+                {
+                    id = id,
+                    net = JsRef,
+                    decl = decl,
+                    langs = langsData
+                });
             }
             catch (Exception e)
             {
@@ -407,8 +460,24 @@
     async Task AfterSearchUpdate(string val)
     {
         search = val;
+
+        if (Consts.Cfg.Experimental)
+        {
+            foreach (KeyValuePair<string, Key> x in decl.Keys)
+            {
+                x.Value.IsVisible = false;
+            }
+            
+            List<SearchResult> results = Index.Search(search.ToBaseLatin());
+            return;   
+        }
         
+        foreach (KeyValuePair<string, Key> x in decl.Keys)
+        {
+            x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
+        }
         
+        StateHasChanged();
     }
 
     async Task CycleTranslationMode()
@@ -423,6 +492,29 @@
         }
         
         StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (JsObjectRef is not null)
+        {
+            try
+            {
+                await JsObjectRef.InvokeVoidAsync("Destroy", new
+                {
+                    id = id
+                });
+                
+                await JsObjectRef.DisposeAsync();
+            }
+            catch (Exception e)
+            {
+                
+            }    
+        }
+
+        
+        JsRef?.Dispose();
     }
 }
 
@@ -475,63 +567,75 @@
     </code>
 }
 
-<div style="max-height: 800px; overflow: auto auto;">
-    <table class="table table-sm table-bordered table-responsive">
-        <thead>
-        <tr>
-            <td>
-                <b>Akce</b>
-            </td>
-            <td>
-                <b>Klíč</b>
-            </td>
+<div id="@id"></div>
 
-            @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
-            {
-                <td>
-                    <b>@local.Key</b>
-                </td>
-            }
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
-        {
-            if (!search.IsNullOrWhiteSpace())
-            {
-                if (!x.Key.ToBaseLatin().Contains(search.ToBaseLatin()))
-                {
-                    continue;
-                }       
-            }
-        
+@if (!Consts.Cfg.Experimental)
+{
+    <div style="max-height: 800px; overflow: auto auto;">
+        <table class="table table-sm table-bordered table-responsive">
+            <thead>
             <tr>
-                <td style="display: flex; gap: 5px; flex-flow: nowrap;">
-                    <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await Delete(x.Key))">Smazat</button>
-                    <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
+                <td>
+                    <b>Akce</b>
                 </td>
                 <td>
-                    <div style="max-width: 300px;">
-                        <code>@x.Key</code>
-                    </div>
+                    <b>Klíč</b>
                 </td>
 
                 @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                 {
-                    string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
                     <td>
-                        <div class="input-group">
-                            <input id="@($"input_{local.Key}_{x.Key}")" @key="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
-                        </div>
+                        <b>@local.Key</b>
                     </td>
                 }
             </tr>
-        }
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+            @foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
+            {
+                if (!search.IsNullOrWhiteSpace())
+                {
+                    if (!x.Value.IsVisible)
+                    {
+                        continue;
+                    }       
+                }
+            
+                <tr>
+                    <td style="display: flex; gap: 5px; flex-flow: nowrap;">
+                        <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await Delete(x.Key))">Smazat</button>
+                        <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
+                    </td>
+                    <td>
+                        <div style="max-width: 300px;">
+                            <code>@x.Key</code>
+                        </div>
+                    </td>
+
+                    @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                    {
+                        string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
+                        <td>
+                            <div class="input-group">
+                                <input id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>    
+}
+
 <div style="margin-top: 1rem; display: flex; gap: 100px;">
     <div>
         <div>Klíčů: @(decl.Keys.Count)</div>
+    </div>
+    <div>
+        @if (synchronizingIndex)
+        {
+            <div>Probíhá synchronizace indexu..</div>
+        }
     </div>
 </div>

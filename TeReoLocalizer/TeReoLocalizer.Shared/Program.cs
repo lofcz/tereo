@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics;
+using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components;
 
@@ -7,10 +8,17 @@ namespace TeReoLocalizer.Shared;
 
 public class Program
 {
+    public static InvertedIndex Index;
+    
     public static void Main(string[] args)
     {
         InitService.Init();
-        
+
+        if (Consts.Cfg.Experimental)
+        {
+            Index = new InvertedIndex($"{Consts.Cfg.Repository}/.reoindex");   
+        }
+
         string appType = "WEB";
         
         foreach (string? arg in args)
@@ -31,7 +39,7 @@ public class Program
             SharedProxy.IsMaui = false;
         }
         
-        WebApplicationBuilder? builder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
         builder.Services.AddRazorComponents()
@@ -41,7 +49,13 @@ public class Program
             });
 
         WebApplication? app = builder.Build();
+        IHostApplicationLifetime lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 
+        lifetime.ApplicationStopping.Register(() =>
+        {
+            Index.Dispose();
+        });
+        
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler(errorApp =>

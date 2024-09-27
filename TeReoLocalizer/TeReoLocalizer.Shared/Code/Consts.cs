@@ -9,6 +9,7 @@ public class Config
     public bool ConfigReadOk { get; set; }
     public string Repository { get; set; }
     public string DeepL { get; set; }
+    public bool Experimental { get; set; }
 }
 
 public class Consts
