@@ -17,16 +17,19 @@ public class Key
 
 public class Decl
 {
+    [JsonConverter(typeof(SortedDictionaryConverter<string, Key>))]
     public ConcurrentDictionary<string, Key> Keys { get; set; } = [];
 }
 
 public class LangsData
 {
+    [JsonConverter(typeof(SortedDictionaryConverter<Languages, LangData>))]
     public ConcurrentDictionary<Languages, LangData> Langs { get; set; } = [];
 }
 
 public class LangData
 {
+    [JsonConverter(typeof(SortedDictionaryConverter<string, string>))]
     public ConcurrentDictionary<string, string> Data { get; set; } = [];
     [JsonIgnore] 
     public bool Visible { get; set; } = true;
