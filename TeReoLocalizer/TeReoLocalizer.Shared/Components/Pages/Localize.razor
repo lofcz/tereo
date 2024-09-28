@@ -20,7 +20,8 @@
 
     DotNetObjectReference<Localize>? JsRef { get; set; }
     IJSObjectReference? JsObjectRef;
-
+    IJSObjectReference? JsObjectRefNative;
+    
     string langCode = "";
     string basePath = AppDomain.CurrentDomain.BaseDirectory;
     List<string> existingFiles = [];
@@ -34,10 +35,44 @@
     string search = string.Empty;
     string? inputToFocus;
     TranslationModes translationMode = TranslationModes.Default;
+    RenderModes renderMode = RenderModes.Input;
     bool synchronizingIndex;
     string id = General.IIID();
     bool jsInitialized;
+    List<NativeCommand> nativeCommands = [];
+    UserSettings userSettings = new UserSettings();
+    List<KeyValuePair<string, Key>> visibleKeys = [];
+    int keyPages = -1;
+    int keySelectedPage = 1;
 
+    class UserSettings
+    {
+        public List<Languages>? ShowLangs { get; set; }
+        public RenderModes RenderMode { get; set; } = RenderModes.Input;
+        public int LimitRender { get; set; }
+    }
+    
+    class NativeCommand
+    {
+        public NativeCommands Type { get; set; }
+        public object? Data { get; set; }
+    }
+    
+    enum NativeCommands
+    {
+        Unknown,
+        SetTextareaHeight
+    }
+
+    enum RenderModes
+    {
+        Unknown,
+        [StringValue("Jednořádkový text")] 
+        Input,
+        [StringValue("Víceřádkový text")]
+        Textarea
+    }
+    
     enum TranslationModes
     {
         Unknown,
@@ -96,6 +131,7 @@
             });
         }
 
+        RecomputeVisibleKeys();
         ready = true;
     }
 
@@ -171,13 +207,19 @@
                 await SetKey(Languages.CS, newKeyCopy, baseKey);
             }
 
-            if (!search.Contains(newKeyCopy))
+            if (!search.IsNullOrWhiteSpace() && !search.Contains(newKeyCopy))
             {
                 search = string.Empty;
             }
 
+            foreach (KeyValuePair<string, Key> x in decl.Keys)
+            {
+                x.Value.IsVisible = true;
+            }
+            
             newKey = string.Empty;
             inputToFocus = $"input_CS_{newKeyCopy}";
+            RecomputeVisibleKeys(true, newKeyCopy);
             StateHasChanged();
         }
         else
@@ -212,23 +254,62 @@
             }
         }
 
-        if (ready && !jsInitialized && Consts.Cfg.Experimental)
+        if (ready && !jsInitialized)
         {
             jsInitialized = true;
 
-            try
+            if (Consts.Cfg.Experimental)
             {
-                JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/tabulator.js");
-                await JsObjectRef.InvokeVoidAsync("Init", new
+                try
                 {
-                    id = id,
-                    net = JsRef,
-                    decl = decl,
-                    langs = langsData
-                });
+                    JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/tabulator.js");
+                    await JsObjectRef.InvokeVoidAsync("Init", new
+                    {
+                        id = id,
+                        net = JsRef,
+                        decl = decl,
+                        langs = langsData
+                    });
+                }
+                catch (Exception e)
+                {
+                }   
             }
-            catch (Exception e)
+            else
             {
+                try
+                {
+                    JsObjectRefNative = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/native.js");
+                    await JsObjectRefNative.InvokeVoidAsync("Init", new
+                    {
+                        id = id,
+                        net = JsRef
+                    });
+                }
+                catch (Exception e)
+                {
+                }   
+            }
+        }
+        else if (jsInitialized)
+        {
+            if (nativeCommands.Count > 0 && JsObjectRefNative is not null)
+            {
+                try
+                {
+                    List<NativeCommand> copy = [..nativeCommands];
+                    nativeCommands.Clear();
+                    
+                    await JsObjectRefNative.InvokeVoidAsync("ProcessCommands", new
+                    {
+                        id = id,
+                        commands = copy
+                    });
+                }
+                catch (Exception e)
+                {
+                    
+                }
             }
         }
     }
@@ -256,6 +337,65 @@
             }
 
             await SaveLanguages();
+        }
+    }
+
+    void RecomputeVisibleKeys(bool resetPaging = false, string? keyToFocus = null)
+    {
+        visibleKeys.Clear();
+
+        if (resetPaging)
+        {
+            keySelectedPage = 1;
+            keyPages = 0;
+        }
+
+        if (userSettings.LimitRender <= 0)
+        {
+            foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
+            {
+                if (x.Value.IsVisible)
+                {
+                    visibleKeys.Add(x);   
+                }
+            }   
+        }
+        else
+        {
+            List<KeyValuePair<string, Key>> keys = decl.Keys.OrderBy(x => x.Key).Where(x => x.Value.IsVisible).ToList();
+            keyPages = (int)Math.Ceiling(keys.Count / (double)userSettings.LimitRender);
+            int take = userSettings.LimitRender;
+            
+            if (keyToFocus is not null)
+            {
+                if (decl.Keys.TryGetValue(keyToFocus, out Key? match))
+                {
+                    int index = keys.BinarySearch(new KeyValuePair<string, Key>(keyToFocus, match), Comparer<KeyValuePair<string, Key>>.Create((a, b) => string.CompareOrdinal(a.Key, b.Key)));
+
+                    if (index < 0)
+                    {
+                        index = ~index;
+                    }
+                    
+                    int indexPage = (int)Math.Ceiling(index / (double)take);
+                    keySelectedPage = indexPage;
+                }
+            }
+            
+            int skip = userSettings.LimitRender * (keySelectedPage - 1);
+            
+            foreach (KeyValuePair<string, Key> x in keys.Skip(skip).Take(take))
+            {
+                visibleKeys.Add(x);
+            }
+
+            if (renderMode is RenderModes.Textarea)
+            {
+                nativeCommands.Add(new NativeCommand
+                {
+                    Type = NativeCommands.SetTextareaHeight
+                });   
+            }
         }
     }
 
@@ -307,7 +447,7 @@
                 decl.Keys.TryRemove(key, out _);
                 decl.Keys.TryAdd(str, kVal);
 
-
+                RecomputeVisibleKeys();
                 await SaveDecl();
             }
 
@@ -343,6 +483,7 @@
                 await SaveDecl();
             }
 
+            RecomputeVisibleKeys();
             StateHasChanged();
         }
     }
@@ -474,7 +615,8 @@
         {
             x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
         }
-
+        
+        RecomputeVisibleKeys(true);
         StateHasChanged();
     }
 
@@ -491,6 +633,25 @@
 
         StateHasChanged();
     }
+    
+    async Task CycleInputMode()
+    {
+        if (renderMode < RenderModes.Textarea)
+        {
+            renderMode++;
+            nativeCommands.Add(new NativeCommand
+            {
+                Type = NativeCommands.SetTextareaHeight
+            });
+        }
+        else
+        {
+            renderMode = RenderModes.Input;
+        }
+
+        StateHasChanged();
+    }
+
 
     public async ValueTask DisposeAsync()
     {
@@ -509,6 +670,22 @@
             {
             }
         }
+        
+        if (JsObjectRefNative is not null)
+        {
+            try
+            {
+                await JsObjectRefNative.InvokeVoidAsync("Destroy", new
+                {
+                    id = id
+                });
+
+                await JsObjectRefNative.DisposeAsync();
+            }
+            catch (Exception e)
+            {
+            }
+        }
 
 
         JsRef?.Dispose();
@@ -517,6 +694,20 @@
     async Task AfterLanguageToggle(KeyValuePair<Languages, LangData> local, bool visible)
     {
         local.Value.Visible = visible;
+    }
+
+    async Task AfterLimitUpdate(int value)
+    {
+        userSettings.LimitRender = value;
+        RecomputeVisibleKeys(true);
+        StateHasChanged();
+    }
+
+    async Task SetKeyPage(int page)
+    {
+        keySelectedPage = page;
+        RecomputeVisibleKeys();
+        StateHasChanged();
     }
 }
 
@@ -571,7 +762,7 @@
         <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
         <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
         <button class="btn btn-secondary btn-sm" @onclick="ForceSave">Vynutit uložení</button>
-        <button class="@($"btn btn-sm {(translationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Režim: @(translationMode.GetStringValue())</button>
+        <button class="@($"btn btn-sm {(translationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(translationMode.GetStringValue().FirstLetterToLower())</button>
     </div>
 
     <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
@@ -596,21 +787,26 @@
 
 <div id="@id"></div>
 
-@if (!Consts.Cfg.Experimental)
+@if (ready && !Consts.Cfg.Experimental)
 {
     <div style="max-height: 800px; overflow: auto auto;">
         <table class="table table-sm table-bordered table-responsive">
             <thead>
             <tr>
-                <td>
+                <td style="width: 140px;">
                     <b>Akce</b>
                 </td>
-                <td>
+                <td style="width: 300px;">
                     <b>Klíč</b>
                 </td>
 
                 @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                 {
+                    if (!local.Value.Visible)
+                    {
+                        continue;
+                    }
+                    
                     <td>
                         <b>@local.Key</b>
                     </td>
@@ -618,22 +814,14 @@
             </tr>
             </thead>
             <tbody>
-            @foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
+            @foreach (KeyValuePair<string, Key> x in visibleKeys)
             {
-                if (!search.IsNullOrWhiteSpace())
-                {
-                    if (!x.Value.IsVisible)
-                    {
-                        continue;
-                    }
-                }
-
                 <tr>
-                    <td style="display: flex; gap: 5px; flex-flow: nowrap;">
+                    <td>
                         <button class="btn btn-secondary btn-sm" @onclick="@(async () => await Delete(x.Key))">Smazat</button>
                         <button class="btn btn-secondary btn-sm" @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
                     </td>
-                    <td>
+                    <td style="width: 300px;">
                         <div style="max-width: 300px;">
                             <code>@x.Key</code>
                         </div>
@@ -644,7 +832,15 @@
                         string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
                         <td>
                             <div class="input-group">
-                                <input id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>
+                                
+                                @if (renderMode is RenderModes.Input)
+                                {
+                                    <input @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>   
+                                }
+                                else
+                                {
+                                    <textarea @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"></textarea>
+                                }
                             </div>
                         </td>
                     }
@@ -655,14 +851,48 @@
     </div>
 }
 
-<div style="margin-top: 1rem; display: flex; gap: 100px;">
-    <div>
-        <div>Klíčů: @(decl.Keys.Count)</div>
-    </div>
-    <div>
-        @if (synchronizingIndex)
-        {
-            <div>Probíhá synchronizace indexu..</div>
-        }
-    </div>
-</div>
+@if (ready)
+{
+    <div style="margin-top: 1rem; display: flex; gap: 100px;">
+        <div>
+            <div>Klíčů: @(decl.Keys.Count)</div>
+        </div>
+        
+        <div>
+            <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(renderMode.GetStringValue().FirstLetterToLower())</button>
+        </div>
+
+        <div style="display: flex; gap: 20px;">
+            <div>
+                <div style="display: flex; gap: 15px;">
+                    <div style="white-space: nowrap;" class="form-label">Zobrazit klíčů (0 = všechny):</div>
+                    <input style="width: 100px;" type="number" class="form-control" id="limitRender" @bind:set="AfterLimitUpdate" @bind:get="userSettings.LimitRender">
+                </div>
+
+                @if (keyPages > 1)
+                {
+                    <div style="max-width: calc(100vw - 700px);">
+                        <div style="margin-right: 10px;">Strana:</div>
+                        <ul class="pagination" style="flex-flow: wrap;">
+                            @for (int i = 0; i < keyPages; i++)
+                            {
+                                int pageIndex = i + 1;
+
+                                <li @onclick="@(async () => await SetKeyPage(pageIndex))" style="user-select: none; cursor: pointer;" class="page-item @(pageIndex == keySelectedPage ? "active" : string.Empty)">
+                                    <span class="page-link">@pageIndex</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div style="margin-left: auto;">
+            @if (synchronizingIndex)
+            {
+                <div>Probíhá synchronizace indexu..</div>
+            }
+        </div>
+    </div>   
+}

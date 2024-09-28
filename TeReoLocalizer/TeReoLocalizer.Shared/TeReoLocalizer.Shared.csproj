@@ -30,6 +30,7 @@
 
     <ItemGroup>
       <TypeScriptCompile Include="wwwroot\Scripts\nanoMcf.ts" />
+      <TypeScriptCompile Include="wwwroot\Scripts\Scoped\native.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\tabulator.ts" />
     </ItemGroup>
 

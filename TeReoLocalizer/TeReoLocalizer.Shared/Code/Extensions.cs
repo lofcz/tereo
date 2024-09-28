@@ -68,6 +68,21 @@ public static class Extensions
         return str.ToUpper();
     }
     
+    public static string FirstLetterToLower(this string? str)
+    {
+        if (str == null)
+        {
+            return "";
+        }
+
+        if (str.Length > 1)
+        {
+            return char.ToLower(str[0]) + str[1..];
+        }
+
+        return str.ToLower();
+    }
+    
     private static readonly Regex HtmlHeuristicRegex = new Regex("<\\s*([a-z][a-z0-9]*)\\b[^>]*>(.*?<\\s*\\/\\s*\\1\\s*>)?", RegexOptions.Compiled);
 
     public static bool ProbablyContainsHtml(this string? str)
