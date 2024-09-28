@@ -13,13 +13,14 @@
 @inject IJSRuntime Js
 @implements IAsyncDisposable
 @inherits ComponentBaseEx
+
 @code {
 
     InvertedIndex Index => Program.Index;
-    
+
     DotNetObjectReference<Localize>? JsRef { get; set; }
     IJSObjectReference? JsObjectRef;
-    
+
     string langCode = "";
     string basePath = AppDomain.CurrentDomain.BaseDirectory;
     List<string> existingFiles = [];
@@ -36,22 +37,20 @@
     bool synchronizingIndex;
     string id = General.IIID();
     bool jsInitialized;
-    
+
     enum TranslationModes
     {
         Unknown,
-        [StringValue("Výchozí")]
-        Default,
-        [StringValue("Zneplatnění")]
-        Invalidate
+        [StringValue("Výchozí")] Default,
+        [StringValue("Zneplatnění")] Invalidate
     }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        JsRef = DotNetObjectReference.Create(this);   
+        JsRef = DotNetObjectReference.Create(this);
     }
-    
+
     protected override bool ShouldRender()
     {
         return ready;
@@ -63,10 +62,10 @@
         {
             basePath = Consts.Cfg.Repository;
         }
-        
+
         await base.OnInitializedAsync();
         await ShowLanguages(false);
-        
+
         if (!Directory.Exists($"{basePath}/TeReo"))
         {
             Directory.CreateDirectory($"{basePath}/TeReo");
@@ -75,7 +74,7 @@
         if (File.Exists($"{basePath}/TeReo/decl.json"))
         {
             string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
-            decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();   
+            decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();
         }
 
         if (Consts.Cfg.Experimental)
@@ -92,9 +91,9 @@
 
                 synchronizingIndex = false;
                 StateHasChanged();
-            });   
+            });
         }
-        
+
         ready = true;
     }
 
@@ -103,7 +102,7 @@
         if (!File.Exists($"{basePath}/TeReo/lang_{langCode}.json"))
         {
             await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{langCode}.json", "{}");
-            
+
             await ShowLanguages(false);
             StateHasChanged();
         }
@@ -112,16 +111,16 @@
             await Js.InvokeVoidAsync("alert", $"Jazyk '{langCode}' je již přidán");
         }
     }
-    
+
     async Task ShowLanguages(bool sl)
     {
         if (sl)
         {
-            showLangs = true;   
+            showLangs = true;
         }
-        
+
         existingFiles = Directory.GetFiles($"{basePath}/TeReo").ToList();
-        
+
         await Parallel.ForEachAsync(existingFiles, async (str, ctx) =>
         {
             string lang = Path.GetFileName(str).Replace(".json", string.Empty).Replace("lang_", string.Empty);
@@ -130,16 +129,16 @@
             {
                 return;
             }
-            
+
             string data = await File.ReadAllTextAsync(str, ctx);
             LangData? parsed = JsonSerializer.Deserialize<LangData>(data);
 
             langsData.Langs.TryAdd(result, parsed ?? new LangData());
         });
-        
+
         if (sl)
         {
-            StateHasChanged();   
+            StateHasChanged();
         }
     }
 
@@ -149,12 +148,12 @@
         {
             return;
         }
-        
+
         string newKeyCopy = newKey.Trim().FirstLetterToUpper();
         string baseKey = newKey;
-        
+
         newKeyCopy = Localizer.BaseIdentifier(newKeyCopy);
-        
+
         Key localKey = new Key
         {
             Name = newKeyCopy,
@@ -164,17 +163,17 @@
         if (decl.Keys.TryAdd(localKey.Name, localKey))
         {
             await SaveDecl();
-            
+
             if (newKeyCopy != baseKey)
             {
                 await SetKey(Languages.CS, newKeyCopy, baseKey);
             }
-            
+
             if (!search.Contains(newKeyCopy))
             {
-                search = string.Empty;   
+                search = string.Empty;
             }
-            
+
             newKey = string.Empty;
             inputToFocus = $"input_CS_{newKeyCopy}";
             StateHasChanged();
@@ -208,10 +207,9 @@
             }
             catch (Exception e)
             {
-                
             }
         }
-        
+
         if (ready && !jsInitialized && Consts.Cfg.Experimental)
         {
             jsInitialized = true;
@@ -229,7 +227,6 @@
             }
             catch (Exception e)
             {
-                
             }
         }
     }
@@ -237,9 +234,9 @@
     async Task SetKey(Languages language, string key, string value)
     {
         LangData lang = langsData.Langs[language];
-        
+
         lang.Data[key] = value;
-        
+
         if (!File.Exists($"{basePath}/TeReo/lang_{language}.json"))
         {
             await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", "{}");
@@ -247,7 +244,7 @@
 
         if (translationMode is TranslationModes.Default)
         {
-            await SaveLanguage(language);   
+            await SaveLanguage(language);
         }
         else
         {
@@ -255,7 +252,7 @@
             {
                 x.Value.Data.TryRemove(key, out _);
             }
-            
+
             await SaveLanguages();
         }
     }
@@ -274,7 +271,7 @@
         });
         await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
     }
-    
+
     async Task SaveLanguages()
     {
         foreach (KeyValuePair<Languages, LangData> lang in langsData.Langs)
@@ -286,11 +283,11 @@
     async Task UpdateKey(string key)
     {
         string str = await Js.InvokeAsync<string>("prompt", "Nový název klíče", key);
-        
+
         if (!str.IsNullOrWhiteSpace())
         {
             str = str.Trim();
-            
+
             foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
             {
                 if (x.Value.Data.TryGetValue(key, out string? strValue))
@@ -314,12 +311,12 @@
 
             if (!search.Contains(str))
             {
-                search = string.Empty;   
+                search = string.Empty;
             }
-            
+
             inputToFocus = str;
         }
-        
+
         StateHasChanged();
     }
 
@@ -343,7 +340,7 @@
                 decl.Keys.TryRemove(key, out _);
                 await SaveDecl();
             }
-            
+
             StateHasChanged();
         }
     }
@@ -359,7 +356,7 @@
             await Js.Toast(ToastTypes.Success, "Kód vygenerován a zapsán");
             return code;
         }
-        
+
         generatedCode = code;
         StateHasChanged();
 
@@ -390,12 +387,12 @@
         {
             return;
         }
-        
+
         translating = true;
         StateHasChanged();
-        
+
         Translator translator = new Translator(Consts.Cfg.DeepL);
-        
+
         foreach (KeyValuePair<string, Key> keys in decl.Keys)
         {
             foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
@@ -404,10 +401,10 @@
                 {
                     continue;
                 }
-                
+
                 string? currentVal = null;
                 bool adding = true;
-                
+
                 if (x.Value.Data.TryGetValue(keys.Key, out string? strValue))
                 {
                     currentVal = strValue;
@@ -434,16 +431,15 @@
                             {
                                 x.Value.Data[keys.Key] = result.Text;
                             }
-                            
+
                             StateHasChanged();
                         }
                         catch (Exception e)
                         {
-                            
                         }
                     }
                 }
-            }   
+            }
         }
 
         await SaveLanguages();
@@ -467,16 +463,16 @@
             {
                 x.Value.IsVisible = false;
             }
-            
+
             List<SearchResult> results = Index.Search(search.ToBaseLatin());
-            return;   
+            return;
         }
-        
+
         foreach (KeyValuePair<string, Key> x in decl.Keys)
         {
             x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
         }
-        
+
         StateHasChanged();
     }
 
@@ -490,7 +486,7 @@
         {
             translationMode = TranslationModes.Default;
         }
-        
+
         StateHasChanged();
     }
 
@@ -504,40 +500,69 @@
                 {
                     id = id
                 });
-                
+
                 await JsObjectRef.DisposeAsync();
             }
             catch (Exception e)
             {
-                
-            }    
+            }
         }
 
-        
+
         JsRef?.Dispose();
+    }
+
+    async Task AfterLanguageToggle(KeyValuePair<Languages, LangData> local, bool visible)
+    {
+        local.Value.Visible = visible;
     }
 }
 
 <div style="display: flex; gap: 100px;">
-    
-    <div style="margin-bottom: 2rem;">
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
-            <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
-            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="@(async () => await ShowLanguages(true))">Zobrazit existující jazyky</button>
-        </div>
 
-        @if (showLangs && existingFiles.Count > 0)
-        {
-            foreach (string lang in existingFiles)
+    @if (false)
+    {
+        <div style="margin-bottom: 2rem;">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
+                <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
+                <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="@(async () => await ShowLanguages(true))">Zobrazit existující jazyky</button>
+            </div>
+
+            @if (showLangs && existingFiles.Count > 0)
             {
-                <div>@lang</div>
+                foreach (string lang in existingFiles)
+                {
+                    <div>@lang</div>
+                }
             }
+        </div>
+    }
+    else
+    {
+        if (langsData.Langs.Count is 0)
+        {
+            <div>Lokalizace se načítá..</div>
         }
-    </div>
+        else
+        {
+            <div style="margin-bottom: 2rem;">
+                <div style="display: flex; gap: 15px;">
+                    <div>Zobrazit:</div>
+                    @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                    {
+                        <div class="form-check">
+                            <input style="cursor: pointer;" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
+                            <label style="cursor: pointer; user-select: none;" class="form-check-label" for="@($"langShow_{local.Key}")">@local.Key</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
 
     <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
-        <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat" />
+        <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat"/>
     </div>
 
     <div style="margin-bottom: 1rem;">
@@ -598,13 +623,13 @@
                     if (!x.Value.IsVisible)
                     {
                         continue;
-                    }       
+                    }
                 }
-            
+
                 <tr>
                     <td style="display: flex; gap: 5px; flex-flow: nowrap;">
-                        <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await Delete(x.Key))">Smazat</button>
-                        <button class="btn btn-secondary btn-sm"  @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
+                        <button class="btn btn-secondary btn-sm" @onclick="@(async () => await Delete(x.Key))">Smazat</button>
+                        <button class="btn btn-secondary btn-sm" @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
                     </td>
                     <td>
                         <div style="max-width: 300px;">
@@ -625,7 +650,7 @@
             }
             </tbody>
         </table>
-    </div>    
+    </div>
 }
 
 <div style="margin-top: 1rem; display: flex; gap: 100px;">

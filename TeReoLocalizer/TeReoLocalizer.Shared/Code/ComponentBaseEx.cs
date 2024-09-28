@@ -285,7 +285,7 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
         }
 
 
-        var task = OnInitializedAsync();
+        Task task = OnInitializedAsync();
 
         
         if (task.Status != TaskStatus.RanToCompletion && task.Status != TaskStatus.Canceled)
@@ -322,12 +322,12 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
     private Task CallOnParametersSetAsync()
     {
         OnParametersSet();
-        var task = OnParametersSetAsync();
+        Task task = OnParametersSetAsync();
         // If no async work is to be performed, i.e. the task has already ran to completion
         // or was canceled by the time we got to inspect it, avoid going async and re-invoking
         // StateHasChanged at the culmination of the async work.
-        var shouldAwaitTask = task.Status != TaskStatus.RanToCompletion &&
-                              task.Status != TaskStatus.Canceled;
+        bool shouldAwaitTask = task.Status != TaskStatus.RanToCompletion &&
+                               task.Status != TaskStatus.Canceled;
 
         // We always call StateHasChanged here as we want to trigger a rerender after OnParametersSet and
         // the synchronous part of OnParametersSetAsync has run.
@@ -360,9 +360,9 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
 
     Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem callback, object? arg)
     {
-        var task = callback.InvokeAsync(arg);
-        var shouldAwaitTask = task.Status != TaskStatus.RanToCompletion &&
-                              task.Status != TaskStatus.Canceled;
+        Task task = callback.InvokeAsync(arg);
+        bool shouldAwaitTask = task.Status != TaskStatus.RanToCompletion &&
+                               task.Status != TaskStatus.Canceled;
 
         // After each event, we synchronously re-render (unless !ShouldRender())
         // This just saves the developer the trouble of putting "StateHasChanged();"
@@ -376,7 +376,7 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
 
     Task IHandleAfterRender.OnAfterRenderAsync()
     {
-        var firstRender = !_hasCalledOnAfterRender;
+        bool firstRender = !_hasCalledOnAfterRender;
         _hasCalledOnAfterRender = true;
 
         OnAfterRender(firstRender);

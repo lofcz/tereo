@@ -28,6 +28,8 @@ public class LangsData
 public class LangData
 {
     public ConcurrentDictionary<string, string> Data { get; set; } = [];
+    [JsonIgnore] 
+    public bool Visible { get; set; } = true;
 }
 
 public enum ToastTypes
