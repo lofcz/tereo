@@ -68,6 +68,25 @@ public static class Extensions
         return str.ToUpper();
     }
     
+    private static JsonSerializerOptions IndendedSerializer = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+    
+        
+    private static JsonSerializerOptions UnindendedSerializer = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+
+    public static string ToJson(this object data, bool prettify = false)
+    {
+        return JsonSerializer.Serialize(data, prettify ? IndendedSerializer : UnindendedSerializer);
+    }
+    
     public static string FirstLetterToLower(this string? str)
     {
         if (str == null)
@@ -116,11 +135,6 @@ public static class Extensions
         }
 
         return sb.ToString();
-    }
-    
-    public static string ToJson(this object? obj, bool prettify = false)
-    {
-        return obj is null ? "{}" : JsonSerializer.Serialize(obj, prettify ? defaultOptionsPretty : defaultOptions);
     }
     
     public static T? JsonDecode<T>(this string? s)

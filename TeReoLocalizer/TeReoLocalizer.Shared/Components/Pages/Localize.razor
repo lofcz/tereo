@@ -34,8 +34,6 @@
     bool translating;
     string search = string.Empty;
     string? inputToFocus;
-    TranslationModes translationMode = TranslationModes.Default;
-    RenderModes renderMode = RenderModes.Input;
     bool synchronizingIndex;
     string id = General.IIID();
     bool jsInitialized;
@@ -49,6 +47,7 @@
     {
         public List<Languages>? ShowLangs { get; set; }
         public RenderModes RenderMode { get; set; } = RenderModes.Input;
+        public TranslationModes TranslationMode { get; set; } = TranslationModes.Default;
         public int LimitRender { get; set; }
     }
     
@@ -112,6 +111,19 @@
         {
             string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
             decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();
+        }
+
+        if (File.Exists($"userSettings.json"))
+        {
+            userSettings = (await File.ReadAllTextAsync($"userSettings.json")).JsonDecode<UserSettings>() ?? userSettings;
+
+            if (userSettings.ShowLangs is not null)
+            {
+                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+                {
+                    x.Value.Visible = userSettings.ShowLangs.Contains(x.Key);
+                }
+            }
         }
 
         if (Consts.Cfg.Experimental)
@@ -283,7 +295,8 @@
                     await JsObjectRefNative.InvokeVoidAsync("Init", new
                     {
                         id = id,
-                        net = JsRef
+                        net = JsRef,
+                        settings = userSettings
                     });
                 }
                 catch (Exception e)
@@ -325,7 +338,7 @@
             await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", "{}");
         }
 
-        if (translationMode is TranslationModes.Default)
+        if (userSettings.TranslationMode is TranslationModes.Default)
         {
             await SaveLanguage(language);
         }
@@ -389,7 +402,7 @@
                 visibleKeys.Add(x);
             }
 
-            if (renderMode is RenderModes.Textarea)
+            if (userSettings.RenderMode is RenderModes.Textarea)
             {
                 nativeCommands.Add(new NativeCommand
                 {
@@ -622,13 +635,13 @@
 
     async Task CycleTranslationMode()
     {
-        if (translationMode < TranslationModes.Invalidate)
+        if (userSettings.TranslationMode < TranslationModes.Invalidate)
         {
-            translationMode++;
+            userSettings.TranslationMode++;
         }
         else
         {
-            translationMode = TranslationModes.Default;
+            userSettings.TranslationMode = TranslationModes.Default;
         }
 
         StateHasChanged();
@@ -636,9 +649,9 @@
     
     async Task CycleInputMode()
     {
-        if (renderMode < RenderModes.Textarea)
+        if (userSettings.RenderMode < RenderModes.Textarea)
         {
-            renderMode++;
+            userSettings.RenderMode++;
             nativeCommands.Add(new NativeCommand
             {
                 Type = NativeCommands.SetTextareaHeight
@@ -646,10 +659,11 @@
         }
         else
         {
-            renderMode = RenderModes.Input;
+            userSettings.RenderMode = RenderModes.Input;
         }
 
         StateHasChanged();
+        await SaveUserSettings();
     }
 
 
@@ -694,6 +708,8 @@
     async Task AfterLanguageToggle(KeyValuePair<Languages, LangData> local, bool visible)
     {
         local.Value.Visible = visible;
+        userSettings.ShowLangs = langsData.Langs.Where(x => x.Value.Visible).Select(x => x.Key).ToList();
+        await SaveUserSettings();
     }
 
     async Task AfterLimitUpdate(int value)
@@ -701,6 +717,7 @@
         userSettings.LimitRender = value;
         RecomputeVisibleKeys(true);
         StateHasChanged();
+        await SaveUserSettings();
     }
 
     async Task SetKeyPage(int page)
@@ -708,6 +725,11 @@
         keySelectedPage = page;
         RecomputeVisibleKeys();
         StateHasChanged();
+    }
+
+    async Task SaveUserSettings()
+    {
+        await File.WriteAllTextAsync($"userSettings.json", userSettings.ToJson());
     }
 }
 
@@ -762,7 +784,7 @@
         <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
         <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
         <button class="btn btn-secondary btn-sm" @onclick="ForceSave">Vynutit uložení</button>
-        <button class="@($"btn btn-sm {(translationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(translationMode.GetStringValue().FirstLetterToLower())</button>
+        <button class="@($"btn btn-sm {(userSettings.TranslationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(userSettings.TranslationMode.GetStringValue().FirstLetterToLower())</button>
     </div>
 
     <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
@@ -790,15 +812,15 @@
 @if (ready && !Consts.Cfg.Experimental)
 {
     <div style="max-height: 800px; overflow: auto auto;">
-        <table class="table table-sm table-bordered table-responsive">
+        <table id="@($"table_{id}")" class="table table-sm table-bordered table-responsive tableMain">
             <thead>
             <tr>
-                <td style="width: 140px;">
+                <th style="width: 140px;">
                     <b>Akce</b>
-                </td>
-                <td style="width: 300px;">
+                </th>
+                <th data-rtc-resizable="key" style="width: 300px;">
                     <b>Klíč</b>
-                </td>
+                </th>
 
                 @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                 {
@@ -807,9 +829,9 @@
                         continue;
                     }
                     
-                    <td>
+                    <th data-rtc-resizable="@local.Key">
                         <b>@local.Key</b>
-                    </td>
+                    </th>
                 }
             </tr>
             </thead>
@@ -829,11 +851,16 @@
 
                     @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                     {
+                        if (!local.Value.Visible)
+                        {
+                            continue;
+                        }
+                        
                         string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
                         <td>
                             <div class="input-group">
                                 
-                                @if (renderMode is RenderModes.Input)
+                                @if (userSettings.RenderMode is RenderModes.Input)
                                 {
                                     <input @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>   
                                 }
@@ -859,7 +886,7 @@
         </div>
         
         <div>
-            <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(renderMode.GetStringValue().FirstLetterToLower())</button>
+            <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(userSettings.RenderMode.GetStringValue().FirstLetterToLower())</button>
         </div>
 
         <div style="display: flex; gap: 20px;">

@@ -4,10 +4,27 @@ enum NativeCommands
     SetTextareaHeight
 }
 
+enum RenderModes
+{
+    Unknown,
+    Input,
+    Textarea
+}
+
+
 export async function Init(pars = {
     id: "",
-    net: {}
+    net: {},
+    settings: {}
 }) {
+    
+    /*await mcf.requireCssAsync("columns");
+    await mcf.requireLibAsync("columns");
+
+    new window["validide_resizableTableColumns"].ResizableTableColumns(document.getElementById(`table_${pars.id}`), {
+        resizeFromBody: false
+    });*/
+
     const nativeProcessor = {
         processCommands: async (cmds: any) => {
             for (var cmd of cmds) {
@@ -56,6 +73,12 @@ export async function Init(pars = {
     };
     
     window["nativeProcessor"] = nativeProcessor;
+    
+    if (pars.settings && pars.settings["renderMode"] === 2) {
+        await nativeProcessor.processCommand({
+            type: NativeCommands.SetTextareaHeight
+        })
+    }
 }
 
 export async function ProcessCommands(pars = {

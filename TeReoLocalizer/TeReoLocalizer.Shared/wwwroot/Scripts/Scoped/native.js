@@ -3,9 +3,16 @@ var NativeCommands;
     NativeCommands[NativeCommands["Unknown"] = 0] = "Unknown";
     NativeCommands[NativeCommands["SetTextareaHeight"] = 1] = "SetTextareaHeight";
 })(NativeCommands || (NativeCommands = {}));
+var RenderModes;
+(function (RenderModes) {
+    RenderModes[RenderModes["Unknown"] = 0] = "Unknown";
+    RenderModes[RenderModes["Input"] = 1] = "Input";
+    RenderModes[RenderModes["Textarea"] = 2] = "Textarea";
+})(RenderModes || (RenderModes = {}));
 export async function Init(pars = {
     id: "",
-    net: {}
+    net: {},
+    settings: {}
 }) {
     const nativeProcessor = {
         processCommands: async (cmds) => {
@@ -46,6 +53,11 @@ export async function Init(pars = {
         }
     };
     window["nativeProcessor"] = nativeProcessor;
+    if (pars.settings && pars.settings["renderMode"] === 2) {
+        await nativeProcessor.processCommand({
+            type: NativeCommands.SetTextareaHeight
+        });
+    }
 }
 export async function ProcessCommands(pars = {
     id: "",
