@@ -1,0 +1,63 @@
+@using System.Linq.Expressions
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Components.Shared
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public string? Style { get; set; }
+    [Parameter]
+    public bool DisablePadding { get; set; }
+    [CascadingParameter(Name = "ModalRef")]
+    public EdModal? ModalRef { get; set; }
+    
+    public string Id { get; set; } = General.IIID();
+    public string ContainerId => $"Container_{Id}";
+    
+    DotNetObjectReference<EdScrollbar>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+    
+    protected override void OnInitialized()
+    {
+        JsRef = DotNetObjectReference.Create(this);
+        base.OnInitialized();
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/scrollbar.js");
+            await InitJsModule();   
+        }
+    }
+    
+    async Task InitJsModule()
+    {
+        if (JsObjectRef == null)
+        {
+            return;
+        }
+        
+        await JsObjectRef.InvokeVoidAsync("Init", new
+        {
+            id = Id,
+            net = JsRef
+        });
+    }
+
+}
+
+<CascadingValue Name="ScrollbarRef" IsFixed="true" Value="@this">
+    <div id="@Id" class="edScrollbar" style="overflow: hidden; @Style">
+        <div id="@ContainerId">
+            @ChildContent
+        </div>
+    </div>
+</CascadingValue>

@@ -1,0 +1,14 @@
+.EdModalBody {
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-bottom: 40px;
+    padding-top: 0;
+    display:grid;
+}
+
+@media (max-width: 500px) {
+    .EdModalBody {
+        padding: 10px;
+        padding-top: 0;
+    }
+}

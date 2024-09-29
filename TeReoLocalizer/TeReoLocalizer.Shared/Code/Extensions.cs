@@ -4,7 +4,10 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Text.Unicode;
+using Blazored.Modal;
+using Blazored.Modal.Services;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using TeReoLocalizer.Shared.Components.Shared;
 
 namespace TeReoLocalizer.Shared.Code;
 
@@ -153,4 +156,106 @@ public static class Extensions
             return default;
         }
     }
+    
+    public static bool Implements<T>(this Type source)
+    {
+        return source.IsAssignableTo(typeof(T));
+    }
+    
+    public static void AddOrUpdate<TKey, TVal>(this Dictionary<TKey, TVal> dict, TKey key, TVal val) where TKey : notnull
+    {
+        dict[key] = val;
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="service"></param>
+    /// <param name="title"></param>
+    /// <param name="descriptionViewParams"></param>
+    /// <param name="confirmAction"></param>
+    /// <param name="size"></param>
+    /// <typeparam name="T">A <see cref="IDescriptionModal"/> modal</typeparam>
+    public static void ShowConfirmActionModal<T>(this IModalService? service, string title, Dictionary<string, object?> descriptionViewParams, Func<Task> confirmAction, ModalSizes size = ModalSizes.Medium) where T : IDescriptionModal
+    {
+        ShowModal<ConfirmActionModal>(service, new Dictionary<string, object?> {{"Title", title}, {"BodyComponent", new DynamicComponentInfo { Type = typeof(T), Params = new Dictionary<string, object?> { {"Params", descriptionViewParams} }}}, {"ConfirmAction", confirmAction}, {"Size", size}});
+    }
+    
+    public static void ShowSelectActionModal(this IModalService? service, string title, string description, IEnumerable<ModalAction> actions, ModalSizes size = ModalSizes.Medium)
+    {
+        ShowModal<SelectActionModal>(service, new Dictionary<string, object?> {{"Title", title}, {"Description", description}, {"Actions", actions}, {"Size", size}});
+    }
+    
+    public static void ShowSelectActionModal<T>(this IModalService? service, string title, Dictionary<string, object?> descriptionViewParams, IEnumerable<ModalAction> actions, ModalSizes size = ModalSizes.Medium, bool autoScroll = true) where T : IDescriptionModal
+    {
+        ShowModal<SelectActionModal>(service, new Dictionary<string, object?> {{"DescriptionAutoScroll", autoScroll}, {"Title", title}, {"BodyComponent", new DynamicComponentInfo { Type = typeof(T), Params = new Dictionary<string, object?> { {"Params", descriptionViewParams} }}}, {"Description", ""}, {"Actions", actions}, {"Size", size}});
+    }
+    
+    public static void ShowSelectActionModal<T>(this IModalService? service, string title, Dictionary<string, object?> descriptionViewParams, Func<string, object?, Task> notificationAction, IEnumerable<ModalAction> actions, ModalSizes size = ModalSizes.Medium, bool autoScroll = true) where T : IDescriptionModal
+    {
+        ShowModal<SelectActionModal>(service, new Dictionary<string, object?> {{"DescriptionAutoScroll", autoScroll}, {"Title", title}, {"NotificationAction", notificationAction}, {"BodyComponent", new DynamicComponentInfo { Type = typeof(T), Params = new Dictionary<string, object?> { {"Params", descriptionViewParams} }}}, {"Description", ""}, {"Actions", actions}, {"Size", size}});
+    }
+    
+    public static void ShowConfirmActionModal(this IModalService? service, string title, string description, Func<Task> confirmAction, ModalSizes size = ModalSizes.Medium)
+    {
+        ShowModal<ConfirmActionModal>(service, new Dictionary<string, object?> {{"Title", title}, {"Description", description}, {"ConfirmAction", confirmAction}, {"Size", size}});
+    }
+    
+    public static void ShowConfirmActionModal(this IModalService? service, string title, Func<Task> confirmAction, ModalSizes size = ModalSizes.Medium)
+    {
+        ShowModal<ConfirmActionModal>(service, new Dictionary<string, object?> {{"Title", title}, {"ConfirmAction", confirmAction}, {"Size", size}});
+    }
+
+    
+    public static void ShowConfirmActionModal(this IModalService? service, string title, Func<Task<string>> description, Func<Task> confirmAction, ModalSizes size = ModalSizes.Medium)
+    {
+        ShowModal<ConfirmActionModal>(service, new Dictionary<string, object?> {{"Title", title}, {"DescriptionFn", description}, {"ConfirmAction", confirmAction}, {"Size", size}});
+    }
+    
+    public static void ShowConfirmActionModal(this IModalService? service, string title, string description, Func<Task> confirmAction, Func<Task> cancelAction, ModalSizes size = ModalSizes.Medium, Button? confirmButton = null, Button? cancelButton = null)
+    {
+        ShowModal<ConfirmActionModal>(service, new Dictionary<string, object?> {{"Title", title}, {"Description", description}, {"ConfirmAction", confirmAction}, {"CancelAction", cancelAction}, {"Size", size}, {"ConfirmButton", confirmButton}, {"CancelButton", cancelButton}});
+    }
+    
+    public static void ShowPromptModal(this IModalService? service, string title, string? description, Func<string, Task> confirmAction, Func<Task>? cancelAction = null, ModalSizes size = ModalSizes.Medium, Button? confirmButton = null, Button? cancelButton = null, string? defaultText = null, string? inputPlaceholder = null)
+    {
+        ShowModal<PromptModal>(service, new Dictionary<string, object?> {{"Title", title}, {"Description", description}, {"ConfirmAction", confirmAction}, {"CancelAction", cancelAction}, {"Size", size}, {"ConfirmButton", confirmButton}, {"CancelButton", cancelButton}, {"DefaultText", defaultText}, {"Placeholder", inputPlaceholder}});
+    }
+    
+    private static readonly ModalOptions CustomLayoutOpts = new ModalOptions
+    {
+        UseCustomLayout = true,
+        AnimationType = ModalAnimationType.None
+    };
+    
+    public static void ShowModal<T>(this IModalService? service, IDictionary<string, object?>? pars = null)
+    {
+        ModalParameters mp = new ModalParameters()
+        {
+            { nameof(GenericModal.RenderFragmentType), typeof(T) }
+        };
+
+        if (pars != null)
+        {
+            mp.Add(nameof(GenericModal.RenderFragmentParams), pars);
+        }
+
+        service?.Show<GenericModal>("", mp, CustomLayoutOpts);
+    }
+    
+    public static void ShowModal<T>(this IModalService? service, object? pars)
+    {
+        service.ShowModal<T>(pars?.ToDictionary());
+    }
+        
+    public static void ShowModal<T>(this IModalService? service)
+    {
+        service.ShowModal<T>(null);
+    }
+
+    public static IDictionary<string, object?>? ToDictionary(this object? obj)
+    {
+        return obj is null ? null : HtmlHelper.ObjectToDictionary(obj);
+    }
+
 }

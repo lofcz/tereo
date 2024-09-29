@@ -1,0 +1,85 @@
+@using Blazored.Modal
+@using Blazored.Modal.Services
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@implements TeReoLocalizer.Shared.Code.IGenericModalRef
+@code {
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    [Parameter]
+    public Dictionary<string, object>? RenderFragmentParams { get; set; }
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public string? Description { get; set; }
+    [Parameter]
+    public Func<string, Task>? ConfirmAction { get; set; }
+    [Parameter]
+    public Func<Task>? CancelAction { get; set; }
+    [Parameter] 
+    public GenericModal? GenericModalRef { get; set; }
+    [Parameter]
+    public ModalSizes Size { get; set; } = ModalSizes.Medium;
+    [Parameter]
+    public Button? ConfirmButton { get; set; }
+    [Parameter]
+    public Button? CancelButton { get; set; }
+    [Parameter]
+    public Func<Task<string>>? DescriptionFn { get; set; }
+    [Parameter]
+    public DynamicComponentInfo? BodyComponent { get; set; }
+    [Parameter]
+    public string? DefaultText { get; set; }
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    string finalDescription;
+    bool ready;
+    string promptInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        finalDescription = Description ?? "";
+
+        if (DescriptionFn != null)
+        {
+            finalDescription = await DescriptionFn.Invoke();
+        }
+
+        ready = true;
+        promptInput = DefaultText ?? "";
+    }
+
+    public async Task CancelWithAction()
+    {
+        await BlazoredModal.CloseAsync(ModalResult.Cancel(true));
+        if (CancelAction != null)
+        {
+            await CancelAction.Invoke();
+        }
+    }
+
+    public async Task ConfirmWithAction()
+    {
+        await BlazoredModal.CloseAsync(ModalResult.Ok(true));
+        if (ConfirmAction != null)
+        {
+            await ConfirmAction.Invoke(promptInput);
+        } 
+    }
+    
+    
+}
+
+@if (ready)
+{
+    <EdModal Title="@Title" Description="@finalDescription" DescriptionComponent="BodyComponent" Size="Size" CancelAction="CancelWithAction" GenericModalRef="GenericModalRef">
+        <input class="form-control form-control-sm" placeholder="@Placeholder" @bind="promptInput" />
+        <EdButtonsContainer Style="gap: 10px;">
+            <EdButton Size="ButtonSizes.Medium" OnClick="ConfirmWithAction">Potvrdit</EdButton>
+            <EdButton Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" Fill="ButtonFillModes.Outline" OnClick="CancelWithAction">Zrušit</EdButton>
+        </EdButtonsContainer>
+    </EdModal>   
+}

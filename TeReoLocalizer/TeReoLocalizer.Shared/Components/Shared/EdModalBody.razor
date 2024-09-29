@@ -1,0 +1,18 @@
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public bool AutoScroll { get; set; } = true;
+}
+
+<div class="modal-body EdModalBody"> 
+    @if (AutoScroll)
+    {
+        @ChildContent
+    }
+    else
+    {
+        @ChildContent
+    }
+</div>

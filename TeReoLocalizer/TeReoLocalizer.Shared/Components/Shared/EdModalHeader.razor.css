@@ -1,0 +1,44 @@
+.EdModalHeader {
+  border: none;
+  border-radius: 0;
+  padding-top: 30px;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+@media (max-width: 500px) {
+  .EdModalHeader {
+    padding: 10px;
+  }
+}
+.heading {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 27px;
+  letter-spacing: -0.01em;
+  margin-bottom: 5px;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+}
+
+.close {
+  outline: none;
+  user-select: none;
+  border: none;
+  background: none;
+  align-self: start;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+/*# sourceMappingURL=EdModalHeader.razor.css.map */

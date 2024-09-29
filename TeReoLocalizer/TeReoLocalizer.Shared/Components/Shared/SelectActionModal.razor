@@ -1,0 +1,73 @@
+@using Blazored.Modal
+@using Blazored.Modal.Services
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Components.Shared
+@inject IJSRuntime Js
+@implements TeReoLocalizer.Shared.Code.IGenericModalRef
+@code {
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    [Parameter]
+    public Dictionary<string, object>? RenderFragmentParams { get; set; }
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public string? Description { get; set; }
+    [Parameter]
+    public IEnumerable<ModalAction>? Actions { get; set; }
+    [Parameter] 
+    public GenericModal? GenericModalRef { get; set; }
+    [Parameter]
+    public ModalSizes Size { get; set; } = ModalSizes.Medium;
+    [Parameter]
+    public bool DescriptionAutoScroll { get; set; } = true;
+    [Parameter]
+    public DynamicComponentInfo? BodyComponent { get; set; }
+    [Parameter]
+    public Func<string, object?, Task>? NotificationAction { get; set; }
+
+    public async Task NotifyOwner(string key, object? data)
+    {
+        if (NotificationAction != null)
+        {
+            await NotificationAction(key, data);
+        }
+    }
+    
+    protected override void OnParametersSet()
+    {
+        if (NotificationAction != null && BodyComponent?.Type.GetInterface(nameof(ISelectActionModal)) != null)
+        {
+            BodyComponent.Params ??= new Dictionary<string, object?>();
+            BodyComponent.Params.AddOrUpdate("OwnerModal", this);
+        }
+    }
+    
+    public async Task InvokeAction(Func<Task>? action)
+    {
+        await BlazoredModal.CloseAsync(ModalResult.Ok(true));
+        
+        if (action != null)
+        {
+            await action.Invoke();
+        } 
+    }
+}
+
+<EdModal DescriptionAutoScroll="DescriptionAutoScroll" Title="@Title" Description="@Description" Size="Size" GenericModalRef="GenericModalRef">
+    @if (BodyComponent != null)
+    {
+        <DynamicComponent Type="BodyComponent.Type" Parameters="BodyComponent.Params" />
+    }
+    <div style="display: flex; justify-content: center; padding: 1rem;">
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            @if (Actions != null)
+            {
+                foreach (ModalAction action in Actions)
+                {
+                    <EdButton Design="action.Button.Design" Tooltip="@action.Button.Tooltip" TooltipFn="action.Button.TooltipFn" Fill="action.Button.Fill" Size="action.Button.Size" OnClick="@(async () => { await InvokeAction(action.Action); })">@action.Button.Text</EdButton>
+                }
+            }
+        </div>
+    </div>
+</EdModal>

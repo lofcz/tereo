@@ -1,0 +1,79 @@
+@using Blazored.Modal
+@using Blazored.Modal.Services
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Components.Shared
+@inject IJSRuntime Js
+@implements TeReoLocalizer.Shared.Code.IGenericModalRef
+@code {
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    [Parameter]
+    public Dictionary<string, object>? RenderFragmentParams { get; set; }
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public string? Description { get; set; }
+    [Parameter]
+    public Func<Task>? ConfirmAction { get; set; }
+    [Parameter]
+    public Func<Task>? CancelAction { get; set; }
+    [Parameter] 
+    public GenericModal? GenericModalRef { get; set; }
+    [Parameter]
+    public ModalSizes Size { get; set; } = ModalSizes.Medium;
+    [Parameter]
+    public Button? ConfirmButton { get; set; }
+    [Parameter]
+    public Button? CancelButton { get; set; }
+    [Parameter]
+    public Func<Task<string>>? DescriptionFn { get; set; }
+    [Parameter]
+    public DynamicComponentInfo? BodyComponent { get; set; }
+
+    string finalDescription;
+    bool ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        finalDescription = Description ?? "";
+
+        if (DescriptionFn != null)
+        {
+            finalDescription = await DescriptionFn.Invoke();
+        }
+
+        ready = true;
+    }
+
+    public async Task CancelWithAction()
+    {
+        await BlazoredModal.CloseAsync(ModalResult.Cancel(true));
+        if (CancelAction != null)
+        {
+            await CancelAction.Invoke();
+        }
+    }
+
+    public async Task ConfirmWithAction()
+    {
+        await BlazoredModal.CloseAsync(ModalResult.Ok(true));
+        if (ConfirmAction != null)
+        {
+            await ConfirmAction.Invoke();
+        } 
+    }
+    
+    
+}
+
+@if (ready)
+{
+    <EdModal Title="@Title" Description="@finalDescription" DescriptionComponent="BodyComponent" Size="Size" CancelAction="CancelWithAction" GenericModalRef="GenericModalRef">
+        <EdButtonsContainer Style="gap: 10px;">
+            <EdButton Size="ButtonSizes.Medium" OnClick="ConfirmWithAction">Potvrdit</EdButton>
+            <EdButton Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" OnClick="CancelWithAction">Zrušit</EdButton>
+        </EdButtonsContainer>
+    </EdModal>   
+}

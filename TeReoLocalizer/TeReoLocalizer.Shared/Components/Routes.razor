@@ -1,10 +1,49 @@
 ﻿<div id="commonCss"></div>
-<script src="/Scripts/jquery.js"></script>
+<div id="modalUniversal" class="modal fade2" style="overflow-y: hidden;" tabindex="-1" role="dialog"></div>
+<script src="/Scripts/jquery.js" onload="if (window['module']) {window.$ = window.jQuery = module.exports;}"></script>
 <script src="/Scripts/nanoMcf.js"></script>
+<script>
+    function loadBootstrap() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            document.body.appendChild(script);
+            script.onload = resolve;
+            script.onerror = reject;
+            script.async = true;
+            script.src = '/Scripts/bootstrap.js';
+        });
+    }
 
-<Router AppAssembly="typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)"/>
-        <FocusOnNavigate RouteData="routeData" Selector="h1"/>
-    </Found>
-</Router>
+    loadBootstrap().then(() => {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+            bootstrap.Dropdown.Default.popperConfig = (defaultConfig) => {
+                return {
+                    ...defaultConfig,
+                    strategy: 'fixed',
+                    modifiers: [
+                        {
+                            name: 'preventOverflow',
+                            options: {
+                                rootBoundary: 'document',
+                            },
+                        },
+                    ],
+                };
+            };
+        }
+    }).catch((error) => {
+        console.error('Chyba při načítání Bootstrapu:', error);
+    });
+
+</script>
+
+<div id="mcfRoot">
+    <CascadingBlazoredModal>
+        <Router AppAssembly="typeof(Program).Assembly">
+            <Found Context="routeData">
+                <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)"/>
+                <FocusOnNavigate RouteData="routeData" Selector="h1"/>
+            </Found>
+        </Router>
+    </CascadingBlazoredModal>
+</div>

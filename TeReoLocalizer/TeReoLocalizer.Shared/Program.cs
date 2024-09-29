@@ -1,4 +1,5 @@
 using System.Text;
+using Blazored.Modal;
 using Microsoft.AspNetCore.Diagnostics;
 using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
@@ -40,13 +41,14 @@ public class Program
         }
         
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
-        // Add services to the container.
+        
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents(x =>
             {
                 x.DetailedErrors = true;
             });
+        
+        builder.Services.AddBlazoredModal();
 
         WebApplication? app = builder.Build();
         IHostApplicationLifetime lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();

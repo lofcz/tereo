@@ -1,0 +1,63 @@
+@using TeReoLocalizer.Shared.Code
+@code {
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+
+    Decl selectedDecl;
+    bool transferring;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        selectedDecl = Owner.Project.Decls.FirstOrDefault(x => x != Owner.Decl) ?? new Decl();
+    }
+
+    async Task HandleActiveDeclChange(ChangeEventArgs args)
+    {
+        if (args.Value is string str)
+        {
+            selectedDecl = Owner.Project.Decls.FirstOrDefault(x => x.Id == str) ?? new Decl();
+        }
+    }
+
+    async Task Submit()
+    {
+        if (transferring)
+        {
+            return;
+        }
+        
+        transferring = true;
+
+        await Owner.TransferKey(Name, selectedDecl);
+        
+        transferring = false;
+        await BlazoredModal.CloseAsync();
+    }
+}
+
+<EdModal Title="@($"Přesunout klíč <code>{Name}</code>")">
+
+    <div style="margin-bottom: 1rem;">
+        <select @onchange="HandleActiveDeclChange" class="form-select">
+            @foreach (Decl x in Owner.Project.Decls)
+            {
+                if (x == Owner.Decl)
+                {
+                    continue;
+                }
+                
+                <option value="@x.Id">@(x.Name.IsNullOrWhiteSpace() ? "Skupina bez názvu" : x.Name)</option>
+            }
+        </select>
+    </div>
+    
+    <EdButtonsContainer>
+        <EdButton OnClick="Submit">Přesunout</EdButton>
+        <EdButton Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>

@@ -5,16 +5,21 @@
 @using System.Text.Encodings.Web
 @using System.Text.Json
 @using System.Text.Unicode
+@using Blazored.Modal.Services
 @using DeepL
 @using DeepL.Model
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Code.Services
+@using TeReoLocalizer.Shared.Components.Pages.Owned
 @inject IJSRuntime Js
+@inject IModalService Md
 @implements IAsyncDisposable
 @inherits ComponentBaseEx
-
 @code {
+    
+    public Project Project = new Project();
+    public Decl Decl => Project.SelectedDecl;
 
     InvertedIndex Index => Program.Index;
 
@@ -26,7 +31,6 @@
     string basePath = AppDomain.CurrentDomain.BaseDirectory;
     List<string> existingFiles = [];
     string newKey = "";
-    Decl decl = new Decl();
     readonly LangsData langsData = new LangsData();
     bool showLangs;
     string? generatedCode;
@@ -49,6 +53,7 @@
         public RenderModes RenderMode { get; set; } = RenderModes.Input;
         public TranslationModes TranslationMode { get; set; } = TranslationModes.Default;
         public int LimitRender { get; set; }
+        public string? SelectedDecl { get; set; }
     }
     
     class NativeCommand
@@ -107,15 +112,17 @@
             Directory.CreateDirectory($"{basePath}/TeReo");
         }
 
-        if (File.Exists($"{basePath}/TeReo/decl.json"))
+        if (File.Exists($"{basePath}/TeReo/project.json"))
         {
-            string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
-            decl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();
+            string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/project.json");
+            Project = JsonSerializer.Deserialize<Project>(currentData) ?? new Project();
         }
 
-        if (File.Exists($"userSettings.json"))
+        Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
+
+        if (File.Exists($"{basePath}/TeReo/userSettings.json"))
         {
-            userSettings = (await File.ReadAllTextAsync($"userSettings.json")).JsonDecode<UserSettings>() ?? userSettings;
+            userSettings = (await File.ReadAllTextAsync($"{basePath}/TeReo/userSettings.json")).JsonDecode<UserSettings>() ?? userSettings;
 
             if (userSettings.ShowLangs is not null)
             {
@@ -132,7 +139,7 @@
 
             AsyncService.Fire(async () =>
             {
-                Index.SynchronizeIndex(decl.Keys.Select(x => new IndexDocument
+                Index.SynchronizeIndex(Decl.Keys.Select(x => new IndexDocument
                 {
                     Id = x.Value.Id,
                     Content = x.Value.Name
@@ -141,6 +148,16 @@
                 synchronizingIndex = false;
                 StateHasChanged();
             });
+        }
+
+        if (!userSettings.SelectedDecl.IsNullOrWhiteSpace())
+        {
+            Decl? matchingDecl = Project.Decls.FirstOrDefault(x => x.Id == userSettings.SelectedDecl);
+
+            if (matchingDecl is not null)
+            {
+                Project.SelectedDecl = matchingDecl;
+            }
         }
 
         RecomputeVisibleKeys();
@@ -210,9 +227,9 @@
             Id = General.IIID()
         };
 
-        if (decl.Keys.TryAdd(localKey.Name, localKey))
+        if (Decl.Keys.TryAdd(localKey.Name, localKey))
         {
-            await SaveDecl();
+            await SaveProject();
 
             if (newKeyCopy != baseKey)
             {
@@ -224,9 +241,12 @@
                 search = string.Empty;
             }
 
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
+            foreach (Decl pDecl in Project.Decls)
             {
-                x.Value.IsVisible = true;
+                foreach (KeyValuePair<string, Key> x in pDecl.Keys)
+                {
+                    x.Value.IsVisible = true;
+                }   
             }
             
             newKey = string.Empty;
@@ -240,14 +260,10 @@
         }
     }
 
-    async Task SaveDecl()
+    async Task SaveProject()
     {
-        string data = JsonSerializer.Serialize(decl, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        });
-        await File.WriteAllTextAsync($"{basePath}/TeReo/decl.json", data);
+        string data = Project.ToJson(true);
+        await File.WriteAllTextAsync($"{basePath}/TeReo/project.json", data);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -279,7 +295,7 @@
                     {
                         id = id,
                         net = JsRef,
-                        decl = decl,
+                        decl = Decl,
                         langs = langsData
                     });
                 }
@@ -365,7 +381,7 @@
 
         if (userSettings.LimitRender <= 0)
         {
-            foreach (KeyValuePair<string, Key> x in decl.Keys.OrderBy(x => x.Key))
+            foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderBy(x => x.Key))
             {
                 if (x.Value.IsVisible)
                 {
@@ -375,13 +391,13 @@
         }
         else
         {
-            List<KeyValuePair<string, Key>> keys = decl.Keys.OrderBy(x => x.Key).Where(x => x.Value.IsVisible).ToList();
+            List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderBy(x => x.Key).Where(x => x.Value.IsVisible).ToList();
             keyPages = (int)Math.Ceiling(keys.Count / (double)userSettings.LimitRender);
             int take = userSettings.LimitRender;
             
             if (keyToFocus is not null)
             {
-                if (decl.Keys.TryGetValue(keyToFocus, out Key? match))
+                if (Decl.Keys.TryGetValue(keyToFocus, out Key? match))
                 {
                     int index = keys.BinarySearch(new KeyValuePair<string, Key>(keyToFocus, match), Comparer<KeyValuePair<string, Key>>.Create((a, b) => string.CompareOrdinal(a.Key, b.Key)));
 
@@ -419,11 +435,7 @@
 
     async Task SaveLanguage(Languages language)
     {
-        string data = JsonSerializer.Serialize(langsData.Langs[language], new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        });
+        string data = langsData.Langs[language].ToJson();
         await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
     }
 
@@ -435,51 +447,59 @@
         }
     }
 
+    async Task MoveKey(string key)
+    {
+        Md.ShowModal<LocalizeMoveKeyModal>(new
+        {
+            Name = key,
+            Owner = this
+        });
+    }
+
     async Task UpdateKey(string key)
     {
-        string str = await Js.InvokeAsync<string>("prompt", "Nový název klíče", key);
-
-        if (!str.IsNullOrWhiteSpace())
+        Md.ShowPromptModal("Nový název klíče", null, async (str) =>
         {
-            str = str.Trim();
-
-            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+            if (!str.IsNullOrWhiteSpace())
             {
-                if (x.Value.Data.TryGetValue(key, out string? strValue))
+                str = str.Trim();
+
+                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
                 {
-                    x.Value.Data.TryAdd(str, strValue);
-                    x.Value.Data.TryRemove(key, out _);
+                    if (x.Value.Data.TryGetValue(key, out string? strValue))
+                    {
+                        x.Value.Data.TryAdd(str, strValue);
+                        x.Value.Data.TryRemove(key, out _);
 
-                    await SaveLanguage(x.Key);
+                        await SaveLanguage(x.Key);
+                    }
                 }
+
+                if (Decl.Keys.TryGetValue(key, out Key? kVal))
+                {
+                    kVal.Name = str;
+                    Decl.Keys.TryRemove(key, out _);
+                    Decl.Keys.TryAdd(str, kVal);
+
+                    RecomputeVisibleKeys();
+                    await SaveProject();
+                }
+
+                if (!search.Contains(str))
+                {
+                    search = string.Empty;
+                }
+
+                inputToFocus = str;
             }
 
-            if (decl.Keys.TryGetValue(key, out Key? kVal))
-            {
-                kVal.Name = str;
-                decl.Keys.TryRemove(key, out _);
-                decl.Keys.TryAdd(str, kVal);
-
-                RecomputeVisibleKeys();
-                await SaveDecl();
-            }
-
-            if (!search.Contains(str))
-            {
-                search = string.Empty;
-            }
-
-            inputToFocus = str;
-        }
-
-        StateHasChanged();
+            StateHasChanged();
+        }, defaultText: key, inputPlaceholder: "Nový název klíče");
     }
 
     async Task Delete(string key)
     {
-        bool delete = await Js.InvokeAsync<bool>("confirm", $"Potvrďte odstranění klíče '{key}'");
-
-        if (delete)
+        Md.ShowConfirmActionModal($"Potvrďte odstranění klíče <code>{key}</code>",  async () =>
         {
             foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
             {
@@ -490,20 +510,21 @@
                 }
             }
 
-            if (decl.Keys.TryGetValue(key, out Key? _))
+            if (Decl.Keys.TryGetValue(key, out Key? _))
             {
-                decl.Keys.TryRemove(key, out _);
-                await SaveDecl();
+                Decl.Keys.TryRemove(key, out _);
+                await SaveProject();
             }
 
             RecomputeVisibleKeys();
             StateHasChanged();
-        }
+        });
+       
     }
 
     async Task<string> Generate()
     {
-        Localizer l = new Localizer(decl, langsData);
+        Localizer l = new Localizer(Decl, langsData);
         string code = await l.Generate();
 
         if (File.Exists($"{basePath}/I18N/Reo.cs"))
@@ -549,7 +570,7 @@
 
         Translator translator = new Translator(Consts.Cfg.DeepL);
 
-        foreach (KeyValuePair<string, Key> keys in decl.Keys)
+        foreach (KeyValuePair<string, Key> keys in Decl.Keys)
         {
             foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
             {
@@ -605,7 +626,7 @@
 
     async Task ForceSave()
     {
-        await SaveDecl();
+        await SaveProject();
         await SaveLanguages();
     }
 
@@ -615,7 +636,7 @@
 
         if (Consts.Cfg.Experimental)
         {
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
+            foreach (KeyValuePair<string, Key> x in Decl.Keys)
             {
                 x.Value.IsVisible = false;
             }
@@ -624,7 +645,7 @@
             return;
         }
 
-        foreach (KeyValuePair<string, Key> x in decl.Keys)
+        foreach (KeyValuePair<string, Key> x in Decl.Keys)
         {
             x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
         }
@@ -729,7 +750,111 @@
 
     async Task SaveUserSettings()
     {
-        await File.WriteAllTextAsync($"userSettings.json", userSettings.ToJson());
+        await File.WriteAllTextAsync($"{basePath}\\TeReo\\userSettings.json", userSettings.ToJson());
+    }
+
+    async Task RenameDecl()
+    {
+        string str = await Js.InvokeAsync<string>("prompt", "Nový název skupiny", Decl.Name.IsNullOrWhiteSpace() ? string.Empty : Decl.Name);
+
+        if (!str.IsNullOrWhiteSpace())
+        {
+            Decl.Name = str;
+            await SaveProject();
+        }
+    }
+
+    async Task AddDecl()
+    {
+        string str = await Js.InvokeAsync<string>("prompt", "Název skupiny");
+
+        if (!str.IsNullOrWhiteSpace())
+        {
+            string declId = General.IIID();
+            
+            Decl newDecl = new Decl
+            {
+                Name = str,
+                Id = declId,
+                Keys = []
+            };
+            
+            Project.Decls.Add(newDecl);
+            Project.SelectedDecl = newDecl;
+            await SaveProject();
+
+            userSettings.SelectedDecl = declId;
+            await SaveUserSettings();
+        }
+    }
+
+    async Task DeleteDecl()
+    {
+        if (Project.Decls.Count <= 1)
+        {
+            await Js.Toast(ToastTypes.Error, "Skupinu je možné odstranit pouze pokud projekt obsahuje více než jednu skupinu");
+            return;
+        }
+        
+        bool delete = await Js.InvokeAsync<bool>("confirm", $"Potvrďte odstranění skupiny '{Decl.Name}' (klíčů: {Decl.Keys.Count})");
+
+        if (delete)
+        {
+            Project.Decls.Remove(Decl);
+            Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
+            await SaveProject();
+            
+            userSettings.SelectedDecl = Project.SelectedDecl.Id;
+            await SaveUserSettings();
+            
+            RecomputeVisibleKeys();
+            StateHasChanged();
+        }
+    }
+
+    async Task HandleActiveDeclChange(ChangeEventArgs args)
+    {
+        if (args.Value is string str)
+        {
+            Decl? matchingDecl = Project.Decls.FirstOrDefault(x => x.Id == str);
+
+            if (matchingDecl is not null)
+            {
+                Project.SelectedDecl = matchingDecl;
+                userSettings.SelectedDecl = str;
+                await SaveUserSettings();
+
+                if (search.IsNullOrWhiteSpace())
+                {
+                    foreach (KeyValuePair<string, Key> x in Decl.Keys)
+                    {
+                        x.Value.IsVisible = true;
+                    }
+                }
+                else
+                {
+                    foreach (KeyValuePair<string, Key> x in Decl.Keys)
+                    {
+                        x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
+                    }
+                }
+                
+                RecomputeVisibleKeys(true);
+                StateHasChanged();
+            }
+        }
+    }
+
+    public async Task TransferKey(string keyName, Decl newOwner)
+    {
+        if (Decl.Keys.TryRemove(keyName, out Key? key))
+        {
+            newOwner.Keys.TryAdd(keyName, key);
+
+            await SaveProject();
+            RecomputeVisibleKeys();
+            StateHasChanged();
+        }
     }
 }
 
@@ -811,11 +936,11 @@
 
 @if (ready && !Consts.Cfg.Experimental)
 {
-    <div style="max-height: 800px; overflow: auto auto;">
+    <div style="max-height: 800px; overflow: auto;">
         <table id="@($"table_{id}")" class="table table-sm table-bordered table-responsive tableMain">
             <thead>
             <tr>
-                <th style="width: 140px;">
+                <th style="width: 125px;">
                     <b>Akce</b>
                 </th>
                 <th data-rtc-resizable="key" style="width: 300px;">
@@ -840,8 +965,30 @@
             {
                 <tr>
                     <td>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(async () => await Delete(x.Key))">Smazat</button>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(async () => await UpdateKey(x.Key))">Změnit</button>
+                        <div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" data-bs-boundary="window">Zobrazit akce</button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await UpdateKey(x.Key))">Přejmenovat</span>
+                                    </li>
+                                    
+                                    @if (Project.Decls.Count > 1)
+                                    {
+                                        <li>
+                                            <span style="cursor: pointer; user-select: none;" class="dropdown-item"  @onclick="@(async () => await MoveKey(x.Key))">Přesunout</span>
+                                        </li>
+                                    }
+                                    
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await Delete(x.Key))">Odstranit</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </td>
                     <td style="width: 300px;">
                         <div style="max-width: 300px;">
@@ -857,16 +1004,18 @@
                         }
                         
                         string str = local.Value.Data.GetValueOrDefault(x.Key, string.Empty);
+                        string langKey = local.Key.ToString().ToLowerInvariant();
+                        
                         <td>
                             <div class="input-group">
                                 
                                 @if (userSettings.RenderMode is RenderModes.Input)
                                 {
-                                    <input @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>   
+                                    <input lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>   
                                 }
                                 else
                                 {
-                                    <textarea @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"></textarea>
+                                    <textarea lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"></textarea>
                                 }
                             </div>
                         </td>
@@ -882,10 +1031,25 @@
 {
     <div style="margin-top: 1rem; display: flex; gap: 100px;">
         <div>
-            <div>Klíčů: @(decl.Keys.Count)</div>
+            <div style="width: 280px;">
+                <div style="margin-bottom: 5px;">Klíčů v aktivní skupině: @(Decl.Keys.Count)</div>
+                <div style="margin-bottom: 1rem;">
+                    <select @onchange="HandleActiveDeclChange" class="form-select">
+                        @foreach (Decl x in Project.Decls)
+                        {
+                            <option value="@x.Id" selected="@(x == Decl)">@(x.Name.IsNullOrWhiteSpace() ? "Skupina bez názvu" : x.Name)</option>
+                        }
+                    </select>
+                </div>
+                <div style="display: flex; flex-flow: wrap; gap: 5px; margin-bottom: 5px;">
+                    <button class="@($"btn btn-sm btn-secondary")" @onclick="RenameDecl">Přejmenovat skupinu</button>
+                    <button class="@($"btn btn-sm btn-secondary")" @onclick="AddDecl">Přidat skupinu</button>
+                    <button class="@($"btn btn-sm btn-secondary")" @onclick="DeleteDecl">Odstranit skupinu</button>
+                </div>
+            </div>
         </div>
         
-        <div>
+        <div style="width: 250px;">
             <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(userSettings.RenderMode.GetStringValue().FirstLetterToLower())</button>
         </div>
 

@@ -1,0 +1,57 @@
+@using System.Linq.Expressions
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public string? Description { get; set; }
+    [Parameter]
+    public bool AutoScroll { get; set; }
+    [Parameter]
+    public DynamicComponentInfo? DescriptionComponent { get; set; }
+    
+    private async Task Close() => await BlazoredModal.CloseAsync(ModalResult.Ok(true));
+}
+
+<div class="modal-header EdModalHeader fontSmaller">
+    <div style="width: 100%;">
+        @if (!Title.IsNullOrWhiteSpace())
+        {
+            <p class="heading lead" style="font-size: 20px; line-height: 27px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 5px;">@((MarkupString)(Title ?? string.Empty))</p>
+        }
+        @if (DescriptionComponent != null)
+        {
+            if (AutoScroll)
+            {
+                <EdScrollbar>
+                    <DynamicComponent Type="DescriptionComponent.Type" Parameters="DescriptionComponent.Params" />
+                </EdScrollbar>
+            }
+            else
+            {
+                <DynamicComponent Type="DescriptionComponent.Type" Parameters="DescriptionComponent.Params" />
+            }
+        }
+        else if (!Description.IsNullOrWhiteSpace())
+        {
+            if (AutoScroll)
+            {
+                <EdScrollbar>
+                    <p class="description">@((MarkupString)(Description ?? string.Empty))</p>       
+                </EdScrollbar>
+            }
+            else
+            {
+                <p class="description">@((MarkupString)(Description ?? ""))</p>
+            }
+        }
+    </div>
+    <button type="button" class="close" @onclick="Close" aria-label="Close">
+        <img ondragstart="return false;" src="/Images/Svg/close.svg" alt=""/>
+    </button>
+</div>

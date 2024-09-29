@@ -1,0 +1,102 @@
+@using Blazored.Modal
+@using Blazored.Modal.Services
+@using TeReoLocalizer.Shared.Code.Services
+
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+@code {
+    [Parameter]
+    public Type? RenderFragmentType { get; set; }
+    [Parameter]
+    public Dictionary<string, object>? RenderFragmentParams { get; set; }
+    [CascadingParameter]
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    
+    public EdModal? SpecificModal { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (RenderFragmentType?.Implements<IGenericModalRef>() ?? false)
+        {
+            RenderFragmentParams?.Add("GenericModalRef", this);    
+        }
+
+        if (RenderFragmentType?.Implements<IRenderOnceModal>() ?? false)
+        {
+            RenderFragmentParams?.Add("RenderOnce", true);
+        }
+
+        base.OnInitialized();
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Js.BodyToggleScroll(false);
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }
+    
+    private async Task CloseWithAction()
+    {
+        if (SpecificModal?.CancelAction != null)
+        {
+            await SpecificModal.CancelAction.Invoke();
+        }
+        else
+        {
+            await BlazoredModal.CloseAsync(ModalResult.Cancel(true));
+        }
+    }
+
+    private bool DisableBackgroundCancel { get; set; }
+    private ElementReference _modalReference;
+    private bool _setFocus;
+    private bool _disableNextRender;
+    private bool _listenToBackgroundClicks;
+    public FocusTrap? FocusTrap { get; set; }
+    
+    private async Task HandleBackgroundClick()
+    {
+        if (DisableBackgroundCancel)
+        {
+            _disableNextRender = true;
+            return;
+        }
+
+        if (_listenToBackgroundClicks)
+        {
+            await CloseWithAction();
+            _listenToBackgroundClicks = false;
+        }
+    }
+    
+    private void ListenToBackgroundClick() => _listenToBackgroundClicks = true;
+    private void StopListeningToBackgroundClick() => _listenToBackgroundClicks = false;
+    
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await Js.BodyToggleScroll(true);
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }
+}
+
+<div @ref="_modalReference" @onmousedown="ListenToBackgroundClick" @onmouseup="HandleBackgroundClick" @onclick="StopListeningToBackgroundClick">
+    <div class="modal-backdrop show"></div>
+    <div class="modal fade2 show" role="dialog" style="overflow-y: hidden; display: block;">
+        <FocusTrap @ref="FocusTrap" IsActive="true">
+            <DynamicComponent Type="RenderFragmentType" Parameters="RenderFragmentParams"/>
+        </FocusTrap>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+@using TeReoLocalizer.Shared.Code
+@inherits ComponentBaseEx
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+    [Parameter]
+    public bool Disabled { get; set; }
+    [Parameter]
+    public ButtonTypes Type { get; set; }
+    [Parameter]
+    public ButtonDesigns Design { get; set; } = ButtonDesigns.Action;
+    [Parameter]
+    public ButtonFillModes Fill { get; set; } = ButtonFillModes.Fill;
+    [Parameter]
+    public ButtonSizes Size { get; set; } = ButtonSizes.Medium;
+    [Parameter]
+    public string? Href { get; set; }
+    [Parameter]
+    public string Id { get; set; } = General.IIID();
+    [Parameter]
+    public string? Tooltip { get; set; }
+    [Parameter]
+    public Func<Task<string>>? TooltipFn { get; set; }
+    [Parameter]
+    public bool RenderOffset { get; set; } = true;
+    [Parameter]
+    public string? ContainerStyle { get; set; }
+    [Parameter]
+    public string? Name { get; set; }
+    [Parameter] 
+    public bool EnableFeedback { get; set; } = true;
+
+    [CascadingParameter]
+    public Func<Task<bool>>? BeforeSubmit { get; set; }
+    [CascadingParameter(Name = "ModalRef")]
+    public EdModal? ModalContext { get; set; }
+    [CascadingParameter(Name = "ButtonsContainer")]
+    public EdButtonsContainer? ButtonsContainer { get; set; }
+    bool FormIsSubmitting { get; set; }
+    
+    DotNetObjectReference<EdButton>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+    
+    bool IsDisabled => Disabled || FormIsSubmitting;
+
+    string ComputeClass()
+    {
+        return $"btn {Size.GetStringValue()} btn-{(Design.GetStringValue())}";
+    }
+    
+    async Task HandleClick()
+    {
+        await OnClick.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (JsObjectRef is not null)
+        {
+            try
+            {
+                await JsObjectRef.DisposeAsync();
+            }
+            catch (Exception e)
+            {
+                
+            }    
+        }
+        
+        JsRef?.Dispose();
+    }
+
+}
+
+<div style="display: inline-grid; @ContainerStyle" class="btnBase">
+    <button id="@Id" @onclick="HandleClick" class="@(ComputeClass())" disabled="@IsDisabled">@ChildContent</button>
+</div>

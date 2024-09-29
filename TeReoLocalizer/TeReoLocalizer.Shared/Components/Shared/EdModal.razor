@@ -1,0 +1,52 @@
+@using System.Linq.Expressions
+@using Blazored.Modal
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public string? Description { get; set; }
+    [Parameter]
+    public ModalRenderModes Render { get; set; }
+    [Parameter]
+    public ModalSizes Size { get; set; } = ModalSizes.Medium;
+    [Parameter]
+    public Func<Task>? CancelAction { get; set; }
+    [Parameter] 
+    public GenericModal? GenericModalRef { get; set; }
+    [Parameter]
+    public bool DescriptionAutoScroll { get; set; } = true;
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    [Parameter]
+    public DynamicComponentInfo? DescriptionComponent { get; set; }
+    
+    protected override void OnInitialized()
+    {
+        if (GenericModalRef != null)
+        {
+            GenericModalRef.SpecificModal = this;
+        }
+        
+        base.OnInitialized();
+    }
+}
+
+<CascadingValue Name="ModalRef" Value="this" IsFixed="true">
+    <div class="modal-dialog modal-notify modal-warning @(Size.GetStringValue())" role="document" @onmouseup:stopPropagation="true" @onmousedown:stopPropagation="true">
+        <div class="modal-content EdModal">
+            @if (Render == ModalRenderModes.Auto)
+            {
+                <EdModalHeader AutoScroll="DescriptionAutoScroll" Description="@Description" DescriptionComponent="DescriptionComponent" Title="@Title"/>
+                <EdModalBody AutoScroll="DescriptionAutoScroll">@ChildContent</EdModalBody>   
+            }
+            else
+            {
+                @ChildContent
+            }
+        </div>
+    </div>
+</CascadingValue>

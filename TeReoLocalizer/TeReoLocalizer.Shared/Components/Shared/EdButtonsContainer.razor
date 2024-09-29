@@ -1,0 +1,35 @@
+@using TeReoLocalizer.Shared.Code
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public DisplayPositions Position { get; set; } = DisplayPositions.InlineFlex;
+    [Parameter]
+    public string? Style { get; set; }
+}
+
+@if (true)
+{
+    <div style="margin-top: 1rem;" class="row">
+        <div class="form-group">
+            <div class="form-row">
+                <div class="col-md-3"></div>
+                <div class="col-md-9">
+                    <div style="display: @(Position.GetStringValue()); gap: 5px; @(Position == DisplayPositions.Flex ? "justify-content: center;" : "") @Style" class="mt-2">
+                        <CascadingValue IsFixed="true" Value="this" Name="ButtonsContainer">
+                            @ChildContent
+                        </CascadingValue>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div style="display: @(Position.GetStringValue()); gap: 5px; margin-top: 30px; margin-bottom: 10px; @(Position == DisplayPositions.Flex ? "justify-content: center;" : "") @Style" class="mt-2">
+        <CascadingValue IsFixed="true" Value="this" Name="ButtonsContainer">
+            @ChildContent
+        </CascadingValue>
+    </div>   
+}
