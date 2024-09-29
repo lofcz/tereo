@@ -46,6 +46,8 @@
     List<KeyValuePair<string, Key>> visibleKeys = [];
     int keyPages = -1;
     int keySelectedPage = 1;
+    ElementReference? jumpToPageInput;
+    
 
     class UserSettings
     {
@@ -747,6 +749,17 @@
         RecomputeVisibleKeys();
         StateHasChanged();
     }
+    
+    async Task SetKeyPageJump()
+    {
+        string jumpToPageValue = await Js.InvokeAsync<string>("eval", $"document.getElementById('pageJumpEl').value");
+        
+        if (int.TryParse(jumpToPageValue, out int pageNumber) && pageNumber >= 1 && pageNumber <= keyPages)
+        {
+            await SetKeyPage(pageNumber);
+            await Js.InvokeVoidAsync("eval", $"document.getElementById('pageJumpEl').value = ''");
+        }
+    }
 
     async Task SaveUserSettings()
     {
@@ -1062,18 +1075,50 @@
 
                 @if (keyPages > 1)
                 {
-                    <div style="max-width: calc(100vw - 700px);">
-                        <div style="margin-right: 10px;">Strana:</div>
-                        <ul class="pagination" style="flex-flow: wrap;">
-                            @for (int i = 0; i < keyPages; i++)
-                            {
-                                int pageIndex = i + 1;
+                    <div class="d-flex align-items-center flex-wrap" style="max-width: calc(100vw - 700px); padding-top: 1rem;">
+                        <div class="me-2">Strana:</div>
+                        <ul class="pagination flex-wrap me-3" style="margin-bottom: 0;">
+                            @{
+                                int start = Math.Max(1, keySelectedPage - 5);
+                                int end = Math.Min(keyPages, keySelectedPage + 5);
 
-                                <li @onclick="@(async () => await SetKeyPage(pageIndex))" style="user-select: none; cursor: pointer;" class="page-item @(pageIndex == keySelectedPage ? "active" : string.Empty)">
-                                    <span class="page-link">@pageIndex</span>
-                                </li>
+                                if (start > 1)
+                                {
+                                    <li style="user-select: none; cursor: pointer;" class="page-item">
+                                        <span class="page-link" @onclick="@(async () => await SetKeyPage(1))">1</span>
+                                    </li>
+                                    
+                                    if (start > 2)
+                                    {
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    }
+                                }
+
+                                for (int i = start; i <= end; i++)
+                                {
+                                    int pageIndex = i;
+                                    <li style="user-select: none; cursor: pointer;" @onclick="@(async () => await SetKeyPage(pageIndex))" class="page-item @(pageIndex == keySelectedPage ? "active" : string.Empty)">
+                                        <span class="page-link">@pageIndex</span>
+                                    </li>
+                                }
+
+                                if (end < keyPages)
+                                {
+                                    if (end < keyPages - 1)
+                                    {
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    }
+                                    
+                                    <li style="user-select: none; cursor: pointer;" class="page-item">
+                                        <span class="page-link" @onclick="@(async () => await SetKeyPage(keyPages))">@keyPages</span>
+                                    </li>
+                                }
                             }
                         </ul>
+                        <div class="d-flex align-items-center">
+                            <input type="number" class="form-control me-2" style="width: 120px;" placeholder="Stránka" @ref="jumpToPageInput" id="pageJumpEl" min="1" max="@keyPages" />
+                            <button class="btn btn-outline-primary" @onclick="SetKeyPageJump">Přejít</button>
+                        </div>
                     </div>
                 }
             </div>
