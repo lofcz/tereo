@@ -194,7 +194,9 @@ public partial class Localizer(Project project, LangsData langsData)
                     x.Value.DefaultLangContainsHtml = DefaultLangValueHtml(x.Key);
                 }
 
-                foreach (KeyValuePair<string, Key> x in decl.Keys)
+                List<KeyValuePair<string, Key>> sourceKeys = decl.Keys.OrderBy(x => x.Key.ToString(), StringComparer.Ordinal).ToList();
+
+                foreach (KeyValuePair<string, Key> x in sourceKeys)
                 {
                     if (x.Key.IsNullOrWhiteSpace())
                     {
@@ -212,7 +214,7 @@ public partial class Localizer(Project project, LangsData langsData)
 
                 propsBuilder.AppendLine();
 
-                foreach (KeyValuePair<string, Key> x in decl.Keys)
+                foreach (KeyValuePair<string, Key> x in sourceKeys)
                 {
                     if (x.Key.IsNullOrWhiteSpace())
                     {
@@ -225,7 +227,7 @@ public partial class Localizer(Project project, LangsData langsData)
                 
                 propsBuilder.AppendLine();
                 
-                foreach (KeyValuePair<string, Key> x in decl.Keys)
+                foreach (KeyValuePair<string, Key> x in sourceKeys)
                 {
                     if (x.Key.IsNullOrWhiteSpace())
                     {
@@ -238,7 +240,7 @@ public partial class Localizer(Project project, LangsData langsData)
                 
                 propsBuilder.AppendLine();
                 
-                foreach (KeyValuePair<string, Key> x in decl.Keys)
+                foreach (KeyValuePair<string, Key> x in sourceKeys)
                 {
                     if (x.Key.IsNullOrWhiteSpace())
                     {
@@ -257,7 +259,7 @@ public partial class Localizer(Project project, LangsData langsData)
         {
             StringBuilder langsSb = new StringBuilder();
 
-            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.OrderBy(x => x.Key))
+            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.OrderBy(x => x.Key.ToString(), StringComparer.Ordinal))
             {
                 sb.AppendLine($"{x.Key.ToString()},");
             }
@@ -269,7 +271,7 @@ public partial class Localizer(Project project, LangsData langsData)
         {
             StringBuilder lcidSb = new StringBuilder();
             
-            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.OrderBy(x => x.Key))
+            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.OrderBy(x => x.Key.ToString(), StringComparer.Ordinal))
             {
                 if (LcDict.LcIds.TryGetValue(x.Key, out List<int>? iVals))
                 {
