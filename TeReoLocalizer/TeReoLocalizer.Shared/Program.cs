@@ -11,9 +11,9 @@ public class Program
 {
     public static InvertedIndex Index;
     
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
-        InitService.Init();
+        await InitService.Init();
 
         if (Consts.Cfg.Experimental)
         {
@@ -50,12 +50,17 @@ public class Program
         
         builder.Services.AddBlazoredModal();
 
-        WebApplication? app = builder.Build();
+        WebApplication app = builder.Build();
         IHostApplicationLifetime lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 
         lifetime.ApplicationStopping.Register(() =>
         {
             Index.Dispose();
+
+            if (InitService.Workspace is not null)
+            {
+                InitService.Workspace.Dispose();
+            }
         });
         
         if (!app.Environment.IsDevelopment())

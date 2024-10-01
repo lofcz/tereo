@@ -4,6 +4,7 @@
 @using System.Text
 @using System.Text.Encodings.Web
 @using System.Text.Json
+@using System.Text.RegularExpressions
 @using System.Text.Unicode
 @using Blazored.Modal.Services
 @using DeepL
@@ -118,6 +119,13 @@
         {
             string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/project.json");
             Project = JsonSerializer.Deserialize<Project>(currentData) ?? new Project();
+        }
+        else
+        {
+            // old structure
+            string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
+            Decl oldDecl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();
+            Project.Decls.Add(oldDecl);
         }
 
         Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
@@ -458,6 +466,64 @@
         });
     }
 
+    async Task RegenerateKey(string key)
+    {
+        if (langsData.Langs[Languages.CS].Data.TryGetValue(key, out string? czechValue))
+        {
+            string newKeyCopy = czechValue.Trim().FirstLetterToUpper();
+            string newKeyName = Localizer.BaseIdentifier(newKeyCopy);
+            await RenameAndSaveKey(key, newKeyName);
+        }
+    }
+
+    async Task RenameAndSaveKey(string key, string newKeyName)
+    {
+        if (string.Equals(key, newKeyName, StringComparison.Ordinal))
+        {
+            await Js.Toast(ToastTypes.Info, "Klíč není potřeba přegenerovat");
+            return;
+        }
+        
+        foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+        {
+            if (x.Value.Data.TryGetValue(key, out string? strValue))
+            {
+                x.Value.Data.TryAdd(newKeyName, strValue);
+                x.Value.Data.TryRemove(key, out _);
+            }
+        }
+
+        await SaveLanguages();
+        
+        if (Decl.Keys.TryGetValue(key, out Key? kVal))
+        {
+            kVal.Name = newKeyName;
+            Decl.Keys.TryRemove(key, out _);
+            Decl.Keys.TryAdd(newKeyName, kVal);
+
+            RecomputeVisibleKeys();
+            await SaveProject();
+        }
+
+        if (!search.Contains(newKeyName))
+        {
+            search = string.Empty;
+        }
+        
+        RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, new Progress<RenameProgress>(x =>
+        {
+            int z = 1;
+        }));
+
+        if (renameResult.TotalReplacements > 0)
+        {
+            await Generate();
+        }
+
+        inputToFocus = newKeyName;
+        StateHasChanged();
+    }
+
     async Task UpdateKey(string key)
     {
         Md.ShowPromptModal("Nový název klíče", null, async (str) =>
@@ -465,37 +531,8 @@
             if (!str.IsNullOrWhiteSpace())
             {
                 str = str.Trim();
-
-                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
-                {
-                    if (x.Value.Data.TryGetValue(key, out string? strValue))
-                    {
-                        x.Value.Data.TryAdd(str, strValue);
-                        x.Value.Data.TryRemove(key, out _);
-
-                        await SaveLanguage(x.Key);
-                    }
-                }
-
-                if (Decl.Keys.TryGetValue(key, out Key? kVal))
-                {
-                    kVal.Name = str;
-                    Decl.Keys.TryRemove(key, out _);
-                    Decl.Keys.TryAdd(str, kVal);
-
-                    RecomputeVisibleKeys();
-                    await SaveProject();
-                }
-
-                if (!search.Contains(str))
-                {
-                    search = string.Empty;
-                }
-
-                inputToFocus = str;
+                await RenameAndSaveKey(key, str);
             }
-
-            StateHasChanged();
         }, defaultText: key, inputPlaceholder: "Nový název klíče");
     }
 
@@ -526,7 +563,7 @@
 
     async Task<string> Generate()
     {
-        Localizer l = new Localizer(Decl, langsData);
+        Localizer l = new Localizer(Project, langsData);
         string code = await l.Generate();
 
         if (File.Exists($"{basePath}/I18N/Reo.cs"))
@@ -596,19 +633,26 @@
                     {
                         try
                         {
-                            TextResult result = await translator.TranslateTextAsync(csValue, LanguageCode.Czech, DeeplCode(x.Key), new TextTranslateOptions
+                            string finalVal = DeeplifyText(csValue);
+
+                            TextTranslateOptions opts = new TextTranslateOptions
                             {
                                 Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
-                                TagHandling = "html"
-                            });
+                                TagHandling = "xml"
+                            };
 
+                            opts.IgnoreTags.Add("ignore");
+                            
+                            TextResult result = await translator.TranslateTextAsync(finalVal, LanguageCode.Czech, DeeplCode(x.Key), opts);
+                            string text = UndeeplifyText(result.Text);
+                            
                             if (adding)
                             {
-                                x.Value.Data.TryAdd(keys.Key, result.Text);
+                                x.Value.Data.TryAdd(keys.Key, text);
                             }
                             else
                             {
-                                x.Value.Data[keys.Key] = result.Text;
+                                x.Value.Data[keys.Key] = text;
                             }
 
                             StateHasChanged();
@@ -624,6 +668,20 @@
         await SaveLanguages();
         translating = false;
         StateHasChanged();
+    }
+
+    private static readonly Regex DeeplRegex = new Regex("\\{([^}]+)\\}", RegexOptions.Compiled);
+    private static readonly Regex UndeeplRegex = new Regex("</?ignore>", RegexOptions.Compiled);
+    
+    
+    static string DeeplifyText(string text)
+    {
+        return DeeplRegex.Replace(text, "<ignore>{$1}</ignore>");
+    }
+    
+    static string UndeeplifyText(string text)
+    {
+        return UndeeplRegex.Replace(text, string.Empty);
     }
 
     async Task ForceSave()
@@ -984,6 +1042,10 @@
                                 <ul class="dropdown-menu">
                                     <li>
                                         <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await UpdateKey(x.Key))">Přejmenovat</span>
+                                    </li>
+
+                                    <li>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item"  @onclick="@(async () => await RegenerateKey(x.Key))">Přegenerovat název klíče</span>
                                     </li>
                                     
                                     @if (Project.Decls.Count > 1)

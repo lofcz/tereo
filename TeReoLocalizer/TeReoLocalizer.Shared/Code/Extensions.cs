@@ -71,19 +71,22 @@ public static class Extensions
         return str.ToUpper();
     }
     
+    public static IEnumerable<string> GetFiles(this string path, IEnumerable<string> searchPatterns, SearchOption searchOption = SearchOption.TopDirectoryOnly, Func<string, bool>? filter = null)
+    {
+        return searchPatterns.AsParallel().SelectMany(searchPattern => Directory.EnumerateFiles(path, searchPattern, searchOption).Where(x => filter is not null && filter(x)));
+    }
+    
     private static JsonSerializerOptions IndendedSerializer = new JsonSerializerOptions
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-    
         
     private static JsonSerializerOptions UnindendedSerializer = new JsonSerializerOptions
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-
 
     public static string ToJson(this object data, bool prettify = false)
     {

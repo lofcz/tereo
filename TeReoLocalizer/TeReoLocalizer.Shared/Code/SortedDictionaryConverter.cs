@@ -53,7 +53,7 @@ public class SortedDictionaryConverter<TKey, TValue> : JsonConverter<ConcurrentD
     {
         writer.WriteStartObject();
 
-        foreach (KeyValuePair<TKey, TValue> kvp in value.OrderBy(x => x.Key))
+        foreach (KeyValuePair<TKey, TValue> kvp in value.OrderBy(x => x.Key.ToString(), StringComparer.Ordinal))
         {
             writer.WritePropertyName(kvp.Key.ToString() ?? string.Empty);
             JsonSerializer.Serialize(writer, kvp.Value, options);

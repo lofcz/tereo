@@ -9,7 +9,7 @@ using TeReoLocalizer.Shared.Components.Pages;
 
 namespace TeReoLocalizer.Shared.Code;
 
-public partial class Localizer(Decl decl, LangsData langsData)
+public partial class Localizer(Project project, LangsData langsData)
 {
     public async Task<string> Generate()
     {
@@ -187,64 +187,67 @@ public partial class Localizer(Decl decl, LangsData langsData)
         {
             StringBuilder propsBuilder = new StringBuilder();
 
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
+            foreach (Decl decl in project.Decls)
             {
-                x.Value.DefaultLangContainsHtml = DefaultLangValueHtml(x.Key);
-            }
-
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
-            {
-                if (x.Key.IsNullOrWhiteSpace())
+                foreach (KeyValuePair<string, Key> x in decl.Keys)
                 {
-                    continue;
+                    x.Value.DefaultLangContainsHtml = DefaultLangValueHtml(x.Key);
                 }
 
-                DumpPropXmlDoc(propsBuilder, x.Key);
-                propsBuilder.AppendLine($"public static {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} {CsIdentifier(x.Key)} => {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\");");
-
-                if (x.Value.DefaultLangContainsHtml)
+                foreach (KeyValuePair<string, Key> x in decl.Keys)
                 {
-                    propsBuilder.AppendLine($"public static string {CsIdentifier(x.Key)}String => GetString(\"{x.Key.Trim()}\");");
+                    if (x.Key.IsNullOrWhiteSpace())
+                    {
+                        continue;
+                    }
+
+                    DumpPropXmlDoc(propsBuilder, x.Key);
+                    propsBuilder.AppendLine($"public static {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} {CsIdentifier(x.Key)} => {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\");");
+
+                    if (x.Value.DefaultLangContainsHtml)
+                    {
+                        propsBuilder.AppendLine($"public static string {CsIdentifier(x.Key)}String => GetString(\"{x.Key.Trim()}\");");
+                    }
                 }
-            }
 
-            propsBuilder.AppendLine();
+                propsBuilder.AppendLine();
 
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
-            {
-                if (x.Key.IsNullOrWhiteSpace())
+                foreach (KeyValuePair<string, Key> x in decl.Keys)
                 {
-                    continue;
-                }
-                
-                DumpPropXmlDoc(propsBuilder, x.Key);
-                propsBuilder.AppendLine($"public static {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} Get{CsIdentifier(x.Key)}(Languages lang) {{ return {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\", lang); }}");
-            }
-            
-            propsBuilder.AppendLine();
-            
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
-            {
-                if (x.Key.IsNullOrWhiteSpace())
-                {
-                    continue;
+                    if (x.Key.IsNullOrWhiteSpace())
+                    {
+                        continue;
+                    }
+                    
+                    DumpPropXmlDoc(propsBuilder, x.Key);
+                    propsBuilder.AppendLine($"public static {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} Get{CsIdentifier(x.Key)}(Languages lang) {{ return {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\", lang); }}");
                 }
                 
-                DumpPropXmlDoc(propsBuilder, x.Key);
-                propsBuilder.AppendLine($"public {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} Local{CsIdentifier(x.Key)} => {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\", Language);");
-            }
-            
-            propsBuilder.AppendLine();
-            
-            foreach (KeyValuePair<string, Key> x in decl.Keys)
-            {
-                if (x.Key.IsNullOrWhiteSpace())
+                propsBuilder.AppendLine();
+                
+                foreach (KeyValuePair<string, Key> x in decl.Keys)
                 {
-                    continue;
+                    if (x.Key.IsNullOrWhiteSpace())
+                    {
+                        continue;
+                    }
+                    
+                    DumpPropXmlDoc(propsBuilder, x.Key);
+                    propsBuilder.AppendLine($"public {(x.Value.DefaultLangContainsHtml ? "MarkupString" : "string")} Local{CsIdentifier(x.Key)} => {(x.Value.DefaultLangContainsHtml ? "(MarkupString)" : string.Empty)}GetString(\"{x.Key.Trim()}\", Language);");
                 }
                 
-                DumpPropXmlDoc(propsBuilder, x.Key);
-                propsBuilder.AppendLine($"public const string Key{CsIdentifier(x.Key)} = \"{x.Key.Trim()}\";");
+                propsBuilder.AppendLine();
+                
+                foreach (KeyValuePair<string, Key> x in decl.Keys)
+                {
+                    if (x.Key.IsNullOrWhiteSpace())
+                    {
+                        continue;
+                    }
+                    
+                    DumpPropXmlDoc(propsBuilder, x.Key);
+                    propsBuilder.AppendLine($"public const string Key{CsIdentifier(x.Key)} = \"{x.Key.Trim()}\";");
+                }   
             }
 
             return propsBuilder.ToString().Trim();
