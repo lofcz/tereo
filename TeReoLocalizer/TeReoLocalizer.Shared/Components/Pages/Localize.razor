@@ -422,8 +422,8 @@
                         index = ~index;
                     }
                     
-                    int indexPage = (int)Math.Ceiling(index / (double)take);
-                    keySelectedPage = indexPage;
+                    int indexPage = (int)Math.Floor(index / (double)take) + 1;
+                    keySelectedPage = Math.Max(1, Math.Min(indexPage, keyPages));
                 }
             }
             
