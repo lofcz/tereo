@@ -1,0 +1,64 @@
+@using TeReoLocalizer.Shared.Code
+@code {
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    
+    bool saving;
+    Key key = new Key();
+    bool ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (Owner.Project.SelectedDecl.Keys.TryGetValue(Name, out Key? existingKey))
+        {
+            key = existingKey;
+        }
+
+        ready = true;
+    }
+
+    async Task HandleTranslatableToggle(bool translatable)
+    {
+        key.AutoTranslatable = translatable;
+    }
+
+    async Task Submit()
+    {
+        if (saving)
+        {
+            return;
+        }
+        
+        saving = true;
+        
+        await Owner.SaveProject();
+        Owner.StateHasChanged();
+        
+        saving = false;
+        await BlazoredModal.CloseAsync();
+    }
+}
+
+<EdModal Title="@($"Nastavení klíče <code>{Name}</code>")">
+
+    @if (ready)
+    {
+        <div style="margin-bottom: 1rem;">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind:set="@(async (value) => await HandleTranslatableToggle(value))" @bind:get="key.AutoTranslatable" id="autoTranslate">
+                <label class="form-check-label" for="autoTranslate">Automatický překlad</label>
+            </div>
+        </div>   
+    }
+    
+    <EdButtonsContainer>
+        <EdButton OnClick="Submit">Uložit</EdButton>
+        <EdButton Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>

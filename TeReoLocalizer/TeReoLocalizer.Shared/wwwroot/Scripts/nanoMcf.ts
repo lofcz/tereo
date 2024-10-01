@@ -458,15 +458,15 @@ var moduleCommonFunctions = {
     log: (data: any) => {
         console.log(data);  
     },
-    focus: (id : string) => {
-        
-        console.log("focus fired: " + id);
-        
+    focus: (id : string): boolean => {
         var el = document.getElementById(id);
         
         if (el) {
             el.focus();
+            return true;
         }
+        
+        return false
     },
     select: (id : string) => {
         var el = document.getElementById(id) as HTMLInputElement;

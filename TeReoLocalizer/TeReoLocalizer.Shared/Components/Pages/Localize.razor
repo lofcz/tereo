@@ -37,6 +37,8 @@
     string? generatedCode;
     bool ready;
     bool translating;
+    int translated;
+    List<TranslateTaskInput> toTranslate = [];
     string search = string.Empty;
     string? inputToFocus;
     bool synchronizingIndex;
@@ -270,7 +272,7 @@
         }
     }
 
-    async Task SaveProject()
+    public async Task SaveProject()
     {
         string data = Project.ToJson(true);
         await File.WriteAllTextAsync($"{basePath}/TeReo/project.json", data);
@@ -284,8 +286,12 @@
         {
             try
             {
-                await Js.Focus(inputToFocus);
-                inputToFocus = null;
+                bool focused = await Js.Focus(inputToFocus);
+
+                if (focused)
+                {
+                    inputToFocus = null;   
+                }
             }
             catch (Exception e)
             {
@@ -443,13 +449,13 @@
         await SetKey(language, key, value);
     }
 
-    async Task SaveLanguage(Languages language)
+    public async Task SaveLanguage(Languages language)
     {
         string data = langsData.Langs[language].ToJson();
         await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
     }
 
-    async Task SaveLanguages()
+    public async Task SaveLanguages()
     {
         foreach (KeyValuePair<Languages, LangData> lang in langsData.Langs)
         {
@@ -460,6 +466,15 @@
     async Task MoveKey(string key)
     {
         Md.ShowModal<LocalizeMoveKeyModal>(new
+        {
+            Name = key,
+            Owner = this
+        });
+    }
+
+    async Task OpenSettingsKey(string key)
+    {
+        Md.ShowModal<LocalizeSettingsKeyModal>(new
         {
             Name = key,
             Owner = this
@@ -505,10 +520,17 @@
             await SaveProject();
         }
 
-        if (!search.Contains(newKeyName))
+        /*if (!search.Contains(newKeyName))
         {
             search = string.Empty;
-        }
+            
+            foreach (KeyValuePair<string, Key> x in Decl.Keys)
+            {
+                x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
+            }
+            
+            RecomputeVisibleKeys();
+        }*/
         
         RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, new Progress<RenameProgress>(x =>
         {
@@ -605,11 +627,13 @@
         }
 
         translating = true;
+        translated = 0;
+        toTranslate.Clear();
         StateHasChanged();
 
         Translator translator = new Translator(Consts.Cfg.DeepL);
-
-        foreach (KeyValuePair<string, Key> keys in Decl.Keys)
+        
+        foreach (KeyValuePair<string, Key> keys in Decl.Keys.Where(x => x.Value.AutoTranslatable))
         {
             foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
             {
@@ -631,41 +655,59 @@
                 {
                     if (langsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
                     {
-                        try
+                        toTranslate.Add(new TranslateTaskInput
                         {
-                            string finalVal = DeeplifyText(csValue);
-
-                            TextTranslateOptions opts = new TextTranslateOptions
-                            {
-                                Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
-                                TagHandling = "xml"
-                            };
-
-                            opts.IgnoreTags.Add("ignore");
-                            
-                            TextResult result = await translator.TranslateTextAsync(finalVal, LanguageCode.Czech, DeeplCode(x.Key), opts);
-                            string text = UndeeplifyText(result.Text);
-                            
-                            if (adding)
-                            {
-                                x.Value.Data.TryAdd(keys.Key, text);
-                            }
-                            else
-                            {
-                                x.Value.Data[keys.Key] = text;
-                            }
-
-                            StateHasChanged();
-                        }
-                        catch (Exception e)
-                        {
-                        }
+                            PrimaryValue = csValue,
+                            Source = x,
+                            Adding = adding,
+                            Key = keys
+                        });
                     }
                 }
             }
         }
+        
+        StateHasChanged();
+        
+        TextTranslateOptions opts = new TextTranslateOptions
+        {
+            Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
+            TagHandling = "xml"
+        };
+
+        opts.IgnoreTags.Add("ignore");
+
+        await Parallel.ForEachAsync(toTranslate, async (input, token) =>
+        {
+            try
+            {
+                string finalVal = DeeplifyText(input.PrimaryValue);
+
+                TextResult result = await translator.TranslateTextAsync(finalVal, LanguageCode.Czech, DeeplCode(input.Source.Key), opts, token);
+                string text = UndeeplifyText(result.Text);
+
+                if (input.Adding)
+                {
+                    input.Source.Value.Data.TryAdd(input.Key.Key, text);
+                }
+                else
+                {
+                    input.Source.Value.Data[input.Key.Key] = text;
+                }
+            }
+            catch (Exception e)
+            {
+            }
+            finally
+            {
+                translated++;
+                StateHasChanged();
+            }
+        });
 
         await SaveLanguages();
+        toTranslate.Clear();
+        translated = 0;
         translating = false;
         StateHasChanged();
     }
@@ -991,7 +1033,7 @@
 
 @if (translating)
 {
-    <p>Probíhá překlad..</p>
+    <p>Probíhá překlad @(translated)/@(toTranslate.Count)</p>
 }
 
 @if (!generatedCode.IsNullOrWhiteSpace())
@@ -1045,13 +1087,17 @@
                                     </li>
 
                                     <li>
-                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item"  @onclick="@(async () => await RegenerateKey(x.Key))">Přegenerovat název klíče</span>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await RegenerateKey(x.Key))">Přegenerovat název klíče</span>
+                                    </li>
+
+                                    <li>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await OpenSettingsKey(x.Key))">Nastavení</span>
                                     </li>
                                     
                                     @if (Project.Decls.Count > 1)
                                     {
                                         <li>
-                                            <span style="cursor: pointer; user-select: none;" class="dropdown-item"  @onclick="@(async () => await MoveKey(x.Key))">Přesunout</span>
+                                            <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await MoveKey(x.Key))">Přesunout</span>
                                         </li>
                                     }
                                     
@@ -1068,6 +1114,13 @@
                     <td style="width: 300px;">
                         <div style="max-width: 300px;">
                             <code>@x.Key</code>
+                            
+                            @if (!x.Value.AutoTranslatable)
+                            {
+                                <div>
+                                    <code style="font-size: 12px;">[Manuální překlad]</code>
+                                </div>
+                            }
                         </div>
                     </td>
 

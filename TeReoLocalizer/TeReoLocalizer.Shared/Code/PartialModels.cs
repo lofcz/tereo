@@ -10,10 +10,19 @@ public class Key
 {
     public string Name { get; set; }
     public string Id { get; set; }
+    public bool AutoTranslatable { get; set; } = true;
     [JsonIgnore]
     public bool DefaultLangContainsHtml { get; set; }
     [JsonIgnore] 
     public bool IsVisible { get; set; } = true;
+}
+
+public class TranslateTaskInput
+{
+    public string PrimaryValue { get; set; }
+    public KeyValuePair<Languages, LangData> Source { get; set; }
+    public bool Adding { get; set; }
+    public KeyValuePair<string, Key> Key { get; set; }
 }
 
 public class Project

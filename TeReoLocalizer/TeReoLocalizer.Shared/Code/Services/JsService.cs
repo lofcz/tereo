@@ -20,9 +20,9 @@ public static class JsService
         await js.InvokeVoidAsync("mcf.hideAllTooltips");
     }
     
-    public static async Task Focus(this IJSRuntime js, string elId)
+    public static async Task<bool> Focus(this IJSRuntime js, string elId)
     {
-        await js.InvokeVoidAsync("mcf.focus", elId);
+        return await js.InvokeAsync<bool>("mcf.focus", elId);
     }
 
     public static async Task Scrollbar(this IJSRuntime js, string id)
