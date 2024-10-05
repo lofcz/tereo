@@ -49,9 +49,12 @@ public class Tests
     [TestCase("condition2", 1)]
     [TestCase("[oi]", 2)]
     [TestCase("if", 1)]
+    [TestCase("x =", 1)]
+    [TestCase("X =", 1)]
     [TestCase("ahoCorasick", 6)]
     [TestCase("uperlongtestlongerthanmaxngra", 1)]
     [TestCase("his is a random very long text which we should be able to search and index correctl", 1)]
+    [TestCase("this is a random very long text which we should be able to search and index correctly", 1)]
     public void CaseInsensitive(string query, int expected)
     {
         List<SearchResult> results = SharedIndex.Search(query);
@@ -59,6 +62,7 @@ public class Tests
     }
     
     [Test]
+    [TestCase("iF", 0)]
     [TestCase("X = 5 * 3", 0)]
     [TestCase("uperlongtestlongerthanmaxngra", 1)]
     [TestCase("uperlongtestlonGerthanmaxngra", 0)]
@@ -74,6 +78,7 @@ public class Tests
     [TestCase("tohle", 1)]
     [TestCase("ohle", 0)]
     [TestCase("tohl", 0)]
+    [TestCase("if", 1)]
     [TestCase("tohle je test", 1)]
     [TestCase("tohle test", 0)]
     [TestCase("uperlongtestlongerthanmaxngra", 0)]

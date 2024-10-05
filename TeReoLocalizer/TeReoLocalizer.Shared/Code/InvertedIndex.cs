@@ -12,10 +12,10 @@ namespace TeReoLocalizer.Shared.Code;
 
 public class InvertedIndex : IDisposable
 {
-    private const string IndexVersion = "1.0.7";
+    private const string IndexVersion = "1.0.8";
     private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
-    private const int MinNGramLength = 2;
-    private const int MaxNGramLength = 10;
+    private const int MinNGramLength = 3;
+    private const int MaxNGramLength = 3;
     
     private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r'];
     
@@ -152,14 +152,16 @@ public class InvertedIndex : IDisposable
     
     public void IndexDocument(string content, string id)
     {
+        string lowerContent = content.ToLowerInvariant();
+        
         Document doc =
         [
             new StringField("id", id, Field.Store.YES),
-            new TextField("content", content.ToLowerInvariant(), Field.Store.NO),
+            new TextField("content", lowerContent, Field.Store.NO),
             new StringField("content_original", content, Field.Store.YES)
         ];
         
-        HashSet<char> uniqueChars = [..content.ToLowerInvariant()];
+        HashSet<char> uniqueChars = [..lowerContent];
         
         foreach (char c in uniqueChars)
         {
@@ -172,7 +174,7 @@ public class InvertedIndex : IDisposable
             doc.Add(new StringField("whole_word", word.ToLowerInvariant(), Field.Store.NO));
         }
         
-        IndexVariableLengthNGrams(doc, content);
+        IndexVariableLengthNGrams(doc, lowerContent);
 
         writer.UpdateDocument(new Term("id", id), doc);
         indexedStrings[content] = id;
@@ -180,13 +182,11 @@ public class InvertedIndex : IDisposable
     
     private static void IndexVariableLengthNGrams(Document doc, string text)
     {
-        string lowerText = text.ToLowerInvariant();
-        
-        for (int length = MinNGramLength; length <= Math.Min(MaxNGramLength, lowerText.Length); length++)
+        for (int length = Math.Max(2, MinNGramLength - 1); length <= Math.Min(MaxNGramLength, text.Length); length++)
         {
-            for (int i = 0; i <= lowerText.Length - length; i++)
+            for (int i = 0; i <= text.Length - length; i++)
             {
-                string ngram = lowerText.Substring(i, length);
+                string ngram = text.Substring(i, length);
                 doc.Add(new StringField($"ngram_{length}", ngram, Field.Store.NO));
             }
         }
@@ -253,61 +253,62 @@ public class InvertedIndex : IDisposable
         writer.Commit();
     }
 
-   public List<SearchResult> Search(string substring, bool caseSensitive = false, bool wholeWords = false, int page = 1, int pageSize = 150)
+    public List<SearchResult> Search(string substring, bool caseSensitive = false, bool wholeWords = false, int page = 1, int pageSize = 150)
     {
         using DirectoryReader? reader = writer.GetReader(true);
         IndexSearcher searcher = new IndexSearcher(reader);
-        
+
         Query query;
-        
+
         if (wholeWords)
         {
             BooleanQuery booleanQuery = [];
             string[] words = substring.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (string word in words)
             {
                 TermQuery termQuery = new TermQuery(new Term("whole_word", word.ToLowerInvariant()));
                 booleanQuery.Add(termQuery, Occur.MUST);
             }
-            
+
             query = booleanQuery;
         }
-        else switch (substring.Length)
-        {
-            case 1:
+        else
+            switch (substring.Length)
             {
-                query = new TermQuery(new Term("single_char", substring.ToLowerInvariant()));
-                break;
-            }
-            default:
-            {
-                BooleanQuery booleanQuery = [];
-            
-                int ngramLength = Math.Min(substring.Length, MaxNGramLength);
-                string searchNgram = substring.ToLowerInvariant();
-
-                TermQuery ngramQuery = new TermQuery(new Term($"ngram_{ngramLength}", searchNgram));
-                booleanQuery.Add(ngramQuery, Occur.SHOULD);
-                
-                for (int i = MinNGramLength; i < ngramLength; i++)
+                case 1:
                 {
-                    string partialNgram = searchNgram[..i];
-                    TermQuery partialQuery = new TermQuery(new Term($"ngram_{i}", partialNgram));
-                    booleanQuery.Add(partialQuery, Occur.SHOULD);
+                    query = new TermQuery(new Term("single_char", substring.ToLowerInvariant()));
+                    break;
                 }
+                case 2:
+                {
+                    query = new TermQuery(new Term($"ngram_2", substring.ToLowerInvariant()));
+                    break;
+                }
+                default:
+                {
+                    string searchLower = substring.ToLowerInvariant();
+                    BooleanQuery booleanQuery = [];
 
-                booleanQuery.MinimumNumberShouldMatch = 1;
-                query = booleanQuery;
-                break;
+                    int ngramLength = MaxNGramLength;
+                    for (int i = 0; i <= searchLower.Length - ngramLength; i++)
+                    {
+                        string ngram = searchLower.Substring(i, ngramLength);
+                        TermQuery ngramQuery = new TermQuery(new Term($"ngram_{ngramLength}", ngram));
+                        booleanQuery.Add(ngramQuery, Occur.MUST);
+                    }
+
+                    query = booleanQuery;
+                    break;
+                }
             }
-        }
-        
+
         int start = (page - 1) * pageSize;
-        
+
         TopDocs topDocs = searcher.Search(query, start + pageSize);
         ScoreDoc[]? hits = topDocs.ScoreDocs;
-        
+
         return hits.Length <= 5 ? PruneContains(searcher, hits, substring, caseSensitive, wholeWords, start, pageSize) : PruneAhoCorasick(searcher, hits, substring, caseSensitive, wholeWords, start, pageSize);
     }
    
