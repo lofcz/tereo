@@ -397,7 +397,7 @@
 
         if (userSettings.LimitRender <= 0)
         {
-            foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderBy(x => x.Key))
+            foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderBy(x => x.Key, StringComparer.InvariantCulture))
             {
                 if (x.Value.IsVisible)
                 {
@@ -407,7 +407,7 @@
         }
         else
         {
-            List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderBy(x => x.Key).Where(x => x.Value.IsVisible).ToList();
+            List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderBy(x => x.Key, StringComparer.InvariantCulture).Where(x => x.Value.IsVisible).ToList();
             keyPages = (int)Math.Ceiling(keys.Count / (double)userSettings.LimitRender);
             int take = userSettings.LimitRender;
             
@@ -415,14 +415,14 @@
             {
                 if (Decl.Keys.TryGetValue(keyToFocus, out Key? match))
                 {
-                    int index = keys.BinarySearch(new KeyValuePair<string, Key>(keyToFocus, match), Comparer<KeyValuePair<string, Key>>.Create((a, b) => string.CompareOrdinal(a.Key, b.Key)));
+                    int index = keys.BinarySearch(new KeyValuePair<string, Key>(keyToFocus, match), Comparer<KeyValuePair<string, Key>>.Create((a, b) => string.Compare(a.Key, b.Key, StringComparison.InvariantCulture)));
 
                     if (index < 0)
                     {
                         index = ~index;
                     }
                     
-                    int indexPage = (int)Math.Floor(index / (double)take) + 1;
+                    int indexPage = (int)Math.Ceiling((index + 1) / (double)take);
                     keySelectedPage = Math.Max(1, Math.Min(indexPage, keyPages));
                 }
             }
