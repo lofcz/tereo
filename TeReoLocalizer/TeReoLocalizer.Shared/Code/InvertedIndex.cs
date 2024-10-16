@@ -17,7 +17,7 @@ public class InvertedIndex : IDisposable
     private const int MinNGramLength = 3;
     private const int MaxNGramLength = 3;
     
-    private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r'];
+    private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r', '\v', '\f'];
     
     private readonly FSDirectory directory;
     private readonly Analyzer analyzer;
