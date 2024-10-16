@@ -458,15 +458,50 @@ var moduleCommonFunctions = {
     log: (data: any) => {
         console.log(data);  
     },
-    focus: (id : string): boolean => {
-        var el = document.getElementById(id);
-        
+    focus: (id: string): boolean => {
+        const el = document.getElementById(id);
+
         if (el) {
             el.focus();
+
+            const getScrollParent = (node) => {
+                if (!node || node === document.body) {
+                    return document.body;
+                }
+
+                const style = getComputedStyle(node);
+                const overflowY = style.overflowY;
+                const isScrollable = overflowY === 'auto' || overflowY === 'scroll';
+
+                if (isScrollable && node.scrollHeight > node.clientHeight) {
+                    return node;
+                }
+
+                return getScrollParent(node.parentNode);
+            };
+
+            const scrollParent = getScrollParent(el);
+
+            if (scrollParent) {
+                const rect = el.getBoundingClientRect();
+                const parentRect = scrollParent.getBoundingClientRect();
+                const isVisible = (rect.top >= parentRect.top) && (rect.bottom <= parentRect.bottom);
+
+                if (!isVisible) {
+                    const scrollTop = rect.top - parentRect.top + scrollParent.scrollTop;
+                    scrollParent.scrollTo({
+                        top: scrollTop - scrollParent.clientHeight / 2 + rect.height / 2,
+                        behavior: 'smooth'
+                    });
+                }
+            } else {
+                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
             return true;
         }
-        
-        return false
+
+        return false;
     },
     select: (id : string) => {
         var el = document.getElementById(id) as HTMLInputElement;
