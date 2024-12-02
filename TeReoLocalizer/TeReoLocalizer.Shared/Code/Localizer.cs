@@ -11,6 +11,27 @@ namespace TeReoLocalizer.Shared.Code;
 
 public partial class Localizer(Project project, LangsData langsData)
 {
+    private static string EscapeStringFast(string input)
+    {
+        StringBuilder sb = new StringBuilder(input.Length + 16); // some random reasonable offset, if we overflow it's ok
+        
+        foreach (char c in input)
+        {
+            switch (c)
+            {
+                case '"': sb.Append("\\\""); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\t': sb.Append("\\t"); break;
+                case '\v': sb.Append("\\v"); break;
+                case '\f': sb.Append("\\f"); break;
+                default: sb.Append(c); break;
+            }
+        }
+        
+        return sb.ToString();
+    }
+    
     public async Task<string> Generate()
     {
         StringBuilder sb = new StringBuilder();
@@ -147,7 +168,7 @@ public partial class Localizer(Project project, LangsData langsData)
                         continue;
                     }
                     
-                    dictBuilder.AppendLine($"{{ \"{x.Key.Trim()}\", \"{x.Value.Replace("\"", "\\\"")}\" }},");
+                    dictBuilder.AppendLine($"{{ \"{x.Key.Trim()}\", \"{EscapeStringFast(x.Value)}\" }},");
                 }
                 
                 dictBuilder.AppendLine("}");
