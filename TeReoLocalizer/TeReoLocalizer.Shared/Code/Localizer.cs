@@ -198,7 +198,7 @@ public partial class Localizer(Project project, LangsData langsData)
             {
                 sbLocal.AppendLine($$"""
                                      /// <summary>
-                                     /// {{x}}
+                                     /// {{EscapeStringFast(x)}}
                                      /// </summary>
                                      """);   
             }
