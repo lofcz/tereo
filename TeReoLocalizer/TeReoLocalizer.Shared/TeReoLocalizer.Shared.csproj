@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="DeepL.net" Version="1.10.0" />
+      <PackageReference Include="DeepL.net" Version="1.11.0" />
       <PackageReference Include="Json5Core" Version="1.0.9" />
       <PackageReference Include="Lofcz.Forks.BlazoredModal" Version="1.0.5" />
       <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
@@ -17,10 +17,10 @@
       <PackageReference Include="Lucene.Net.Highlighter" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00016" />
       <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
-      <PackageReference Include="Microsoft.CodeAnalysis" Version="4.12.0-2.final" />
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0-2.final" />
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0-2.final" />
-      <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.12.0-2.final" />
+      <PackageReference Include="Microsoft.CodeAnalysis" Version="4.12.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.12.0" />
       <PackageReference Include="Nanoid" Version="3.1.0" />
     </ItemGroup>
 
