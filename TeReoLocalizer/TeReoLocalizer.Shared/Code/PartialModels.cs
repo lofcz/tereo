@@ -17,6 +17,15 @@ public class Key
     public bool IsVisible { get; set; } = true;
 }
 
+public enum KeySearchModes
+{
+    Unknown,
+    [StringValue("Obsahuje")]
+    Contains,
+    [StringValue("Přesná shoda")]
+    Exact
+}
+
 public class TranslateTaskInput
 {
     public string PrimaryValue { get; set; }

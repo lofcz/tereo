@@ -52,3 +52,7 @@ h1:focus {
     --bs-btn-disabled-bg: #6c757d;
     --bs-btn-disabled-border-color: #6c757d;
 }
+
+.form-check:hover {
+    cursor: pointer;
+}
