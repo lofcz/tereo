@@ -15,6 +15,8 @@ public class Key
     public bool DefaultLangContainsHtml { get; set; }
     [JsonIgnore] 
     public bool IsVisible { get; set; } = true;
+    [JsonIgnore]
+    public int SearchPriority { get; set; }
 }
 
 public enum KeySearchModes

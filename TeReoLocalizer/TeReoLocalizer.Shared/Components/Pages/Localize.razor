@@ -398,7 +398,7 @@
 
         if (userSettings.LimitRender <= 0)
         {
-            foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderBy(x => x.Key, StringComparer.InvariantCulture))
+            foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.InvariantCulture))
             {
                 if (x.Value.IsVisible)
                 {
@@ -408,7 +408,7 @@
         }
         else
         {
-            List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderBy(x => x.Key, StringComparer.InvariantCulture).Where(x => x.Value.IsVisible).ToList();
+            List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.InvariantCulture).Where(x => x.Value.IsVisible).ToList();
             keyPages = (int)Math.Ceiling(keys.Count / (double)userSettings.LimitRender);
             int take = userSettings.LimitRender;
             
@@ -955,18 +955,89 @@
             }
         }
     }
+    
+    (bool contains, bool startsWith, bool exactMatch) CompareStrings(string source, string search)
+    {
+        if (source.Length < search.Length)
+        {
+            return (false, false, false);
+        }
 
+        ReadOnlySpan<char> sourceSpan = source.AsSpan();
+        ReadOnlySpan<char> searchSpan = search.AsSpan();
+
+        bool startsWith = true;
+        bool exactMatch = source.Length == search.Length;
+    
+        for (int i = 0; i < searchSpan.Length; i++)
+        {
+            if (sourceSpan[i] != searchSpan[i])
+            {
+                startsWith = false;
+                exactMatch = false;
+                break;
+            }
+        }
+
+        if (startsWith)
+        {
+            return (true, true, exactMatch);
+        }
+    
+        for (int i = 1; i <= sourceSpan.Length - searchSpan.Length; i++)
+        {
+            bool found = true;
+        
+            for (int j = 0; j < searchSpan.Length; j++)
+            {
+                if (sourceSpan[i + j] != searchSpan[j])
+                {
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found)
+            {
+                return (true, false, false);
+            }
+        }
+
+        return (false, false, false);
+    }
+
+    static readonly ParallelOptions FullDop = new ParallelOptions 
+    { 
+        MaxDegreeOfParallelism = Environment.ProcessorCount 
+    };
+    
     void ApplySearch()
     {
-        foreach (KeyValuePair<string, Key> x in Decl.Keys)
+        string searchTerm = search.ToBaseLatin().ToLowerInvariant();
+        
+        Parallel.ForEach(Decl.Keys, FullDop, item =>
         {
-            x.Value.IsVisible = userSettings.KeySearchMode switch
+            item.Value.IsVisible = false;
+            item.Value.SearchPriority = 0;
+
+            string lowercaseKey = item.Key.ToLowerInvariant();
+            (bool contains, bool startsWith, bool exactMatch) = CompareStrings(lowercaseKey, searchTerm);
+
+            bool isMatch = userSettings.KeySearchMode switch
             {
-                KeySearchModes.Unknown or KeySearchModes.Contains => x.Key.ToLowerInvariant().Contains(search.ToBaseLatin()),
-                KeySearchModes.Exact => x.Key.ToLowerInvariant() == search.ToBaseLatin(),
-                _ => x.Value.IsVisible
+                KeySearchModes.Unknown or KeySearchModes.Contains => contains,
+                KeySearchModes.Exact => exactMatch,
+                _ => false
             };
-        }
+            
+            if (isMatch)
+            {
+                item.Value.IsVisible = true;
+                item.Value.SearchPriority = exactMatch ? 2 : startsWith ? 1 : 0;
+            }
+        });
+    
+        RecomputeVisibleKeys(true);
     }
 
     public async Task TransferKey(string keyName, Decl newOwner)
