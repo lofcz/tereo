@@ -11,6 +11,9 @@ public class Key
     public string Name { get; set; }
     public string Id { get; set; }
     public bool AutoTranslatable { get; set; } = true;
+    public DateTime DateCreated { get; set; } = DateTime.Now;
+    
+    // dynamic
     [JsonIgnore]
     public bool DefaultLangContainsHtml { get; set; }
     [JsonIgnore] 
@@ -38,10 +41,26 @@ public class TranslateTaskInput
 
 public class Project
 {
+    public static readonly int LatestVersionMajor = 1;
+    public static readonly int LatestVersionMinor = 1;
+    public static readonly int LatestVersionPatch = 0;
+    
+    public static string LatestVersion => $"{LatestVersionMajor}.{LatestVersionMinor}.{LatestVersionPatch}";
+
+    public string SchemaVersion { get; set; } = LatestVersion;
     public List<Decl> Decls { get; set; } = [];
 
+    public bool NeedsUpgrade => VersionMajor < LatestVersionMajor || VersionMinor < LatestVersionMinor || VersionPatch < LatestVersionPatch;
+    
+    // dynamic
     [JsonIgnore] 
     public Decl SelectedDecl { get; set; } = new Decl();
+    [JsonIgnore]
+    public int VersionMajor { get; set; }
+    [JsonIgnore]
+    public int VersionMinor { get; set; }
+    [JsonIgnore]
+    public int VersionPatch { get; set; }
 }
 
 public enum DisplayPositions

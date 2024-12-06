@@ -51,6 +51,18 @@
     int keySelectedPage = 1;
     ElementReference? jumpToPageInput;
     bool renderSearchModeSelection;
+    List<ProjectError>? loadErrors = null;
+    bool projectLoadingFinished = false;
+    
+    class ProjectError
+    {
+        public string Message { get; set; }
+
+        public ProjectError(string error)
+        {
+            Message = error;
+        }
+    }
     
     class UserSettings
     {
@@ -103,6 +115,16 @@
         return ready;
     }
 
+    void Panic(string message)
+    {
+        projectLoadingFinished = true;
+        ready = true;
+        loadErrors ??= [];
+        loadErrors.Add(new ProjectError(message));
+    }
+
+    bool Panicked => loadErrors?.Count > 0;
+
     protected override async Task OnInitializedAsync()
     {
         if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
@@ -131,7 +153,57 @@
             Project.Decls.Add(oldDecl);
         }
 
+        if (Project.SchemaVersion != Project.LatestVersion)
+        {
+            string[] parts = Project.SchemaVersion.Split('.');
+
+            if (parts.Length is not 3)
+            {
+                Panic($"Verze projektu {Project.SchemaVersion} není v platném formátu X.Y.Z");
+                return;
+            }
+
+            if (!int.TryParse(parts[0], out int major))
+            {
+                Panic($"Část verze projektu {parts[0]} není platné číslo");
+            }
+
+            Project.VersionMajor = major;
+            
+            if (!int.TryParse(parts[1], out int minor))
+            {
+                Panic($"Část verze projektu {parts[1]} není platné číslo");
+            }
+            
+            Project.VersionMinor = minor;
+            
+            if (!int.TryParse(parts[2], out int patch))
+            {
+                Panic($"Část verze projektu {parts[2]} není platné číslo");
+            }
+            
+            Project.VersionPatch = patch;
+
+            if (Panicked)
+            {
+                return;
+            }
+
+            if (major > Project.LatestVersionMajor || minor > Project.LatestVersionMinor)
+            {
+                Panic($"Verze TeReo, kterou používáte je zastaralá. Aktualizujte prosím z {Project.LatestVersionMajor}.{Project.LatestVersionMinor}.{Project.LatestVersionPatch} na ^{major}.{minor}.0 pro načtení tohoto projektu");
+                return;
+            }
+        }
+
+        if (Panicked)
+        {
+            return;
+        }
+
+        projectLoadingFinished = true;
         Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
+
 
         if (File.Exists($"{basePath}/TeReo/userSettings.json"))
         {
@@ -272,9 +344,15 @@
             await Js.InvokeVoidAsync("alert", $"Klíč '{localKey.Name}' už existuje");
         }
     }
-
+    
     public async Task SaveProject()
     {
+        if (Project.NeedsUpgrade)
+        {
+            await Js.Toast(ToastTypes.Success, $"Schéma projektu aktualizováno z verze {Project.SchemaVersion} na verzi {Project.LatestVersion}");
+            Project.SchemaVersion = Project.LatestVersion;
+        }
+        
         string data = Project.ToJson(true);
         await File.WriteAllTextAsync($"{basePath}/TeReo/project.json", data);
     }
@@ -599,6 +677,7 @@
         generatedCode = code;
         StateHasChanged();
 
+        await UpgradeProjectIfNeeded();
         return code;
     }
 
@@ -710,7 +789,17 @@
         toTranslate.Clear();
         translated = 0;
         translating = false;
+
+        await UpgradeProjectIfNeeded();
         StateHasChanged();
+    }
+
+    async Task UpgradeProjectIfNeeded()
+    {
+        if (Project.NeedsUpgrade)
+        {
+            await SaveProject();
+        }
     }
 
     private static readonly Regex DeeplRegex = new Regex("\\{([^}]+)\\}", RegexOptions.Compiled);
@@ -731,6 +820,7 @@
     {
         await SaveProject();
         await SaveLanguages();
+        await Js.Toast(ToastTypes.Success, "Projekt uložen");
     }
 
     async Task AfterSearchUpdate(string val)
@@ -955,8 +1045,8 @@
             }
         }
     }
-    
-    (bool contains, bool startsWith, bool exactMatch) CompareStrings(string source, string search)
+
+    static (bool contains, bool startsWith, bool exactMatch) CompareStrings(string source, string search)
     {
         if (source.Length < search.Length)
         {
@@ -1064,6 +1154,24 @@
         renderSearchModeSelection = !renderSearchModeSelection;
         StateHasChanged();
     }
+}
+
+@if (!projectLoadingFinished)
+{
+    return;
+}
+
+@if (Panicked)
+{
+    <div>Projekt není možné načíst kvůli následujícím chybám:</div>
+    <ul>
+        @foreach (ProjectError x in loadErrors ?? [])
+        {
+            <li>@x.Message</li>
+        }
+    </ul>
+    
+    return;
 }
 
 <div style="display: flex; gap: 100px;">
