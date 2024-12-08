@@ -21,7 +21,7 @@
         <Nullable>enable</Nullable>
         <RunAOTCompilation>false</RunAOTCompilation>
         <UseInterpreter>true</UseInterpreter>
-
+        
         <!-- Display name -->
         <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
 
@@ -32,6 +32,11 @@
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
     </PropertyGroup>
+
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
+        <RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
+    </PropertyGroup>
+    
     <PropertyGroup Condition="'$(APP_TYPE)' == 'WEB'">
         <DefineConstants>$(DefineConstants);APP_TYPE_WEB</DefineConstants>
     </PropertyGroup>
@@ -75,26 +80,38 @@
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.css">
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.scss">
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.map">
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.js">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.ts">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.map">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 
