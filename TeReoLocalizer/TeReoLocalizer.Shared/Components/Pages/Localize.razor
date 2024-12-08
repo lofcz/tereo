@@ -635,7 +635,10 @@
             }
         }
 
-        await SaveLanguages();
+        if (Settings.AutoSave)
+        {
+            await SaveLanguages();   
+        }
         
         if (Decl.Keys.TryGetValue(key, out Key? kVal))
         {
@@ -644,7 +647,11 @@
             Decl.Keys.TryAdd(newKeyName, kVal);
 
             RecomputeVisibleKeys();
-            await SaveProject();
+
+            if (Settings.AutoSave)
+            {
+                await SaveProject();   
+            }
         }
 
         /*if (!search.Contains(newKeyName))
@@ -905,6 +912,7 @@
             Settings.TranslationMode = TranslationModes.Default;
         }
 
+        await SaveUserSettings();
         StateHasChanged();
     }
     
@@ -1263,6 +1271,26 @@
         Settings.ShowUncommitedChangesDetail = !Settings.ShowUncommitedChangesDetail;
         StateHasChanged();
     }
+
+    async Task DiscardChange(Languages language, string key)
+    {
+        Md.ShowConfirmActionModal("Zahodit změnu", $"Potvrďte zahození změny na klíči <code>{key}</code>", async () =>
+        {
+            LangData lang = langsData.Langs[language];
+
+            if (lang.PersistedData.TryGetValue(key, out string? persistedVal))
+            {
+                lang.Data[key] = persistedVal;
+            }
+            else
+            {
+                lang.Data.TryRemove(key, out _);
+            }
+
+            lang.UncommitedChanges.TryRemove(key, out _);
+            StateHasChanged();
+        });
+    }
 }
 
 @if (!projectLoadingFinished)
@@ -1329,7 +1357,7 @@
     <div style="margin-bottom: 1rem;">
         <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
             <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat"/>
-            <button @onclick="ToggleSearchModeSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Režim: @Settings.KeySearchMode.GetStringValue().FirstLetterToLower()</button>
+            <button @onclick="ToggleSearchModeSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Režim: @(Settings.KeySearchLang is null ? "klíč" : Settings.KeySearchLang.ToString()) @Settings.KeySearchMode.GetStringValue().FirstLetterToLower()</button>
         </div>
         
         @if (renderSearchModeSelection)
@@ -1407,44 +1435,49 @@
 
         if (uncommited > 0)
         {
-            <div style="margin-bottom: 10px; cursor: pointer; user-select: none;" @onclick="ToggleUncommitedChangesDetail">@(Settings.ShowUncommitedChangesDetail ? "\u25bc" : "\u25b6") Neuložené změny (@uncommited)</div>
+            <div class="actionLink" style="margin-bottom: 10px;" @onclick="ToggleUncommitedChangesDetail">@(Settings.ShowUncommitedChangesDetail ? "\u25bc" : "\u25b6") Neuložené změny (@uncommited)</div>
         }
 
         if (Settings.ShowUncommitedChangesDetail)
         {
-            foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
-            {
-                if (local.Value.UncommitedChanges.Count > 0)
+            <div style="max-height: 800px; overflow: auto;">
+                @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                 {
-                    <div>@local.Key</div>
-                
-                    <ul>
-                        @foreach (KeyValuePair<string, string> change in local.Value.UncommitedChanges.OrderBy(x => x.Key))
-                        {
-                            <li>
-                                @if (local.Value.PersistedData.TryGetValue(change.Key, out string? persistedVal))
-                                {
-                                    <span>Změna: </span>
-                                    <span>
-                                        <del>@persistedVal</del>
+                    if (local.Value.UncommitedChanges.Count > 0)
+                    {
+                        <div>@local.Key</div>
+
+                        <ul>
+                            @foreach (KeyValuePair<string, string> change in local.Value.UncommitedChanges.OrderBy(x => x.Key))
+                            {
+                                <li>
+                                    @if (local.Value.PersistedData.TryGetValue(change.Key, out string? persistedVal))
+                                    {
+                                        <span>
+                                            <del>@persistedVal</del>
+                                        </span>
+                                        <span> → </span>
+                                        <span>
+                                            <ins>@change.Value</ins>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>Přidáno:</span>
+                                        <span>
+                                            <ins>@change.Value</ins>
+                                        </span>
+                                    }
+                                    
+                                    <span style="margin-left: 10px;">
+                                        <button onclick="@(async () => await DiscardChange(local.Key, change.Key))" class="btn btn-danger btn-sm">Zahodit</button>
                                     </span>
-                                    <span> na </span>
-                                    <span>
-                                        <ins>@change.Value</ins>
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span>Přidáno:</span>
-                                    <span>
-                                        <ins>@change.Value</ins>
-                                    </span>
-                                }
-                            </li>
-                        }
-                    </ul>
+                                </li>
+                            }
+                        </ul>
+                    }
                 }
-            }   
+            </div>
         }
     }
 

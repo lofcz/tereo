@@ -70,3 +70,13 @@ ins {
     color: #01FF70;
     text-decoration: none;
 }
+
+.actionLink {
+    display: inline-flex; 
+    cursor: pointer; 
+    user-select: none;
+}
+
+.actionLink:hover {
+    text-decoration: underline;
+}
