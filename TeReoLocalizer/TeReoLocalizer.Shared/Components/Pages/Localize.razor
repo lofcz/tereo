@@ -1,6 +1,7 @@
 @page "/localize"
 @using System.Collections.Concurrent
 @using System.Diagnostics
+@using System.Runtime.CompilerServices
 @using System.Text
 @using System.Text.Encodings.Web
 @using System.Text.Json
@@ -72,6 +73,7 @@
         public int LimitRender { get; set; } = 8;
         public string? SelectedDecl { get; set; }
         public KeySearchModes KeySearchMode { get; set; } = KeySearchModes.Contains;
+        public Languages? KeySearchLang { get; set; }
     }
     
     class NativeCommand
@@ -843,7 +845,6 @@
         }
 
         ApplySearch();
-        RecomputeVisibleKeys(true);
         StateHasChanged();
     }
 
@@ -1016,6 +1017,24 @@
         }
     }
 
+    async Task HandleKeySearchValueChange(ChangeEventArgs args)
+    {
+        if (args.Value is string str)
+        {
+            if (str is "null")
+            {
+                userSettings.KeySearchLang = null;
+            }
+            else if (Enum.TryParse(str, true, out Languages parsed))
+            {
+                userSettings.KeySearchLang = parsed;
+            }
+           
+            await UpdateSearchResults();
+            await SaveUserSettings();
+        }
+    }
+
     async Task HandleActiveDeclChange(ChangeEventArgs args)
     {
         if (args.Value is string str)
@@ -1046,7 +1065,7 @@
         }
     }
 
-    static (bool contains, bool startsWith, bool exactMatch) CompareStrings(string source, string search)
+    static (bool contains, bool startsWith, bool exactMatch) CompareStrings(string source, string search, bool ignoreCase)
     {
         if (source.Length < search.Length)
         {
@@ -1061,7 +1080,7 @@
     
         for (int i = 0; i < searchSpan.Length; i++)
         {
-            if (sourceSpan[i] != searchSpan[i])
+            if (!CharsEqual(sourceSpan[i], searchSpan[i], ignoreCase))
             {
                 startsWith = false;
                 exactMatch = false;
@@ -1080,7 +1099,7 @@
         
             for (int j = 0; j < searchSpan.Length; j++)
             {
-                if (sourceSpan[i + j] != searchSpan[j])
+                if (!CharsEqual(sourceSpan[i + j], searchSpan[j], ignoreCase))
                 {
                     found = false;
                     break;
@@ -1095,6 +1114,17 @@
 
         return (false, false, false);
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static bool CharsEqual(char c1, char c2, bool ignoreCase)
+    {
+        if (ignoreCase)
+        {
+            return char.ToUpperInvariant(c1) == char.ToUpperInvariant(c2);
+        }
+        
+        return c1 == c2;
+    }
 
     static readonly ParallelOptions FullDop = new ParallelOptions 
     { 
@@ -1103,15 +1133,34 @@
     
     void ApplySearch()
     {
-        string searchTerm = search.ToBaseLatin().ToLowerInvariant();
+        string searchTerm = userSettings.KeySearchLang is null ? search.ToBaseLatin() : search;
+        searchTerm = searchTerm.TrimStart();
         
         Parallel.ForEach(Decl.Keys, FullDop, item =>
         {
             item.Value.IsVisible = false;
             item.Value.SearchPriority = 0;
 
-            string lowercaseKey = item.Key.ToLowerInvariant();
-            (bool contains, bool startsWith, bool exactMatch) = CompareStrings(lowercaseKey, searchTerm);
+            string? keyToCompare = null;
+
+            if (userSettings.KeySearchLang is null)
+            {
+                keyToCompare = item.Key;
+            }
+            else
+            {
+                if (langsData.Langs[userSettings.KeySearchLang.Value].Data.TryGetValue(item.Key, out string? translatedKey))
+                {
+                    keyToCompare = translatedKey;
+                }
+            }
+
+            if (keyToCompare is null)
+            {
+                return;
+            }
+            
+            (bool contains, bool startsWith, bool exactMatch) = CompareStrings(keyToCompare, searchTerm, true);
 
             bool isMatch = userSettings.KeySearchMode switch
             {
@@ -1227,13 +1276,24 @@
         {
             <div style="display: flex; gap: 10px; align-items: flex-start; flex-flow: column;">
                 <div>
+                    <select @onchange="HandleKeySearchValueChange" class="form-select">
+                        <option value="null" id="lang_search_key_name" selected="@(userSettings.KeySearchLang is null)">Název klíče</option>
+
+                        @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                        {
+                            <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(userSettings.KeySearchLang == local.Key)">Překlad @local.Key</option>
+                        }
+                    </select>
+                    
+                    <div style="height: 6px;"></div>
+                    
                     <div class="form-check">
-                        <input checked="@(userSettings.KeySearchMode is KeySearchModes.Contains)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Contains))" class="form-check-input" id="searchTypeContains" type="radio" name="searchType" />
+                        <input checked="@(userSettings.KeySearchMode is KeySearchModes.Contains)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Contains))" class="form-check-input" id="searchTypeContains" type="radio" name="searchType"/>
                         <label class="form-check-label" for="searchTypeContains">@KeySearchModes.Contains.GetStringValue()</label>
                     </div>
 
                     <div class="form-check">
-                        <input checked="@(userSettings.KeySearchMode is KeySearchModes.Exact)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Exact))" class="form-check-input" id="searchTypeExact" type="radio" name="searchType" />
+                        <input checked="@(userSettings.KeySearchMode is KeySearchModes.Exact)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Exact))" class="form-check-input" id="searchTypeExact" type="radio" name="searchType"/>
                         <label class="form-check-label" for="searchTypeExact">@KeySearchModes.Exact.GetStringValue()</label>
                     </div>
                 </div>
