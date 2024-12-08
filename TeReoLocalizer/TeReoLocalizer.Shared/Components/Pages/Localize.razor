@@ -665,15 +665,18 @@
             
             RecomputeVisibleKeys();
         }*/
-        
-        RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, new Progress<RenameProgress>(x =>
-        {
-            int z = 1;
-        }));
 
-        if (renameResult.TotalReplacements > 0)
+        if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
         {
-            await Generate();
+            RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, new Progress<RenameProgress>(x =>
+            {
+                int z = 1;
+            }));   
+            
+            if (renameResult.TotalReplacements > 0)
+            {
+                await Generate();
+            }
         }
 
         inputToFocus = newKeyName;
@@ -766,87 +769,94 @@
         toTranslate.Clear();
         StateHasChanged();
 
-        Translator translator = new Translator(Consts.Cfg.DeepL);
-        
-        foreach (KeyValuePair<string, Key> keys in Decl.Keys.Where(x => x.Value.AutoTranslatable))
+        if (!Consts.Cfg.DeepL.IsNullOrWhiteSpace())
         {
-            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+            Translator translator = new Translator(Consts.Cfg.DeepL);
+        
+            foreach (KeyValuePair<string, Key> keys in Decl.Keys.Where(x => x.Value.AutoTranslatable))
             {
-                if (x.Key is Languages.CS)
+                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
                 {
-                    continue;
-                }
-
-                string? currentVal = null;
-                bool adding = true;
-
-                if (x.Value.Data.TryGetValue(keys.Key, out string? strValue))
-                {
-                    currentVal = strValue;
-                    adding = false;
-                }
-
-                if (currentVal.IsNullOrWhiteSpace())
-                {
-                    if (langsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
+                    if (x.Key is Languages.CS)
                     {
-                        toTranslate.Add(new TranslateTaskInput
+                        continue;
+                    }
+
+                    string? currentVal = null;
+                    bool adding = true;
+
+                    if (x.Value.Data.TryGetValue(keys.Key, out string? strValue))
+                    {
+                        currentVal = strValue;
+                        adding = false;
+                    }
+
+                    if (currentVal.IsNullOrWhiteSpace())
+                    {
+                        if (langsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
                         {
-                            PrimaryValue = csValue,
-                            Source = x,
-                            Adding = adding,
-                            Key = keys
-                        });
+                            toTranslate.Add(new TranslateTaskInput
+                            {
+                                PrimaryValue = csValue,
+                                Source = x,
+                                Adding = adding,
+                                Key = keys
+                            });
+                        }
                     }
                 }
-            }
+            }     
+            
+            StateHasChanged();
+        
+            TextTranslateOptions opts = new TextTranslateOptions
+            {
+                Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
+                TagHandling = "xml"
+            };
+
+            opts.IgnoreTags.Add("ignore");
+
+            await Parallel.ForEachAsync(toTranslate, async (input, token) =>
+            {
+                try
+                {
+                    string finalVal = DeeplifyText(input.PrimaryValue);
+
+                    TextResult result = await translator.TranslateTextAsync(finalVal, LanguageCode.Czech, DeeplCode(input.Source.Key), opts, token);
+                    string text = UndeeplifyText(result.Text);
+
+                    if (input.Adding)
+                    {
+                        input.Source.Value.Data.TryAdd(input.Key.Key, text);
+                    }
+                    else
+                    {
+                        input.Source.Value.Data[input.Key.Key] = text;
+                    }
+                }
+                catch (Exception e)
+                {
+                }
+                finally
+                {
+                    translated++;
+                    StateHasChanged();
+                }
+            });
+
+            await SaveLanguages();
+            toTranslate.Clear();
+            translated = 0;
+            translating = false;
+
+            await UpgradeProjectIfNeeded();
+            StateHasChanged();
         }
-        
-        StateHasChanged();
-        
-        TextTranslateOptions opts = new TextTranslateOptions
+        else
         {
-            Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
-            TagHandling = "xml"
-        };
-
-        opts.IgnoreTags.Add("ignore");
-
-        await Parallel.ForEachAsync(toTranslate, async (input, token) =>
-        {
-            try
-            {
-                string finalVal = DeeplifyText(input.PrimaryValue);
-
-                TextResult result = await translator.TranslateTextAsync(finalVal, LanguageCode.Czech, DeeplCode(input.Source.Key), opts, token);
-                string text = UndeeplifyText(result.Text);
-
-                if (input.Adding)
-                {
-                    input.Source.Value.Data.TryAdd(input.Key.Key, text);
-                }
-                else
-                {
-                    input.Source.Value.Data[input.Key.Key] = text;
-                }
-            }
-            catch (Exception e)
-            {
-            }
-            finally
-            {
-                translated++;
-                StateHasChanged();
-            }
-        });
-
-        await SaveLanguages();
-        toTranslate.Clear();
-        translated = 0;
-        translating = false;
-
-        await UpgradeProjectIfNeeded();
-        StateHasChanged();
+            await Js.Toast(ToastTypes.Warning, "DeepL API klíč není nastaven v appCfg.json5");
+        }
     }
 
     async Task UpgradeProjectIfNeeded()

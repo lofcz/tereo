@@ -15,13 +15,5 @@ public static class InitService
         EncodingProvider provider = CodePagesEncodingProvider.Instance;
         Encoding.RegisterProvider(provider);
         MSBuildLocator.RegisterDefaults();
-
-        string solutionPath = Consts.Cfg.Sln;
-
-        if (false && File.Exists(solutionPath))
-        {
-            Workspace = new LiveSyncMSBuildWorkspace();
-            await Workspace.OpenSolutionAsync(solutionPath);
-        }
     }
 }
