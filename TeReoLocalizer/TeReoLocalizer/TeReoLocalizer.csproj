@@ -56,11 +56,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.90" />
-        <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.90" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.90" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0"/>
-        <PackageReference Include="Microsoft.Maui.Core" Version="8.0.90" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
+        <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.100" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Maui.Core" Version="8.0.100" />
         <PackageReference Include="Nanoid" Version="3.1.0" />
     </ItemGroup>
 
@@ -70,33 +70,19 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Remove="Components\RoutesWeb.razor" />
-      <Content Remove="Pages\_Host.cshtml" />
-      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\toastr.css">
-        <Link>wwwroot\Content\toastr.css</Link>
-      </Content>
-      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\jquery.js">
-        <Link>wwwroot\Scripts\jquery.js</Link>
-      </Content>
-      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\nanoMcf.js">
-        <Link>wwwroot\Scripts\nanoMcf.js</Link>
-      </Content>
-      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\nanoMcf.js.map">
-        <Link>wwwroot\Scripts\nanoMcf.js.map</Link>
-      </Content>
-      <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\toastr.js">
-        <Link>wwwroot\Scripts\toastr.js</Link>
-      </Content>
+        <Content Remove="Components\RoutesWeb.razor"/>
+        <Content Remove="Pages\_Host.cshtml"/>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.css">
+            <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.js">
+            <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\TeReoLocalizer.Shared\TeReoLocalizer.Shared.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <TypeScriptCompile Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\nanoMcf.ts">
-        <Link>wwwroot\Scripts\nanoMcf.ts</Link>
-      </TypeScriptCompile>
-    </ItemGroup>
-
 </Project>

@@ -10,11 +10,14 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
-		InitService.Init();
+		AsyncService.Fire(async () =>
+		{
+			await InitService.Init();
+		});
 		
 		Console.WriteLine(typeof(MauiProgram).Assembly);
 		
-		var builder = MauiApp.CreateBuilder();
+		MauiAppBuilder builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
@@ -23,6 +26,7 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+		Program.AddSharedServices(builder.Services);
 		
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

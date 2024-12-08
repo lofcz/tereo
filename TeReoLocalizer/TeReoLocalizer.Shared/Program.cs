@@ -10,6 +10,11 @@ namespace TeReoLocalizer.Shared;
 public class Program
 {
     public static InvertedIndex Index;
+
+    public static void AddSharedServices(IServiceCollection services)
+    {
+        services.AddBlazoredModal();
+    }
     
     public static async Task Main(string[] args)
     {
@@ -41,14 +46,13 @@ public class Program
         }
         
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-        
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents(x =>
             {
                 x.DetailedErrors = true;
             });
-        
-        builder.Services.AddBlazoredModal();
+
+        AddSharedServices(builder.Services);
 
         WebApplication app = builder.Build();
         IHostApplicationLifetime lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
