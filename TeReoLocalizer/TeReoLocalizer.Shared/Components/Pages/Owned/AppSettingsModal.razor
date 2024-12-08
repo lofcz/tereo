@@ -1,0 +1,41 @@
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+    }
+
+    async Task Submit()
+    {
+        await Owner.SaveUserSettings();
+        await Cancel();
+    }
+
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
+}
+
+<EdModal Title="Nastavení aplikace">
+    <div style="margin-bottom: 1rem;">
+        <div class="form-check">
+            <input style="cursor: pointer;" @bind="Owner.Settings.AutoSave" class="form-check-input" type="checkbox" id="autosave"/>
+            <label style="cursor: pointer; user-select: none;" class="form-check-label" for="autosave">Automaticky ukládat změny</label>
+        </div>
+    </div>
+    
+    <EdButtonsContainer>
+        <EdButton OnClick="Submit">Uložit</EdButton>
+        <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>

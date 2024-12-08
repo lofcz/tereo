@@ -38,6 +38,11 @@
         transferring = false;
         await BlazoredModal.CloseAsync();
     }
+    
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
 }
 
 <EdModal Title="@($"Přesunout klíč <code>{Name}</code>")">
@@ -58,6 +63,6 @@
     
     <EdButtonsContainer>
         <EdButton OnClick="Submit">Přesunout</EdButton>
-        <EdButton Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+        <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
     </EdButtonsContainer>
 </EdModal>

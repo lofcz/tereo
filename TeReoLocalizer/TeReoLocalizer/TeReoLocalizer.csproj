@@ -77,7 +77,23 @@
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
         </Content>
 
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.scss">
+            <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.map">
+            <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
+
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.js">
+            <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.ts">
+            <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.map">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
         </Content>
     </ItemGroup>

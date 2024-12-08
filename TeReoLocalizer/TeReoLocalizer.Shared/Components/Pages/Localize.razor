@@ -4,16 +4,17 @@
 @using System.Runtime.CompilerServices
 @using System.Text
 @using System.Text.Encodings.Web
-@using System.Text.Json
 @using System.Text.RegularExpressions
 @using System.Text.Unicode
 @using Blazored.Modal.Services
 @using DeepL
 @using DeepL.Model
+@using Newtonsoft.Json
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Code.Services
 @using TeReoLocalizer.Shared.Components.Pages.Owned
+@using JsonSerializer = System.Text.Json.JsonSerializer
 @inject IJSRuntime Js
 @inject IModalService Md
 @implements IAsyncDisposable
@@ -22,7 +23,8 @@
     
     public Project Project = new Project();
     public Decl Decl => Project.SelectedDecl;
-
+    public UserSettings Settings = new UserSettings();
+    
     InvertedIndex Index => Program.Index;
 
     DotNetObjectReference<Localize>? JsRef { get; set; }
@@ -46,7 +48,6 @@
     string id = General.IIID();
     bool jsInitialized;
     List<NativeCommand> nativeCommands = [];
-    UserSettings userSettings = new UserSettings();
     List<KeyValuePair<string, Key>> visibleKeys = [];
     int keyPages = -1;
     int keySelectedPage = 1;
@@ -54,6 +55,7 @@
     bool renderSearchModeSelection;
     List<ProjectError>? loadErrors = null;
     bool projectLoadingFinished = false;
+    bool contentRendered;
     
     class ProjectError
     {
@@ -65,7 +67,7 @@
         }
     }
     
-    class UserSettings
+    public class UserSettings
     {
         public List<Languages>? ShowLangs { get; set; }
         public RenderModes RenderMode { get; set; } = RenderModes.Input;
@@ -74,6 +76,11 @@
         public string? SelectedDecl { get; set; }
         public KeySearchModes KeySearchMode { get; set; } = KeySearchModes.Contains;
         public Languages? KeySearchLang { get; set; }
+        public bool AutoSave { get; set; } = true;
+        
+        // dynamic
+        [JsonIgnore]
+        public bool ShowUncommitedChangesDetail { get; set; }
     }
     
     class NativeCommand
@@ -88,7 +95,7 @@
         SetTextareaHeight
     }
 
-    enum RenderModes
+    public enum RenderModes
     {
         Unknown,
         [StringValue("Jednořádkový text")] 
@@ -97,7 +104,7 @@
         Textarea
     }
     
-    enum TranslationModes
+    public enum TranslationModes
     {
         Unknown,
         [StringValue("Výchozí")] 
@@ -209,13 +216,13 @@
 
         if (File.Exists($"{basePath}/TeReo/userSettings.json"))
         {
-            userSettings = (await File.ReadAllTextAsync($"{basePath}/TeReo/userSettings.json")).JsonDecode<UserSettings>() ?? userSettings;
+            Settings = (await File.ReadAllTextAsync($"{basePath}/TeReo/userSettings.json")).JsonDecode<UserSettings>() ?? Settings;
 
-            if (userSettings.ShowLangs is not null)
+            if (Settings.ShowLangs is not null)
             {
                 foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
                 {
-                    x.Value.Visible = userSettings.ShowLangs.Contains(x.Key);
+                    x.Value.Visible = Settings.ShowLangs.Contains(x.Key);
                 }
             }
         }
@@ -237,9 +244,9 @@
             });
         }
 
-        if (!userSettings.SelectedDecl.IsNullOrWhiteSpace())
+        if (!Settings.SelectedDecl.IsNullOrWhiteSpace())
         {
-            Decl? matchingDecl = Project.Decls.FirstOrDefault(x => x.Id == userSettings.SelectedDecl);
+            Decl? matchingDecl = Project.Decls.FirstOrDefault(x => x.Id == Settings.SelectedDecl);
 
             if (matchingDecl is not null)
             {
@@ -285,9 +292,9 @@
             }
 
             string data = await File.ReadAllTextAsync(str, ctx);
-            LangData? parsed = JsonSerializer.Deserialize<LangData>(data);
-
-            langsData.Langs.TryAdd(result, parsed ?? new LangData());
+            LangData parsed = JsonSerializer.Deserialize<LangData>(data) ?? new LangData();
+            parsed.PersistedData = new ConcurrentDictionary<string, string>(parsed.Data);
+            langsData.Langs.TryAdd(result, parsed);
         });
 
         if (sl)
@@ -316,7 +323,10 @@
 
         if (Decl.Keys.TryAdd(localKey.Name, localKey))
         {
-            await SaveProject();
+            if (Settings.AutoSave)
+            {
+                await SaveProject();   
+            }
 
             if (newKeyCopy != baseKey)
             {
@@ -363,6 +373,11 @@
     {
         await base.OnAfterRenderAsync(firstRender);
 
+        if (firstRender)
+        {
+            return;
+        }
+        
         if (inputToFocus is not null)
         {
             try
@@ -379,7 +394,7 @@
             }
         }
 
-        if (ready && !jsInitialized)
+        if (ready && !jsInitialized && contentRendered)
         {
             jsInitialized = true;
 
@@ -409,7 +424,7 @@
                     {
                         id = id,
                         net = JsRef,
-                        settings = userSettings
+                        settings = Settings
                     });
                 }
                 catch (Exception e)
@@ -419,7 +434,7 @@
         }
         else if (jsInitialized)
         {
-            if (nativeCommands.Count > 0 && JsObjectRefNative is not null)
+            if (nativeCommands.Count > 0 && JsObjectRefNative is not null && contentRendered)
             {
                 try
                 {
@@ -440,29 +455,55 @@
         }
     }
 
-    async Task SetKey(Languages language, string key, string value)
+    void SetKeyValue(Languages language, string key, string value)
     {
         LangData lang = langsData.Langs[language];
-
         lang.Data[key] = value;
+
+        if (!Settings.AutoSave)
+        {
+            if (lang.PersistedData.TryGetValue(key, out string? persistedVal))
+            {
+                if (persistedVal == value)
+                {
+                    lang.UncommitedChanges.TryRemove(key, out _);
+                }
+                else
+                {
+                    lang.UncommitedChanges[key] = value;
+                }
+            }
+            else
+            {
+                lang.UncommitedChanges[key] = value;
+            }   
+        }
+    }
+
+    async Task SetKey(Languages language, string key, string value)
+    {
+        SetKeyValue(language, key, value);
 
         if (!File.Exists($"{basePath}/TeReo/lang_{language}.json"))
         {
             await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", "{}");
         }
 
-        if (userSettings.TranslationMode is TranslationModes.Default)
+        if (Settings.AutoSave)
         {
-            await SaveLanguage(language);
-        }
-        else
-        {
-            foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.Where(x => x.Key != language))
+            if (Settings.TranslationMode is TranslationModes.Default)
             {
-                x.Value.Data.TryRemove(key, out _);
+                await SaveLanguage(language);
             }
+            else
+            {
+                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.Where(x => x.Key != language))
+                {
+                    x.Value.Data.TryRemove(key, out _);
+                }
 
-            await SaveLanguages();
+                await SaveLanguages();
+            }   
         }
     }
 
@@ -476,7 +517,7 @@
             keyPages = 0;
         }
 
-        if (userSettings.LimitRender <= 0)
+        if (Settings.LimitRender <= 0)
         {
             foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.InvariantCulture))
             {
@@ -489,8 +530,8 @@
         else
         {
             List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.InvariantCulture).Where(x => x.Value.IsVisible).ToList();
-            keyPages = (int)Math.Ceiling(keys.Count / (double)userSettings.LimitRender);
-            int take = userSettings.LimitRender;
+            keyPages = (int)Math.Ceiling(keys.Count / (double)Settings.LimitRender);
+            int take = Settings.LimitRender;
             
             if (keyToFocus is not null)
             {
@@ -508,14 +549,14 @@
                 }
             }
             
-            int skip = userSettings.LimitRender * (keySelectedPage - 1);
+            int skip = Settings.LimitRender * (keySelectedPage - 1);
             
             foreach (KeyValuePair<string, Key> x in keys.Skip(skip).Take(take))
             {
                 visibleKeys.Add(x);
             }
 
-            if (userSettings.RenderMode is RenderModes.Textarea)
+            if (Settings.RenderMode is RenderModes.Textarea)
             {
                 nativeCommands.Add(new NativeCommand
                 {
@@ -532,6 +573,11 @@
 
     public async Task SaveLanguage(Languages language)
     {
+        LangData source = langsData.Langs[language];
+        source.PersistedData = new ConcurrentDictionary<string, string>(source.Data);
+        source.UncommitedChanges.Clear();
+        StateHasChanged();
+        
         string data = langsData.Langs[language].ToJson();
         await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
     }
@@ -850,13 +896,13 @@
 
     async Task CycleTranslationMode()
     {
-        if (userSettings.TranslationMode < TranslationModes.Invalidate)
+        if (Settings.TranslationMode < TranslationModes.Invalidate)
         {
-            userSettings.TranslationMode++;
+            Settings.TranslationMode++;
         }
         else
         {
-            userSettings.TranslationMode = TranslationModes.Default;
+            Settings.TranslationMode = TranslationModes.Default;
         }
 
         StateHasChanged();
@@ -864,9 +910,9 @@
     
     async Task CycleInputMode()
     {
-        if (userSettings.RenderMode < RenderModes.Textarea)
+        if (Settings.RenderMode < RenderModes.Textarea)
         {
-            userSettings.RenderMode++;
+            Settings.RenderMode++;
             nativeCommands.Add(new NativeCommand
             {
                 Type = NativeCommands.SetTextareaHeight
@@ -874,7 +920,7 @@
         }
         else
         {
-            userSettings.RenderMode = RenderModes.Input;
+            Settings.RenderMode = RenderModes.Input;
         }
 
         StateHasChanged();
@@ -923,13 +969,13 @@
     async Task AfterLanguageToggle(KeyValuePair<Languages, LangData> local, bool visible)
     {
         local.Value.Visible = visible;
-        userSettings.ShowLangs = langsData.Langs.Where(x => x.Value.Visible).Select(x => x.Key).ToList();
+        Settings.ShowLangs = langsData.Langs.Where(x => x.Value.Visible).Select(x => x.Key).ToList();
         await SaveUserSettings();
     }
 
     async Task AfterLimitUpdate(int value)
     {
-        userSettings.LimitRender = value;
+        Settings.LimitRender = value;
         RecomputeVisibleKeys(true);
         StateHasChanged();
         await SaveUserSettings();
@@ -953,9 +999,9 @@
         }
     }
 
-    async Task SaveUserSettings()
+    public async Task SaveUserSettings()
     {
-        await File.WriteAllTextAsync($"{basePath}\\TeReo\\userSettings.json", userSettings.ToJson());
+        await File.WriteAllTextAsync($"{basePath}\\TeReo\\userSettings.json", Settings.ToJson());
     }
 
     async Task RenameDecl()
@@ -988,7 +1034,7 @@
             Project.SelectedDecl = newDecl;
             await SaveProject();
 
-            userSettings.SelectedDecl = declId;
+            Settings.SelectedDecl = declId;
             await SaveUserSettings();
         }
     }
@@ -1009,7 +1055,7 @@
             Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
             await SaveProject();
             
-            userSettings.SelectedDecl = Project.SelectedDecl.Id;
+            Settings.SelectedDecl = Project.SelectedDecl.Id;
             await SaveUserSettings();
             
             RecomputeVisibleKeys();
@@ -1023,11 +1069,11 @@
         {
             if (str is "null")
             {
-                userSettings.KeySearchLang = null;
+                Settings.KeySearchLang = null;
             }
             else if (Enum.TryParse(str, true, out Languages parsed))
             {
-                userSettings.KeySearchLang = parsed;
+                Settings.KeySearchLang = parsed;
             }
            
             await UpdateSearchResults();
@@ -1044,7 +1090,7 @@
             if (matchingDecl is not null)
             {
                 Project.SelectedDecl = matchingDecl;
-                userSettings.SelectedDecl = str;
+                Settings.SelectedDecl = str;
                 await SaveUserSettings();
 
                 if (search.IsNullOrWhiteSpace())
@@ -1133,7 +1179,7 @@
     
     void ApplySearch()
     {
-        string searchTerm = userSettings.KeySearchLang is null ? search.ToBaseLatin() : search;
+        string searchTerm = Settings.KeySearchLang is null ? search.ToBaseLatin() : search;
         searchTerm = searchTerm.TrimStart();
         
         Parallel.ForEach(Decl.Keys, FullDop, item =>
@@ -1143,13 +1189,13 @@
 
             string? keyToCompare = null;
 
-            if (userSettings.KeySearchLang is null)
+            if (Settings.KeySearchLang is null)
             {
                 keyToCompare = item.Key;
             }
             else
             {
-                if (langsData.Langs[userSettings.KeySearchLang.Value].Data.TryGetValue(item.Key, out string? translatedKey))
+                if (langsData.Langs[Settings.KeySearchLang.Value].Data.TryGetValue(item.Key, out string? translatedKey))
                 {
                     keyToCompare = translatedKey;
                 }
@@ -1162,7 +1208,7 @@
             
             (bool contains, bool startsWith, bool exactMatch) = CompareStrings(keyToCompare, searchTerm, true);
 
-            bool isMatch = userSettings.KeySearchMode switch
+            bool isMatch = Settings.KeySearchMode switch
             {
                 KeySearchModes.Unknown or KeySearchModes.Contains => contains,
                 KeySearchModes.Exact => exactMatch,
@@ -1193,7 +1239,7 @@
 
     async Task KeySearchModeSelected(KeySearchModes mode)
     {
-        userSettings.KeySearchMode = mode;
+        Settings.KeySearchMode = mode;
         await UpdateSearchResults();
         await SaveUserSettings();
     }
@@ -1201,6 +1247,20 @@
     void ToggleSearchModeSelection()
     {
         renderSearchModeSelection = !renderSearchModeSelection;
+        StateHasChanged();
+    }
+
+    void ShowAppSettings()
+    {
+        Md.ShowModal<AppSettingsModal>(new
+        {
+            Owner = this
+        });
+    }
+
+    void ToggleUncommitedChangesDetail()
+    {
+        Settings.ShowUncommitedChangesDetail = !Settings.ShowUncommitedChangesDetail;
         StateHasChanged();
     }
 }
@@ -1269,7 +1329,7 @@
     <div style="margin-bottom: 1rem;">
         <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
             <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="search" class="form-control form-control-sm" placeholder="Hledat"/>
-            <button @onclick="ToggleSearchModeSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Režim: @userSettings.KeySearchMode.GetStringValue().FirstLetterToLower()</button>
+            <button @onclick="ToggleSearchModeSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Režim: @Settings.KeySearchMode.GetStringValue().FirstLetterToLower()</button>
         </div>
         
         @if (renderSearchModeSelection)
@@ -1277,23 +1337,23 @@
             <div style="display: flex; gap: 10px; align-items: flex-start; flex-flow: column;">
                 <div>
                     <select @onchange="HandleKeySearchValueChange" class="form-select">
-                        <option value="null" id="lang_search_key_name" selected="@(userSettings.KeySearchLang is null)">Název klíče</option>
+                        <option value="null" id="lang_search_key_name" selected="@(Settings.KeySearchLang is null)">Název klíče</option>
 
                         @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
                         {
-                            <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(userSettings.KeySearchLang == local.Key)">Překlad @local.Key</option>
+                            <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(Settings.KeySearchLang == local.Key)">Překlad @local.Key</option>
                         }
                     </select>
                     
                     <div style="height: 6px;"></div>
                     
                     <div class="form-check">
-                        <input checked="@(userSettings.KeySearchMode is KeySearchModes.Contains)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Contains))" class="form-check-input" id="searchTypeContains" type="radio" name="searchType"/>
+                        <input checked="@(Settings.KeySearchMode is KeySearchModes.Contains)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Contains))" class="form-check-input" id="searchTypeContains" type="radio" name="searchType"/>
                         <label class="form-check-label" for="searchTypeContains">@KeySearchModes.Contains.GetStringValue()</label>
                     </div>
 
                     <div class="form-check">
-                        <input checked="@(userSettings.KeySearchMode is KeySearchModes.Exact)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Exact))" class="form-check-input" id="searchTypeExact" type="radio" name="searchType"/>
+                        <input checked="@(Settings.KeySearchMode is KeySearchModes.Exact)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Exact))" class="form-check-input" id="searchTypeExact" type="radio" name="searchType"/>
                         <label class="form-check-label" for="searchTypeExact">@KeySearchModes.Exact.GetStringValue()</label>
                     </div>
                 </div>
@@ -1305,8 +1365,8 @@
     <div style="margin-bottom: 1rem;">
         <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
         <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
-        <button class="btn btn-secondary btn-sm" @onclick="ForceSave">Vynutit uložení</button>
-        <button class="@($"btn btn-sm {(userSettings.TranslationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(userSettings.TranslationMode.GetStringValue().FirstLetterToLower())</button>
+        <button class="btn btn-secondary btn-sm" @onclick="ForceSave">@(Settings.AutoSave ? "Vynutit uložení" : "Uložit změny")</button>
+        <button class="@($"btn btn-sm {(Settings.TranslationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(Settings.TranslationMode.GetStringValue().FirstLetterToLower())</button>
     </div>
 
     <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
@@ -1333,6 +1393,61 @@
 
 @if (ready && !Consts.Cfg.Experimental)
 {
+    if (!Settings.AutoSave)
+    {
+        int uncommited = 0;
+        
+        foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+        {
+            if (local.Value.UncommitedChanges.Count > 0)
+            {
+                uncommited += local.Value.UncommitedChanges.Count;
+            }
+        }
+
+        if (uncommited > 0)
+        {
+            <div style="margin-bottom: 10px; cursor: pointer; user-select: none;" @onclick="ToggleUncommitedChangesDetail">@(Settings.ShowUncommitedChangesDetail ? "\u25bc" : "\u25b6") Neuložené změny (@uncommited)</div>
+        }
+
+        if (Settings.ShowUncommitedChangesDetail)
+        {
+            foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+            {
+                if (local.Value.UncommitedChanges.Count > 0)
+                {
+                    <div>@local.Key</div>
+                
+                    <ul>
+                        @foreach (KeyValuePair<string, string> change in local.Value.UncommitedChanges.OrderBy(x => x.Key))
+                        {
+                            <li>
+                                @if (local.Value.PersistedData.TryGetValue(change.Key, out string? persistedVal))
+                                {
+                                    <span>Změna: </span>
+                                    <span>
+                                        <del>@persistedVal</del>
+                                    </span>
+                                    <span> na </span>
+                                    <span>
+                                        <ins>@change.Value</ins>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>Přidáno:</span>
+                                    <span>
+                                        <ins>@change.Value</ins>
+                                    </span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            }   
+        }
+    }
+
     <div style="max-height: 800px; overflow: auto;">
         <table id="@($"table_{id}")" class="table table-sm table-bordered table-responsive tableMain">
             <thead>
@@ -1421,13 +1536,13 @@
                         <td>
                             <div class="input-group">
                                 
-                                @if (userSettings.RenderMode is RenderModes.Input)
+                                @if (Settings.RenderMode is RenderModes.Input)
                                 {
-                                    <input lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"/>   
+                                    <input lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"/>   
                                 }
                                 else
                                 {
-                                    <textarea lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str"></textarea>
+                                    <textarea lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"></textarea>
                                 }
                             </div>
                         </td>
@@ -1437,11 +1552,17 @@
             </tbody>
         </table>
     </div>
+
+    if (!contentRendered)
+    {
+        contentRendered = true;
+        StateHasChanged();
+    }
 }
 
 @if (ready)
 {
-    <div style="margin-top: 1rem; display: flex; gap: 100px;">
+    <div style="margin-top: 1rem; display: flex; gap: 100px; flex-flow: wrap; row-gap: 0;">
         <div>
             <div style="width: 280px;">
                 <div style="margin-bottom: 5px;">Klíčů v aktivní skupině: @(Decl.Keys.Count)</div>
@@ -1462,14 +1583,14 @@
         </div>
         
         <div style="width: 250px;">
-            <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(userSettings.RenderMode.GetStringValue().FirstLetterToLower())</button>
+            <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(Settings.RenderMode.GetStringValue().FirstLetterToLower())</button>
         </div>
 
         <div style="display: flex; gap: 20px;">
             <div>
                 <div style="display: flex; gap: 15px;">
                     <div style="white-space: nowrap;" class="form-label">Zobrazit klíčů (0 = všechny):</div>
-                    <input style="width: 100px;" type="number" class="form-control" id="limitRender" @bind:set="AfterLimitUpdate" @bind:get="userSettings.LimitRender">
+                    <input style="width: 100px;" type="number" class="form-control" id="limitRender" @bind:set="AfterLimitUpdate" @bind:get="Settings.LimitRender">
                 </div>
 
                 @if (keyPages > 1)
@@ -1522,12 +1643,19 @@
                 }
             </div>
         </div>
-        
-        <div style="margin-left: auto;">
+
+        <div style="margin-left: auto; margin-right: 40px;">
+            <div style="margin-bottom: 1rem;">
+                <button class="btn btn-secondary btn-sm" @onclick="ShowAppSettings">Nastavení aplikace</button>
+            </div>
+
             @if (synchronizingIndex)
             {
-                <div>Probíhá synchronizace indexu..</div>
+                <div style="margin-left: auto;">
+                    <div>Probíhá synchronizace indexu..</div>
+                </div>
             }
         </div>
+        
     </div>   
 }

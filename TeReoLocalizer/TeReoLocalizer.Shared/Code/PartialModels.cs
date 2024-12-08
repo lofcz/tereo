@@ -251,6 +251,10 @@ public class LangData
     public ConcurrentDictionary<string, string> Data { get; set; } = [];
     [JsonIgnore] 
     public bool Visible { get; set; } = true;
+    [JsonIgnore]
+    public ConcurrentDictionary<string, string> PersistedData { get; set; } = [];
+    [JsonIgnore]
+    public ConcurrentDictionary<string, string> UncommitedChanges { get; set; } = [];
 }
 
 public enum ToastTypes

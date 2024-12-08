@@ -43,6 +43,11 @@
         saving = false;
         await BlazoredModal.CloseAsync();
     }
+    
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
 }
 
 <EdModal Title="@($"Nastavení klíče <code>{Name}</code>")">
@@ -59,6 +64,6 @@
     
     <EdButtonsContainer>
         <EdButton OnClick="Submit">Uložit</EdButton>
-        <EdButton Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+        <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
     </EdButtonsContainer>
 </EdModal>

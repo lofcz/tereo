@@ -56,3 +56,17 @@ h1:focus {
 .form-check:hover {
     cursor: pointer;
 }
+
+textarea {
+    overflow: hidden;
+}
+
+del {
+    color: #FF4136;
+    text-decoration: none;
+}
+
+ins {
+    color: #01FF70;
+    text-decoration: none;
+}

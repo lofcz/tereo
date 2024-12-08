@@ -463,7 +463,7 @@ var moduleCommonFunctions = {
 
         if (el) {
             el.focus();
-
+            
             const getScrollParent = (node) => {
                 if (!node || node === document.body) {
                     return document.body;
@@ -491,11 +491,11 @@ var moduleCommonFunctions = {
                     const scrollTop = rect.top - parentRect.top + scrollParent.scrollTop;
                     scrollParent.scrollTo({
                         top: scrollTop - scrollParent.clientHeight / 2 + rect.height / 2,
-                        behavior: 'smooth'
+                        behavior: 'instant'
                     });
                 }
             } else {
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                el.scrollIntoView({ behavior: 'instant', block: 'nearest' });
             }
 
             return true;
