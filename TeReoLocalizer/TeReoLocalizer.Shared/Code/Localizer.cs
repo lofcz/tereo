@@ -339,15 +339,17 @@ public partial class Localizer(Project project, LangsData langsData)
         {
             return "_";
         }
-
-        name = name.ToBaseLatin(false).Trim().FirstLetterToUpper().Replace("-", string.Empty);
         
+        name = ValidHtmlTagRegex().Replace(name, string.Empty);
+        name = name.ToBaseLatin(false).Trim().FirstLetterToUpper().Replace("-", string.Empty);
+    
         string[] words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string identifier = string.Join(string.Empty, words.Select(x => x.Length > 0 ? char.ToUpper(x[0]) + (x.Length > 1 ? x[1..] : string.Empty) : string.Empty));
-        identifier = MyRegex().Replace(identifier, string.Empty);
+        identifier = UnicodeRegex().Replace(identifier, string.Empty);
 
         return identifier;
     }
+
     
     public static string CsIdentifier(string name)
     {
@@ -367,5 +369,7 @@ public partial class Localizer(Project project, LangsData langsData)
     }
 
     [GeneratedRegex(@"[^\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\p{Cf}]", RegexOptions.Compiled)]
-    private static partial Regex MyRegex();
+    private static partial Regex UnicodeRegex();
+    [GeneratedRegex("</?[a-zA-Z][^>]*>", RegexOptions.Compiled)]
+    private static partial Regex ValidHtmlTagRegex();
 }
