@@ -78,19 +78,21 @@
     {
         if (Owner.CommandManager.AnyHistory)
         {
-            <ul style="padding: 0; list-style-type: none;">
-                @foreach (HistoryItem x in commandHistory.Before)
-                {
-                    <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
-                }
+            <EdScrollbar>
+                <ul style="padding: 0; list-style-type: none;">
+                    @foreach (HistoryItem x in commandHistory.Before)
+                    {
+                        <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
+                    }
 
-                <li @onclick="SelectCurrent" class="historyEntry @(selected is null ? "historyEntrySelected" : string.Empty)">Současný stav</li>
+                    <li @onclick="SelectCurrent" class="historyEntry @(selected is null ? "historyEntrySelected" : string.Empty)">Současný stav</li>
 
-                @foreach (HistoryItem x in commandHistory.After)
-                {
-                    <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
-                }
-            </ul>
+                    @foreach (HistoryItem x in commandHistory.After)
+                    {
+                        <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
+                    }
+                </ul>
+            </EdScrollbar>
         }
         else
         {

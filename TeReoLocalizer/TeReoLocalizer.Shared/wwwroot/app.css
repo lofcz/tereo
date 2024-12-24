@@ -114,3 +114,22 @@ ins {
 .historyEntrySelected {
     background: #40454d;
 }
+
+.tableSticky th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-top: 1px solid #495057 !important;
+    border-bottom: 1px solid #495057 !important;
+}
+
+.tableSticky td {
+    border: 1px solid #495057 !important;
+}
+
+.tableSticky {
+    width: 100%;
+    text-align: center;
+    border-collapse: separate;
+    border-spacing: 0;
+}

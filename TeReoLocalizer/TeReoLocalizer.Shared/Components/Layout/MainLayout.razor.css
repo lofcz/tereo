@@ -16,7 +16,7 @@ main {
     background-color: #222529;
     border-bottom: 1px solid #131517;
     justify-content: flex-end;
-    height: 2.5rem;
+    height: max-content;
     display: flex;
     align-items: center;
 }

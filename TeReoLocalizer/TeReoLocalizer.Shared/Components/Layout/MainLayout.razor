@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Components.Sections
+@inherits LayoutComponentBase
 
 <div class="page">
     
@@ -10,8 +11,8 @@
     }
 
     <main>
-        <div class="top-row px-4">
-            <a class="link-light">TeReo Localizer</a>
+        <div class="top-row px-4 topMenuBar">
+            <SectionOutlet SectionName="menuBar" />
         </div>
 
         <article class="content px-4">

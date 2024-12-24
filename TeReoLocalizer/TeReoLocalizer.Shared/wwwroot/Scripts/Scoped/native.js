@@ -88,9 +88,48 @@ export async function Init(pars = {
             await nativeProcessor.processCommand({
                 type: NativeCommands.SetTextareaHeight
             });
+        },
+        updateTableHeight: () => {
+            const table = document.querySelector('.tableSticky');
+            if (!table) {
+                return;
+            }
+            const topMenuBar = document.querySelector('.topMenuBar');
+            const bottomMenuBar = document.querySelector('.bottomMenuBar');
+            const tableTop = table.getBoundingClientRect().top;
+            const windowHeight = window.innerHeight;
+            const offset = 0;
+            const topMenuStyle = topMenuBar ? window.getComputedStyle(topMenuBar) : null;
+            const bottomMenuStyle = bottomMenuBar ? window.getComputedStyle(bottomMenuBar) : null;
+            const topMenuBarHeight = topMenuBar ? (topMenuBar.offsetHeight +
+                parseFloat(topMenuStyle?.marginTop || '0') +
+                parseFloat(topMenuStyle?.marginBottom || '0')) : 0;
+            const bottomMenuBarHeight = bottomMenuBar ? (bottomMenuBar.offsetHeight +
+                parseFloat(bottomMenuStyle?.marginTop || '0') +
+                parseFloat(bottomMenuStyle?.marginBottom || '0')) : 0;
+            const calculatedHeight = windowHeight - tableTop - offset - topMenuBarHeight - bottomMenuBarHeight;
+            table.parentNode.style.maxHeight = `${calculatedHeight}px`;
+        },
+        setupResizeObserver: () => {
+            const resizeObserver = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    nativeProcessor.updateTableHeight();
+                }
+            });
+            resizeObserver.observe(document.documentElement);
+            const topMenuBar = document.querySelector('.topMenuBar');
+            if (topMenuBar) {
+                resizeObserver.observe(topMenuBar);
+            }
+            const bottomMenuBar = document.querySelector('.bottomMenuBar');
+            if (bottomMenuBar) {
+                resizeObserver.observe(bottomMenuBar);
+            }
+            nativeProcessor.updateTableHeight();
         }
     };
     window["nativeProcessor"] = nativeProcessor;
+    nativeProcessor.setupResizeObserver();
     if (pars.settings && pars.settings["renderMode"] === 2) {
         await nativeProcessor.updateTextareas();
     }

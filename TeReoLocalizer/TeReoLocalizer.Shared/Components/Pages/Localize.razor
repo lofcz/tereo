@@ -11,6 +11,7 @@
 @using TeReoLocalizer.Shared.Code.Services
 @using TeReoLocalizer.Shared.Components.Pages.Owned
 @using JsonSerializer = System.Text.Json.JsonSerializer
+@using Microsoft.AspNetCore.Components.Sections
 @inject IJSRuntime Js
 @inject IModalService Md
 @implements IAsyncDisposable
@@ -36,7 +37,7 @@
     string basePath = AppDomain.CurrentDomain.BaseDirectory;
     List<string> existingFiles = [];
     readonly LangsData langsData = new LangsData();
-    bool showLangs, showLangsSelection, showAddLangs;
+    bool showLangs, showLangsSelection, showAddLangs, showGroupSettings;
     string? generatedCode;
     bool ready;
     bool translating;
@@ -1019,37 +1020,42 @@
 
     async Task RenameDecl()
     {
-        string str = await Js.InvokeAsync<string>("prompt", "Nový název skupiny", Decl.Name.IsNullOrWhiteSpace() ? string.Empty : Decl.Name);
-
-        if (!str.IsNullOrWhiteSpace())
+        Md.ShowPromptModal($"Nový název skupiny {Decl.Name}", string.Empty, async (str) =>
         {
-            Decl.Name = str;
-            await SaveProject();
-        }
+            if (!str.IsNullOrWhiteSpace())
+            {
+                Decl.Name = str;
+                await SaveProject();
+                StateHasChanged();
+            }
+        }, defaultText: Decl.Name.IsNullOrWhiteSpace() ? string.Empty : Decl.Name);
     }
 
     async Task AddDecl()
     {
-        string str = await Js.InvokeAsync<string>("prompt", "Název skupiny");
-
-        if (!str.IsNullOrWhiteSpace())
+        Md.ShowPromptModal("Přidat skupinu", "Zadejte název nové skupiny", async (str) =>
         {
-            string declId = General.IIID();
-
-            Decl newDecl = new Decl
+            if (!str.IsNullOrWhiteSpace())
             {
-                Name = str,
-                Id = declId,
-                Keys = []
-            };
+                string declId = General.IIID();
 
-            Project.Decls.Add(newDecl);
-            Project.SelectedDecl = newDecl;
-            await SaveProject();
+                Decl newDecl = new Decl
+                {
+                    Name = str,
+                    Id = declId,
+                    Keys = []
+                };
 
-            Settings.SelectedDecl = declId;
-            await SaveUserSettings();
-        }
+                Project.Decls.Add(newDecl);
+                Project.SelectedDecl = newDecl;
+                await SaveProject();
+
+                Settings.SelectedDecl = declId;
+                await SaveUserSettings();
+                
+                StateHasChanged();
+            }
+        });
     }
 
     async Task DeleteDecl()
@@ -1059,10 +1065,8 @@
             await Js.Toast(ToastTypes.Error, "Skupinu je možné odstranit pouze pokud projekt obsahuje více než jednu skupinu");
             return;
         }
-
-        bool delete = await Js.InvokeAsync<bool>("confirm", $"Potvrďte odstranění skupiny '{Decl.Name}' (klíčů: {Decl.Keys.Count})");
-
-        if (delete)
+        
+        Md.ShowConfirmActionModal($"Potvrďte odstranění skupiny '{Decl.Name}' (klíčů: {Decl.Keys.Count})", async () =>
         {
             Project.Decls.Remove(Decl);
             Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
@@ -1073,7 +1077,7 @@
 
             RecomputeVisibleKeys();
             StateHasChanged();
-        }
+        });
     }
 
     async Task HandleKeySearchValueChange(ChangeEventArgs args)
@@ -1340,6 +1344,12 @@
         showAddLangs = !showAddLangs;
         StateHasChanged();
     }
+
+    void ToggleGroupSettings()
+    {
+        showGroupSettings = !showGroupSettings;
+        StateHasChanged();
+    }
 }
 
 @if (!projectLoadingFinished)
@@ -1360,116 +1370,118 @@
     return;
 }
 
-<div style="display: flex; gap: 100px; width: 100%; justify-content: space-between; flex-flow: wrap; row-gap: 0;">
+<SectionContent SectionName="menuBar">
+    <div style="display: flex; gap: 100px; width: 100%; justify-content: space-between; flex-flow: wrap; row-gap: 0; padding-top: 1rem; padding-bottom: 0.5rem;">
     
-    @if (langsData.Langs.Count is 0)
-    {
-        <div>Lokalizace se načítá..</div>
-    }
-    else
-    {
-        List<KeyValuePair<Languages, LangData>> visible = langsData.Langs.Where(x => x.Value.Visible).ToList();
-        
-        <div style="margin-bottom: 2rem;">
-            <div style="display: flex; gap: 15px;">
-
-                <div>
-                    <button @onclick="ToggleLangsSelection" style="white-space: nowrap; margin-bottom: 1rem;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == langsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
-
-                    @if (showLangsSelection)
-                    {
-                        <div style="display: flex; gap: 15px; margin-bottom: 10px;">
-                            @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
-                            {
-                                <div class="form-check" @onclick="@(async () => { local.Value.Visible = !local.Value.Visible; await AfterLanguageToggle(local, local.Value.Visible); })">
-                                    <input style="cursor: pointer;" @onclick:stopPropagation="true" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
-                                    <label style="cursor: pointer; user-select: none;" class="form-check-label" for="@($"langShow_{local.Key}")">@local.Key</label>
-                                </div>
-                            }
-                        </div>
-                        
-                        <div style="margin-bottom: 10px;">
-                            <div style="white-space: nowrap;" class="link-light" @onclick="ToggleLangsAdd">Nastavení jazyků</div>
-                        </div>
-                        
-                        if (showAddLangs)
-                        {
-                            <div style="display: flex; gap: 10px; align-items: flex-start;">
-                                <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
-                                <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
-                                <button style="white-space: nowrap;" class="btn btn-danger btn-sm" @onclick="DeleteLanguage">Odebrat jazyk</button>
-                            </div>   
-                        }
-                    }
-                </div>
-            </div>
-        </div>
-    }
-    
-    <div style="margin-bottom: 1rem;">
-        <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
-            <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="KeySearch" class="form-control form-control-sm" placeholder="Hledat"/>
-            <button @onclick="ToggleSearchModeSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Režim: @(Settings.KeySearchLang is null ? "klíč" : Settings.KeySearchLang.ToString()) @Settings.KeySearchMode.GetStringValue().FirstLetterToLower()</button>
-        </div>
-
-        @if (renderSearchModeSelection)
+        @if (langsData.Langs.Count is 0)
         {
-            <div style="display: flex; gap: 10px; align-items: flex-start; flex-flow: column;">
-                <div>
-                    <select @onchange="HandleKeySearchValueChange" class="form-select">
-                        <option value="null" id="lang_search_key_name" selected="@(Settings.KeySearchLang is null)">Název klíče</option>
+            <div>Lokalizace se načítá..</div>
+        }
+        else
+        {
+            List<KeyValuePair<Languages, LangData>> visible = langsData.Langs.Where(x => x.Value.Visible).ToList();
+            
+            <div>
+                <div style="display: flex; gap: 15px;">
 
-                        @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                    <div>
+                        <button @onclick="ToggleLangsSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == langsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
+
+                        @if (showLangsSelection)
                         {
-                            <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(Settings.KeySearchLang == local.Key)">Překlad @local.Key</option>
+                            <div style="display: flex; gap: 15px; margin-bottom: 10px; margin-top: 10px;">
+                                @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
+                                {
+                                    <div class="form-check" @onclick="@(async () => { local.Value.Visible = !local.Value.Visible; await AfterLanguageToggle(local, local.Value.Visible); })">
+                                        <input style="cursor: pointer;" @onclick:stopPropagation="true" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
+                                        <label style="cursor: pointer; user-select: none;" class="form-check-label" for="@($"langShow_{local.Key}")">@local.Key</label>
+                                    </div>
+                                }
+                            </div>
+                            
+                            <div style="margin-bottom: 10px;">
+                                <div style="white-space: nowrap;" class="link-light" @onclick="ToggleLangsAdd">Nastavení jazyků</div>
+                            </div>
+                            
+                            if (showAddLangs)
+                            {
+                                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                    <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
+                                    <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
+                                    <button style="white-space: nowrap;" class="btn btn-danger btn-sm" @onclick="DeleteLanguage">Odebrat jazyk</button>
+                                </div>   
+                            }
                         }
-                    </select>
-
-                    <div style="height: 6px;"></div>
-
-                    <div class="form-check">
-                        <input checked="@(Settings.KeySearchMode is KeySearchModes.Contains)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Contains))" class="form-check-input" id="searchTypeContains" type="radio" name="searchType"/>
-                        <label class="form-check-label" for="searchTypeContains">@KeySearchModes.Contains.GetStringValue()</label>
-                    </div>
-
-                    <div class="form-check">
-                        <input checked="@(Settings.KeySearchMode is KeySearchModes.Exact)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Exact))" class="form-check-input" id="searchTypeExact" type="radio" name="searchType"/>
-                        <label class="form-check-label" for="searchTypeExact">@KeySearchModes.Exact.GetStringValue()</label>
                     </div>
                 </div>
             </div>
         }
+        
+        <div>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <input @bind:event="oninput" @bind:set="AfterSearchUpdate" @bind:get="KeySearch" class="form-control form-control-sm" placeholder="Hledat"/>
+                <button @onclick="ToggleSearchModeSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Režim: @(Settings.KeySearchLang is null ? "klíč" : Settings.KeySearchLang.ToString()) @Settings.KeySearchMode.GetStringValue().FirstLetterToLower()</button>
+            </div>
 
-    </div>
-
-    <div style="margin-bottom: 1rem; display: flex; flex-flow: wrap; align-items: flex-start; gap: 5px; justify-content: flex-start; row-gap: 5px; height: fit-content;">
-        <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
-        <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
-        <button class="btn btn-secondary btn-sm" @onclick="ForceSave">@(Settings.AutoSave ? "Vynutit uložení" : "Uložit změny")</button>
-        <button class="@($"btn btn-sm {(Settings.TranslationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(Settings.TranslationMode.GetStringValue().FirstLetterToLower())</button>
-    </div>
-
-    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start;">
-        <div style="margin-bottom: 1rem; display: flex; gap: 5px;">
-            <button title="Zpět" class="btn btn-secondary btn-sm @(CommandManager.CanUndo ? string.Empty : "visuallyDisabled")" @onclick="Undo">
-                <img ondragstart="return false;" width="24" height="24" src="/Images/Svg/undo.svg" alt=""/>
-            </button>
-            <button title="Dopředu" class="btn btn-secondary btn-sm @(CommandManager.CanRedo ? string.Empty : "visuallyDisabled")" @onclick="Redo">
-                <img ondragstart="return false;" width="24" height="24" src="/Images/Svg/redo.svg" alt=""/>
-            </button>
-
-            @if (CommandManager.AnyHistory)
+            @if (renderSearchModeSelection)
             {
-                <button class="btn btn-secondary btn-sm" @onclick="ShowHistory">Historie</button>
+                <div style="display: flex; gap: 10px; align-items: flex-start; flex-flow: column;">
+                    <div>
+                        <select @onchange="HandleKeySearchValueChange" class="form-select">
+                            <option value="null" id="lang_search_key_name" selected="@(Settings.KeySearchLang is null)">Název klíče</option>
+
+                            @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                            {
+                                <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(Settings.KeySearchLang == local.Key)">Překlad @local.Key</option>
+                            }
+                        </select>
+
+                        <div style="height: 6px;"></div>
+
+                        <div class="form-check">
+                            <input checked="@(Settings.KeySearchMode is KeySearchModes.Contains)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Contains))" class="form-check-input" id="searchTypeContains" type="radio" name="searchType"/>
+                            <label class="form-check-label" for="searchTypeContains">@KeySearchModes.Contains.GetStringValue()</label>
+                        </div>
+
+                        <div class="form-check">
+                            <input checked="@(Settings.KeySearchMode is KeySearchModes.Exact)" @onchange="@(async () => await KeySearchModeSelected(KeySearchModes.Exact))" class="form-check-input" id="searchTypeExact" type="radio" name="searchType"/>
+                            <label class="form-check-label" for="searchTypeExact">@KeySearchModes.Exact.GetStringValue()</label>
+                        </div>
+                    </div>
+                </div>
             }
+
+        </div>
+
+        <div style="display: flex; flex-flow: wrap; align-items: flex-start; gap: 5px; justify-content: flex-start; row-gap: 5px; height: fit-content;">
+            <button class="btn btn-secondary btn-sm" @onclick="Generate">Generovat kód</button>
+            <button class="btn btn-secondary btn-sm" @onclick="GenerateMissing">Doplnit chybějící překlady</button>
+            <button class="btn btn-secondary btn-sm" @onclick="ForceSave">@(Settings.AutoSave ? "Vynutit uložení" : "Uložit změny")</button>
+            <button class="@($"btn btn-sm {(Settings.TranslationMode is TranslationModes.Invalidate ? "btn-danger" : "btn-secondary")}")" @onclick="CycleTranslationMode">Zápis: @(Settings.TranslationMode.GetStringValue().FirstLetterToLower())</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <div style="display: flex; gap: 5px;">
+                <button title="Zpět" class="btn btn-secondary btn-sm @(CommandManager.CanUndo ? string.Empty : "visuallyDisabled")" @onclick="Undo">
+                    <img ondragstart="return false;" width="24" height="24" src="/Images/Svg/undo.svg" alt=""/>
+                </button>
+                <button title="Dopředu" class="btn btn-secondary btn-sm @(CommandManager.CanRedo ? string.Empty : "visuallyDisabled")" @onclick="Redo">
+                    <img ondragstart="return false;" width="24" height="24" src="/Images/Svg/redo.svg" alt=""/>
+                </button>
+
+                @if (CommandManager.AnyHistory)
+                {
+                    <button class="btn btn-secondary btn-sm" @onclick="ShowHistory">Historie</button>
+                }
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: flex-start; flex: 1;">
+            <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddKey">Přidat klíč</button>
+            <input class="form-control form-control-sm" @bind="NewKey" placeholder="Klíč"/>
         </div>
     </div>
-
-    <div style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-start; flex: 1;">
-        <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddKey">Přidat klíč</button>
-        <input class="form-control form-control-sm" @bind="NewKey" placeholder="Klíč"/>
-    </div>
-</div>
+</SectionContent>
 
 @if (translating)
 {
@@ -1550,7 +1562,7 @@
     }
 
     <div style="max-height: 800px; overflow: auto;">
-        <table id="@($"table_{id}")" class="table table-sm table-bordered table-responsive tableMain">
+        <table id="@($"table_{id}")" class="table table-sm table-bordered table-responsive tableMain tableSticky">
             <thead>
             <tr>
                 <th style="width: 125px;">
@@ -1663,23 +1675,28 @@
 
 @if (ready)
 {
-    <div style="margin-top: 1rem; display: flex; gap: 100px; flex-flow: wrap; row-gap: 0;">
+    <div class="bottomMenuBar" style="margin-top: 1rem; display: flex; gap: 100px; flex-flow: wrap; row-gap: 0;">
         <div>
             <div style="width: 280px;">
-                <div style="margin-bottom: 5px;">Klíčů v aktivní skupině: @(Decl.Keys.Count)</div>
-                <div style="margin-bottom: 1rem;">
+                <div style="margin-bottom: 5px;">
                     <select @onchange="HandleActiveDeclChange" class="form-select">
                         @foreach (Decl x in Project.Decls)
                         {
-                            <option value="@x.Id" selected="@(x == Decl)">@(x.Name.IsNullOrWhiteSpace() ? "Skupina bez názvu" : x.Name)</option>
+                            <option value="@x.Id" selected="@(x == Decl)">@(x.Name.IsNullOrWhiteSpace() ? "Skupina bez názvu" : $"{x.Name} (klíčů: {x.Keys.Count})")</option>
                         }
                     </select>
                 </div>
-                <div style="display: flex; flex-flow: wrap; gap: 5px; margin-bottom: 5px;">
-                    <button class="@($"btn btn-sm btn-secondary")" @onclick="RenameDecl">Přejmenovat skupinu</button>
-                    <button class="@($"btn btn-sm btn-secondary")" @onclick="AddDecl">Přidat skupinu</button>
-                    <button class="@($"btn btn-sm btn-secondary")" @onclick="DeleteDecl">Odstranit skupinu</button>
-                </div>
+                
+                <div @onclick="ToggleGroupSettings" style="margin-bottom: 10px;" class="link-light">Nastavení skupin</div>
+                
+                @if (showGroupSettings)
+                {
+                    <div style="display: flex; flex-flow: wrap; gap: 5px; margin-bottom: 5px;">
+                        <button class="@($"btn btn-sm btn-secondary")" @onclick="RenameDecl">Přejmenovat skupinu</button>
+                        <button class="@($"btn btn-sm btn-secondary")" @onclick="AddDecl">Přidat skupinu</button>
+                        <button class="@($"btn btn-sm btn-danger")" @onclick="DeleteDecl">Odstranit skupinu</button>
+                    </div>   
+                }
             </div>
         </div>
 
@@ -1687,21 +1704,23 @@
             <button class="@($"btn btn-sm btn-secondary")" @onclick="CycleInputMode">Zobrazení: @(Settings.RenderMode.GetStringValue().FirstLetterToLower())</button>
         </div>
 
-        <div style="display: flex; gap: 20px;">
-            <div>
+        <div style="display: flex; gap: 20px; flex: 1; flex-flow: wrap;">
+            <div style="display: flex; justify-content: flex-start; flex: 1; align-items: flex-start; gap: 20px; flex-flow: wrap;">
                 <div style="display: flex; gap: 15px;">
-                    <div style="white-space: nowrap;" class="form-label">Zobrazit klíčů (0 = všechny):</div>
+                    <div title="0 pro zobrazení všech klíčů" style="white-space: nowrap; cursor: help; margin-top: auto; margin-bottom: auto;" class="form-label">Zobrazit klíčů:</div>
                     <input style="width: 100px;" type="number" class="form-control" id="limitRender" @bind:set="AfterLimitUpdate" @bind:get="Settings.LimitRender">
                 </div>
 
                 @if (keyPages > 1)
                 {
-                    <div class="d-flex align-items-center flex-wrap" style="max-width: calc(100vw - 700px); padding-top: 1rem;">
+                    <div class="d-flex align-items-center flex-wrap">
                         <div class="me-2">Strana:</div>
                         <ul class="pagination flex-wrap me-3" style="margin-bottom: 0;">
                             @{
-                                int start = Math.Max(1, keySelectedPage - 5);
-                                int end = Math.Min(keyPages, keySelectedPage + 5);
+                                int offset = 3;
+                                
+                                int start = Math.Max(1, keySelectedPage - offset);
+                                int end = Math.Min(keyPages, keySelectedPage + offset);
 
                                 if (start > 1)
                                 {

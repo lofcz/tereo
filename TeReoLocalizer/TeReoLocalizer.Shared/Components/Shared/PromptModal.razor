@@ -1,6 +1,7 @@
 @using Blazored.Modal
 @using Blazored.Modal.Services
 @using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
 @inject IJSRuntime Js
 @implements TeReoLocalizer.Shared.Code.IGenericModalRef
 @code {
@@ -36,12 +37,14 @@
     string finalDescription;
     bool ready;
     string promptInput;
+    bool inputFocused;
+    string inputId = General.IIID();
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        finalDescription = Description ?? "";
+        finalDescription = Description ?? string.Empty;
 
         if (DescriptionFn != null)
         {
@@ -49,7 +52,7 @@
         }
 
         ready = true;
-        promptInput = DefaultText ?? "";
+        promptInput = DefaultText ?? string.Empty;
     }
 
     public async Task CancelWithAction()
@@ -69,14 +72,24 @@
             await ConfirmAction.Invoke(promptInput);
         } 
     }
-    
-    
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (!inputFocused && ready)
+        {
+            await Js.Focus(inputId);
+            inputFocused = true;
+        }
+    }
+
 }
 
 @if (ready)
 {
     <EdModal Title="@Title" Description="@finalDescription" DescriptionComponent="BodyComponent" Size="Size" CancelAction="CancelWithAction" GenericModalRef="GenericModalRef">
-        <input class="form-control form-control-sm" placeholder="@Placeholder" @bind="promptInput" />
+        <input id="@inputId" class="form-control form-control-sm" placeholder="@Placeholder" @bind="promptInput" />
         <EdButtonsContainer Style="gap: 10px;">
             <EdButton Size="ButtonSizes.Medium" OnClick="ConfirmWithAction">Potvrdit</EdButton>
             <EdButton Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" Fill="ButtonFillModes.Outline" OnClick="CancelWithAction">Zrušit</EdButton>
