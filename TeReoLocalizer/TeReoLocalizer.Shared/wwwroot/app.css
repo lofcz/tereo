@@ -80,3 +80,37 @@ ins {
 .actionLink:hover {
     text-decoration: underline;
 }
+
+.visuallyDisabled {
+    color: var(--bs-btn-disabled-color) !important;
+    background-color: var(--bs-btn-disabled-bg) !important;
+    border-color: var(--bs-btn-disabled-border-color) !important;
+    opacity: var(--bs-btn-disabled-opacity) !important;
+}
+
+.visuallyDisabled:hover {
+    cursor: not-allowed;
+    color: var(--bs-btn-disabled-color);
+    background-color: var(--bs-btn-disabled-bg);
+    border-color: var(--bs-btn-disabled-border-color);
+    opacity: var(--bs-btn-disabled-opacity);
+}
+
+.link-light {
+    user-select: none;
+}
+
+.link-light:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.historyEntry {
+    padding: 4px;
+    user-select: none;
+    cursor: pointer;
+}
+
+.historyEntrySelected {
+    background: #40454d;
+}

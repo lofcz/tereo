@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Components.Pages;
 using TeReoLocalizer.Shared.Components.Shared;
 
 namespace TeReoLocalizer.Shared.Code;
@@ -267,4 +269,120 @@ public enum ToastTypes
     Warning,
     [StringValue("error")]
     Error
+}
+
+public enum RenderModes
+{
+    Unknown,
+    [StringValue("Jednořádkový text")] 
+    Input,
+    [StringValue("Víceřádkový text")]
+    Textarea
+}
+    
+public enum TranslationModes
+{
+    Unknown,
+    [StringValue("Výchozí")] 
+    Default,
+    [StringValue("Zneplatnění")] 
+    Invalidate
+}
+    
+public class UserSettings
+{
+    public List<Languages>? ShowLangs { get; set; }
+    public RenderModes RenderMode { get; set; } = RenderModes.Input;
+    public TranslationModes TranslationMode { get; set; } = TranslationModes.Default;
+    public int LimitRender { get; set; } = 8;
+    public string? SelectedDecl { get; set; }
+    public KeySearchModes KeySearchMode { get; set; } = KeySearchModes.Contains;
+    public Languages? KeySearchLang { get; set; }
+    public bool AutoSave { get; set; } = true;
+        
+    // dynamic
+    [JsonIgnore]
+    public bool ShowUncommitedChangesDetail { get; set; }
+}
+
+public class ProjectCtx
+{
+    public Project Project { get; set; }
+    public Decl Decl { get; set; }
+    public UserSettings Settings { get; set; }
+    public IJSRuntime Js { get; set; }
+    public Localize Owner { get; set; }
+
+    public ProjectCtx(Project project, Decl decl, UserSettings settings, IJSRuntime js, Localize owner)
+    {
+        Project = project;
+        Decl = decl;
+        Settings = settings;
+        Js = js;
+        Owner = owner;
+    }
+}
+
+public interface ICommand
+{
+    Task<bool> Do();
+    Task Undo();
+    public string GetName();
+    public ProjectCtx Ctx { get; set; }
+}
+
+public class HistoryItem
+{
+    public ICommand Command { get; }
+    public int Index { get; }
+    public bool Selected { get; set; }
+
+    public HistoryItem(ICommand command, int index)
+    {
+        Command = command;
+        Index = index;
+    }
+}
+
+public class BaseCommand : ICommand
+{
+    public ProjectCtx Ctx { get; set; } = default!;
+
+    public Project Project => Ctx.Project;
+    public Decl Decl => Ctx.Decl;
+    public UserSettings Settings => Ctx.Settings;
+    public IJSRuntime Js => Ctx.Js;
+    public Localize Owner => Ctx.Owner;
+
+    public virtual Task<bool> Do()
+    {
+        return Task.FromResult(true);
+    }
+
+    public virtual Task Undo()
+    {
+        return Task.CompletedTask;
+    }
+
+    public virtual string GetName()
+    {
+        return "Nepojmenovaná akce";
+    }
+
+    public override string ToString()
+    {
+        return GetName();
+    }
+}
+
+public class CommandHistory
+{
+    public List<HistoryItem> Before { get; }
+    public List<HistoryItem> After { get; }
+
+    public CommandHistory(List<HistoryItem> before, List<HistoryItem> after)
+    {
+        Before = before;
+        After = after;
+    }
 }

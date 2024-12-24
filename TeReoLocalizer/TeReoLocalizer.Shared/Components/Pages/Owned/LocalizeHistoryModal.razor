@@ -1,0 +1,105 @@
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+
+    CommandHistory? commandHistory;
+    HistoryItem? selected;
+    bool ready;
+    bool undoing;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        commandHistory = Owner.CommandManager.GetHistory();
+        ready = true;
+    }
+
+    async Task Submit()
+    {
+        if (selected is null)
+        {
+            await Cancel();
+            return;
+        }
+
+        undoing = true;
+        StateHasChanged();
+        await Owner.JumpTo(selected);
+        await Cancel();
+    }
+
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
+
+    void SelectItem(HistoryItem x)
+    {
+        if (commandHistory is null)
+        {
+            return;
+        }
+        
+        commandHistory.After.ForEach(y => y.Selected = false);
+        commandHistory.Before.ForEach(y => y.Selected = false);
+        x.Selected = true;
+        selected = x;
+        StateHasChanged();
+    }
+
+    void SelectCurrent()
+    {
+        if (commandHistory is null)
+        {
+            return;
+        }
+        
+        commandHistory.After.ForEach(y => y.Selected = false);
+        commandHistory.Before.ForEach(y => y.Selected = false);
+        selected = null;
+        StateHasChanged();
+    }
+}
+
+<EdModal Title="Historie">
+    
+    @if (undoing)
+    {
+        <p>Probíhá aplikace změn..</p>
+    }
+    else if (ready && commandHistory is not null)
+    {
+        if (Owner.CommandManager.AnyHistory)
+        {
+            <ul style="padding: 0; list-style-type: none;">
+                @foreach (HistoryItem x in commandHistory.Before)
+                {
+                    <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
+                }
+
+                <li @onclick="SelectCurrent" class="historyEntry @(selected is null ? "historyEntrySelected" : string.Empty)">Současný stav</li>
+
+                @foreach (HistoryItem x in commandHistory.After)
+                {
+                    <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>Žádné změny v historii.</p>
+        }
+    }
+
+    <EdButtonsContainer>
+        <EdButton Disabled="@(selected is null)" OnClick="Submit">Nastavit</EdButton>
+        <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>

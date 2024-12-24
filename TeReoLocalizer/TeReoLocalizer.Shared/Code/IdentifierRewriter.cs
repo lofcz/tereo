@@ -19,24 +19,24 @@ public static class CsWorkspace
             throw new InvalidOperationException("Workspace nebo Solution není inicializováno.");
         }
 
-        var project = Solution.Projects.FirstOrDefault();
+        Microsoft.CodeAnalysis.Project? project = Solution.Projects.FirstOrDefault();
         if (project == null)
         {
             throw new InvalidOperationException("V Solution nebyl nalezen žádný projekt.");
         }
 
-        var compilation = await project.GetCompilationAsync();
-        var symbols = compilation.GetSymbolsWithName(name => name.StartsWith("Reo.") && name.EndsWith(oldSuffix), SymbolFilter.All);
+        Compilation? compilation = await project.GetCompilationAsync();
+        IEnumerable<ISymbol>? symbols = compilation.GetSymbolsWithName(name => name.StartsWith("Reo.") && name.EndsWith(oldSuffix), SymbolFilter.All);
 
-        foreach (var symbol in symbols)
+        foreach (ISymbol? symbol in symbols)
         {
-            var newName = $"Reo.{newSuffix}";
+            string? newName = $"Reo.{newSuffix}";
 
-            var solution = await Renamer.RenameSymbolAsync(Solution, symbol, new SymbolRenameOptions(true, true, true), newName);
+            Solution? solution = await Renamer.RenameSymbolAsync(Solution, symbol, new SymbolRenameOptions(true, true, true), newName);
         
             if (solution != Solution)
             {
-                var applied = Workspace.TryApplyChanges(solution);
+                bool applied = Workspace.TryApplyChanges(solution);
                 if (applied)
                 {
                     Console.WriteLine($"Změněno: {symbol.Name} na {newName}");
@@ -51,12 +51,12 @@ public static class CsWorkspace
             }
         }
         
-        var newSolution = Solution;
-        foreach (var document in project.Documents)
+        Solution? newSolution = Solution;
+        foreach (Document? document in project.Documents)
         {
-            var syntaxRoot = await document.GetSyntaxRootAsync();
-            var rewriter = new IdentifierRewriter(oldSuffix, newSuffix);
-            var newRoot = rewriter.Visit(syntaxRoot);
+            SyntaxNode? syntaxRoot = await document.GetSyntaxRootAsync();
+            IdentifierRewriter? rewriter = new IdentifierRewriter(oldSuffix, newSuffix);
+            SyntaxNode? newRoot = rewriter.Visit(syntaxRoot);
 
             if (newRoot != syntaxRoot)
             {
@@ -66,7 +66,7 @@ public static class CsWorkspace
         
         if (newSolution != Solution)
         {
-            var applied = Workspace.TryApplyChanges(newSolution);
+            bool applied = Workspace.TryApplyChanges(newSolution);
             if (applied)
             {
                 Console.WriteLine("Změny byly úspěšně aplikovány.");
@@ -100,11 +100,11 @@ public static class CsWorkspace
         {
             if (node.IsKind(SyntaxKind.StringLiteralExpression))
             {
-                var oldText = $"Reo.{_oldSuffix}";
-                var newText = $"Reo.{_newSuffix}";
+                string? oldText = $"Reo.{_oldSuffix}";
+                string? newText = $"Reo.{_newSuffix}";
                 if (node.Token.ValueText.Contains(oldText))
                 {
-                    var replacedText = node.Token.ValueText.Replace(oldText, newText);
+                    string? replacedText = node.Token.ValueText.Replace(oldText, newText);
                     return node.Update(SyntaxFactory.Literal(replacedText));
                 }
             }
@@ -113,19 +113,19 @@ public static class CsWorkspace
 
         public override SyntaxNode VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
         {
-            var oldText = $"Reo.{_oldSuffix}";
-            var newText = $"Reo.{_newSuffix}";
-            var newContents = new List<InterpolatedStringContentSyntax>();
+            string? oldText = $"Reo.{_oldSuffix}";
+            string? newText = $"Reo.{_newSuffix}";
+            List<InterpolatedStringContentSyntax>? newContents = new List<InterpolatedStringContentSyntax>();
             bool changed = false;
 
-            foreach (var content in node.Contents)
+            foreach (InterpolatedStringContentSyntax? content in node.Contents)
             {
                 if (content is InterpolatedStringTextSyntax textPart)
                 {
-                    var replacedText = textPart.TextToken.Text.Replace(oldText, newText);
+                    string? replacedText = textPart.TextToken.Text.Replace(oldText, newText);
                     if (replacedText != textPart.TextToken.Text)
                     {
-                        var newToken = SyntaxFactory.Token(
+                        SyntaxToken newToken = SyntaxFactory.Token(
                             textPart.TextToken.LeadingTrivia,
                             SyntaxKind.InterpolatedStringTextToken,
                             replacedText,
