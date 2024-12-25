@@ -644,6 +644,8 @@
 
     async Task RenameAndSaveKey(string key, string newKeyName)
     {
+        newKeyName = Localizer.BaseIdentifier(newKeyName);
+        
         if (string.Equals(key, newKeyName, StringComparison.Ordinal))
         {
             await Js.Toast(ToastTypes.Info, "Klíč není potřeba přegenerovat");
@@ -670,7 +672,7 @@
             Decl.Keys.TryRemove(key, out _);
             Decl.Keys.TryAdd(newKeyName, kVal);
 
-            RecomputeVisibleKeys();
+            RecomputeVisibleKeys(true, kVal.Name);
 
             if (Settings.AutoSave)
             {
@@ -1680,7 +1682,7 @@
                         </div>
                     </td>
 
-                    @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
+                    @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
                     {
                         if (!local.Value.Visible)
                         {
