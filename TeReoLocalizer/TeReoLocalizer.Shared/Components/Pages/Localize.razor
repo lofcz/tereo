@@ -25,6 +25,7 @@
     public string NewKey = string.Empty;
     public string? InputToFocus;
     public string? LastFocusedInput { get; set; }
+    public string? LastAddedKey { get; set; }
     public string KeySearch = string.Empty;
     public readonly CommandManager CommandManager = new CommandManager();
     InvertedIndex Index => Program.Index;

@@ -11,6 +11,7 @@ public class CmdAddKey : BaseCommand
     private string NewKey { get; set; }
     private string? Search { get; set; }
     private string? ToFocus { get; set; }
+    private string? KeyToFocus { get; set; }
     
     public CmdAddKey(string newKey)
     {
@@ -58,7 +59,9 @@ public class CmdAddKey : BaseCommand
                 }   
             }
 
-            ToFocus = Owner.LastFocusedInput;
+            KeyToFocus = Owner.LastAddedKey;
+            Owner.LastAddedKey = localKey.Name;
+            ToFocus = $"input_CS_{newKeyCopy}";
             Owner.NewKey = string.Empty;
             Owner.SetInputToFocus($"input_CS_{newKeyCopy}");
             Owner.RecomputeVisibleKeys(true, newKeyCopy);
@@ -95,10 +98,16 @@ public class CmdAddKey : BaseCommand
             {
                 await Owner.DeleteKey(key.Name);
             }
-            
-            Owner.SetSearch(Search);
-            Owner.RecomputeVisibleKeys(true);
-            Owner.InputToFocus = ToFocus;
+
+            if (Search is not null)
+            {
+                Owner.SetSearch(Search);                
+            }
+
+            Owner.LastAddedKey = KeyToFocus;
+            Owner.LastFocusedInput = $"input_CS_{KeyToFocus}";
+            Owner.RecomputeVisibleKeys(true, KeyToFocus);
+            Owner.InputToFocus = $"input_CS_{KeyToFocus}";
             Owner.StateHasChanged();
         }
         else
