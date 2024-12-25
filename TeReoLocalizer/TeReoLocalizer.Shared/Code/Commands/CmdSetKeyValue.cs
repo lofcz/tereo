@@ -107,20 +107,18 @@ public class CmdSetKeyValue : BaseCommand
     {
         if (Diff is not null)
         {
-            var output = new StringBuilder();
+            StringBuilder output = new StringBuilder();
             int posOld = 0;
             int posNew = 0;
 
-            foreach (var block in Diff.DiffBlocks)
+            foreach (DiffBlock? block in Diff.DiffBlocks)
             {
-                // Přidej nezměněný text před blokem změn
                 while (posNew < block.InsertStartB)
                 {
                     output.Append(Diff.PiecesNew[posNew]);
                     posNew++;
                 }
-
-                // Přidej smazaný text
+                
                 if (block.DeleteCountA > 0)
                 {
                     output.Append("<del>");
@@ -130,8 +128,7 @@ public class CmdSetKeyValue : BaseCommand
                     }
                     output.Append("</del>");
                 }
-
-                // Přidej nový text
+                
                 if (block.InsertCountB > 0)
                 {
                     output.Append("<ins>");

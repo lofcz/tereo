@@ -20,7 +20,7 @@ public class CmdAddKey : BaseCommand
 
     public override string GetName()
     {
-        return $"Přidání klíče {NewKey}";
+        return $"Přidání klíče <code>{NewKey}</code>";
     }
     
     public override async Task<bool> Do(bool firstTime)

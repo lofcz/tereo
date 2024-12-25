@@ -367,6 +367,7 @@
     {
         cmd.Ctx = GetCtx();
         await CommandManager.Execute(cmd);
+        StateHasChanged();
     }
 
     public async Task SaveProject()
@@ -607,10 +608,10 @@
 
     public async Task SaveLanguages()
     {
-        foreach (KeyValuePair<Languages, LangData> lang in LangsData.Langs)
+        await Parallel.ForEachAsync(LangsData.Langs, async (pair, token) =>
         {
-            await SaveLanguage(lang.Key);
-        }
+            await SaveLanguage(pair.Key);
+        });
     }
 
     async Task MoveKey(string key)
@@ -731,9 +732,10 @@
             if (x.Value.Data.TryGetValue(key, out string? _))
             {
                 x.Value.Data.TryRemove(key, out _);
-                await SaveLanguage(x.Key);
             }
         }
+
+        await SaveLanguages();
 
         if (Decl.Keys.TryGetValue(key, out Key? _))
         {
@@ -746,10 +748,7 @@
     {
         Md.ShowConfirmActionModal($"Potvrďte odstranění klíče <code>{key}</code>", async () =>
         {
-            await DeleteKey(key);
-
-            RecomputeVisibleKeys();
-            StateHasChanged();
+            await Execute(new CmdDeleteKey(key));
         });
     }
 
