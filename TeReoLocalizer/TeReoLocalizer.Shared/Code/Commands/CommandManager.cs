@@ -5,6 +5,9 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 
 public class CommandManager : IDisposable
 {
+    public Func<Task>? OnBeforeJump { get; set; }
+    public Func<Task>? OnAfterJump { get; set; }
+    
     private readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
     private readonly CircularBuffer<ICommand> undoBuffer;
     private readonly CircularBuffer<ICommand> redoBuffer;
@@ -80,7 +83,7 @@ public class CommandManager : IDisposable
         await semaphore.WaitAsync();
         try
         {
-            bool executed = await command.Do();
+            bool executed = await command.Do(true);
 
             if (executed)
             {
@@ -140,7 +143,7 @@ public class CommandManager : IDisposable
         }
 
         ICommand command = redoBuffer.Pop();
-        await command.Do();
+        await command.Do(false);
         undoBuffer.Push(command);
     }
 
@@ -205,6 +208,11 @@ public class CommandManager : IDisposable
         await semaphore.WaitAsync();
         try
         {
+            if (OnBeforeJump is not null)
+            {
+                await OnBeforeJump.Invoke();
+            }
+            
             switch (relativeSteps)
             {
                 case < 0:
@@ -226,6 +234,11 @@ public class CommandManager : IDisposable
 
                     break;
                 }
+            }
+            
+            if (OnAfterJump is not null)
+            {
+                await OnAfterJump.Invoke();
             }
         }
         finally

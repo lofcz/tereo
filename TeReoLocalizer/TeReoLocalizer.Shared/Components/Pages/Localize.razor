@@ -22,12 +22,15 @@
     public Project Project = new Project();
     public Decl Decl => Project.SelectedDecl;
     public UserSettings Settings = new UserSettings();
+    public readonly LangsData LangsData = new LangsData();
     public string NewKey = string.Empty;
     public string? InputToFocus;
     public string? LastFocusedInput { get; set; }
     public string? LastAddedKey { get; set; }
     public string KeySearch = string.Empty;
     public readonly CommandManager CommandManager = new CommandManager();
+    public bool JumpingInHistory { get; set; }
+    public bool EnableRendering { get; set; } = true;
     InvertedIndex Index => Program.Index;
 
     DotNetObjectReference<Localize>? JsRef { get; set; }
@@ -37,7 +40,6 @@
     string langCode = string.Empty;
     string basePath = AppDomain.CurrentDomain.BaseDirectory;
     List<string> existingFiles = [];
-    readonly LangsData langsData = new LangsData();
     bool showLangs, showLangsSelection, showAddLangs, showGroupSettings;
     string? generatedCode;
     bool ready;
@@ -81,7 +83,7 @@
 
     ProjectCtx GetCtx()
     {
-        return new ProjectCtx(Project, Project.SelectedDecl, Settings, Js, this);
+        return new ProjectCtx(Project, Project.SelectedDecl, Settings, LangsData, Js, this);
     }
 
     protected override void OnInitialized()
@@ -92,7 +94,7 @@
 
     protected override bool ShouldRender()
     {
-        return ready;
+        return ready && EnableRendering;
     }
 
     void Panic(string message)
@@ -104,15 +106,31 @@
     }
 
     bool Panicked => loadErrors?.Count > 0;
-
+    
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+        
         if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
         {
             basePath = Consts.Cfg.Repository;
         }
 
-        await base.OnInitializedAsync();
+        CommandManager.OnBeforeJump = () =>
+        {
+            JumpingInHistory = true;
+            EnableRendering = false;
+            return Task.CompletedTask;
+        };
+
+        CommandManager.OnAfterJump = () =>
+        {
+            JumpingInHistory = false;
+            EnableRendering = true;
+            StateHasChanged();
+            return Task.CompletedTask;
+        };
+        
         await ShowLanguages(false);
 
         if (!Directory.Exists($"{basePath}/TeReo"))
@@ -191,7 +209,7 @@
 
             if (Settings.ShowLangs is not null)
             {
-                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+                foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
                 {
                     x.Value.Visible = Settings.ShowLangs.Contains(x.Key);
                 }
@@ -306,7 +324,7 @@
         }
 
         existingFiles = Directory.GetFiles($"{basePath}/TeReo").ToList();
-        langsData.Langs.Clear();
+        LangsData.Langs.Clear();
 
         await Parallel.ForEachAsync(existingFiles, async (str, ctx) =>
         {
@@ -320,7 +338,7 @@
             string data = await File.ReadAllTextAsync(str, ctx);
             LangData parsed = JsonSerializer.Deserialize<LangData>(data) ?? new LangData();
             parsed.PersistedData = new ConcurrentDictionary<string, string>(parsed.Data);
-            langsData.Langs.TryAdd(result, parsed);
+            LangsData.Langs.TryAdd(result, parsed);
         });
 
         if (showLanguages)
@@ -331,6 +349,11 @@
 
     async Task AddKey()
     {
+        if (JumpingInHistory)
+        {
+            return;
+        }
+        
         if (NewKey.IsNullOrWhiteSpace())
         {
             return;
@@ -366,20 +389,23 @@
             return;
         }
 
-        if (InputToFocus is not null)
+        if (!JumpingInHistory)
         {
-            try
+            if (InputToFocus is not null)
             {
-                bool focused = await Js.Focus(InputToFocus);
-
-                if (focused)
+                try
                 {
-                    InputToFocus = null;
+                    bool focused = await Js.Focus(InputToFocus);
+
+                    if (focused)
+                    {
+                        InputToFocus = null;
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-            }
+                catch (Exception e)
+                {
+                }
+            }   
         }
 
         if (ready && !jsInitialized && contentRendered)
@@ -396,7 +422,7 @@
                         id = id,
                         net = JsRef,
                         decl = Decl,
-                        langs = langsData
+                        langs = LangsData
                     });
                 }
                 catch (Exception e)
@@ -444,53 +470,47 @@
 
     void SetKeyValue(Languages language, string key, string value)
     {
-        LangData lang = langsData.Langs[language];
+        LangData lang = LangsData.Langs[language];
         lang.Data[key] = value;
 
-        if (!Settings.AutoSave)
+        if (Settings.AutoSave)
         {
-            if (lang.PersistedData.TryGetValue(key, out string? persistedVal))
+            return;
+        }
+        
+        if (lang.PersistedData.TryGetValue(key, out string? persistedVal))
+        {
+            if (persistedVal == value)
             {
-                if (persistedVal == value)
-                {
-                    lang.UncommitedChanges.TryRemove(key, out _);
-                }
-                else
-                {
-                    lang.UncommitedChanges[key] = value;
-                }
+                lang.UncommitedChanges.TryRemove(key, out _);
             }
             else
             {
                 lang.UncommitedChanges[key] = value;
             }
         }
+        else
+        {
+            lang.UncommitedChanges[key] = value;
+        }
     }
 
     public async Task SetKey(Languages language, string key, string value)
     {
         SetKeyValue(language, key, value);
-
-        if (!File.Exists($"{basePath}/TeReo/lang_{language}.json"))
+        
+        if (Settings.TranslationMode is TranslationModes.Default)
         {
-            await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", "{}");
+            await SaveLanguage(language);
         }
-
-        if (Settings.AutoSave)
+        else
         {
-            if (Settings.TranslationMode is TranslationModes.Default)
+            foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs.Where(x => x.Key != language))
             {
-                await SaveLanguage(language);
+                x.Value.Data.TryRemove(key, out _);
             }
-            else
-            {
-                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs.Where(x => x.Key != language))
-                {
-                    x.Value.Data.TryRemove(key, out _);
-                }
 
-                await SaveLanguages();
-            }
+            await SaveLanguages();
         }
     }
 
@@ -553,25 +573,40 @@
         }
     }
 
+    void HandleKeyFocus(Languages language, string key, string value)
+    {
+        if (JumpingInHistory)
+        {
+            return;
+        }
+        
+        LangsData.Langs[language].FocusData[key] = value;
+    }
+
     async Task HandleKeyUpdate(Languages language, string key, string value)
     {
-        await SetKey(language, key, value);
+        if (JumpingInHistory)
+        {
+            return;
+        }
+        
+        await Execute(new CmdSetKeyValue(language, key, value));
     }
 
     public async Task SaveLanguage(Languages language)
     {
-        LangData source = langsData.Langs[language];
+        LangData source = LangsData.Langs[language];
         source.PersistedData = new ConcurrentDictionary<string, string>(source.Data);
         source.UncommitedChanges.Clear();
         StateHasChanged();
 
-        string data = langsData.Langs[language].ToJson();
+        string data = LangsData.Langs[language].ToJson();
         await File.WriteAllTextAsync($"{basePath}/TeReo/lang_{language}.json", data);
     }
 
     public async Task SaveLanguages()
     {
-        foreach (KeyValuePair<Languages, LangData> lang in langsData.Langs)
+        foreach (KeyValuePair<Languages, LangData> lang in LangsData.Langs)
         {
             await SaveLanguage(lang.Key);
         }
@@ -597,7 +632,7 @@
 
     async Task RegenerateKey(string key)
     {
-        if (langsData.Langs[Languages.CS].Data.TryGetValue(key, out string? czechValue))
+        if (LangsData.Langs[Languages.CS].Data.TryGetValue(key, out string? czechValue))
         {
             string newKeyCopy = czechValue.Trim().FirstLetterToUpper();
             string newKeyName = Localizer.BaseIdentifier(newKeyCopy);
@@ -613,7 +648,7 @@
             return;
         }
 
-        foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+        foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
         {
             if (x.Value.Data.TryGetValue(key, out string? strValue))
             {
@@ -690,7 +725,7 @@
 
     public async Task DeleteKey(string key)
     {
-        foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+        foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
         {
             if (x.Value.Data.TryGetValue(key, out string? _))
             {
@@ -719,7 +754,7 @@
 
     async Task<string> Generate()
     {
-        Localizer l = new Localizer(Project, langsData);
+        Localizer l = new Localizer(Project, LangsData);
         string code = await l.Generate();
 
         if (File.Exists($"{basePath}/I18N/Reo.cs"))
@@ -772,7 +807,7 @@
 
             foreach (KeyValuePair<string, Key> keys in Decl.Keys.Where(x => x.Value.AutoTranslatable))
             {
-                foreach (KeyValuePair<Languages, LangData> x in langsData.Langs)
+                foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
                 {
                     if (x.Key is Languages.CS)
                     {
@@ -790,7 +825,7 @@
 
                     if (currentVal.IsNullOrWhiteSpace())
                     {
-                        if (langsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
+                        if (LangsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
                         {
                             toTranslate.Add(new TranslateTaskInput
                             {
@@ -984,7 +1019,7 @@
     async Task AfterLanguageToggle(KeyValuePair<Languages, LangData> local, bool visible)
     {
         local.Value.Visible = visible;
-        Settings.ShowLangs = langsData.Langs.Where(x => x.Value.Visible).Select(x => x.Key).ToList();
+        Settings.ShowLangs = LangsData.Langs.Where(x => x.Value.Visible).Select(x => x.Key).ToList();
         await SaveUserSettings();
     }
 
@@ -1213,7 +1248,7 @@
             }
             else
             {
-                if (langsData.Langs[Settings.KeySearchLang.Value].Data.TryGetValue(item.Key, out string? translatedKey))
+                if (LangsData.Langs[Settings.KeySearchLang.Value].Data.TryGetValue(item.Key, out string? translatedKey))
                 {
                     keyToCompare = translatedKey;
                 }
@@ -1294,7 +1329,7 @@
     {
         Md.ShowConfirmActionModal("Zahodit změnu", $"Potvrďte zahození změny na klíči <code>{key}</code>", async () =>
         {
-            LangData lang = langsData.Langs[language];
+            LangData lang = LangsData.Langs[language];
 
             if (lang.PersistedData.TryGetValue(key, out string? persistedVal))
             {
@@ -1374,24 +1409,24 @@
 <SectionContent SectionName="menuBar">
     <div style="display: flex; gap: 100px; width: 100%; justify-content: space-between; flex-flow: wrap; row-gap: 0; padding-top: 1rem; padding-bottom: 0.5rem;">
     
-        @if (langsData.Langs.Count is 0)
+        @if (LangsData.Langs.Count is 0)
         {
             <div>Lokalizace se načítá..</div>
         }
         else
         {
-            List<KeyValuePair<Languages, LangData>> visible = langsData.Langs.Where(x => x.Value.Visible).ToList();
+            List<KeyValuePair<Languages, LangData>> visible = LangsData.Langs.Where(x => x.Value.Visible).ToList();
             
             <div>
                 <div style="display: flex; gap: 15px;">
 
                     <div>
-                        <button @onclick="ToggleLangsSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == langsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
+                        <button @onclick="ToggleLangsSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == LangsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
 
                         @if (showLangsSelection)
                         {
                             <div style="display: flex; gap: 15px; margin-bottom: 10px; margin-top: 10px;">
-                                @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
+                                @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
                                 {
                                     <div class="form-check" @onclick="@(async () => { local.Value.Visible = !local.Value.Visible; await AfterLanguageToggle(local, local.Value.Visible); })">
                                         <input style="cursor: pointer;" @onclick:stopPropagation="true" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
@@ -1431,7 +1466,7 @@
                         <select @onchange="HandleKeySearchValueChange" class="form-select">
                             <option value="null" id="lang_search_key_name" selected="@(Settings.KeySearchLang is null)">Název klíče</option>
 
-                            @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                            @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
                             {
                                 <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(Settings.KeySearchLang == local.Key)">Překlad @local.Key</option>
                             }
@@ -1506,7 +1541,7 @@
     {
         int uncommited = 0;
 
-        foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+        foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
         {
             if (local.Value.UncommitedChanges.Count > 0)
             {
@@ -1522,7 +1557,7 @@
         if (Settings.ShowUncommitedChangesDetail)
         {
             <div style="max-height: 800px; overflow: auto;">
-                @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
                 {
                     if (local.Value.UncommitedChanges.Count > 0)
                     {
@@ -1573,7 +1608,7 @@
                     <b>Klíč</b>
                 </th>
 
-                @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
                 {
                     if (!local.Value.Visible)
                     {
@@ -1637,7 +1672,7 @@
                         </div>
                     </td>
 
-                    @foreach (KeyValuePair<Languages, LangData> local in langsData.Langs.OrderBy(y => y.Key))
+                    @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
                     {
                         if (!local.Value.Visible)
                         {
@@ -1652,11 +1687,11 @@
 
                                 @if (Settings.RenderMode is RenderModes.Input)
                                 {
-                                    <input lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"/>
+                                    <input lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onfocus="@(() => HandleKeyFocus(local.Key, x.Key, str))"  @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"/>
                                 }
                                 else
                                 {
-                                    <textarea lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"></textarea>
+                                    <textarea lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="form-control form-control-md" @onfocus="@(() => HandleKeyFocus(local.Key, x.Key, str))" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"></textarea>
                                 }
                             </div>
                         </td>

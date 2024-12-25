@@ -4,7 +4,7 @@ using TeReoLocalizer.Annotations;
 namespace TeReoLocalizer.Shared.Code.Commands;
 
 /// <summary>
-/// Adds new localization key.
+/// Adds a new localization key.
 /// </summary>
 public class CmdAddKey : BaseCommand
 {
@@ -23,7 +23,7 @@ public class CmdAddKey : BaseCommand
         return $"Přidání klíče {NewKey}";
     }
     
-    public override async Task<bool> Do()
+    public override async Task<bool> Do(bool firstTime)
     {
         string newKeyCopy = NewKey.Trim().FirstLetterToUpper();
         string baseKey = NewKey;
@@ -89,10 +89,14 @@ public class CmdAddKey : BaseCommand
         
         if (Decl.Keys.TryRemove(localKey.Name, out Key? key))
         {
-            if (Settings.AutoSave)
+            foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
             {
-                await Owner.SaveProject();
+                x.Value.Data.TryRemove(newKeyCopy, out _);
+                x.Value.FocusData.TryRemove(newKeyCopy, out _);
             }
+
+            await Owner.SaveLanguages();
+            await Owner.SaveProject();
             
             if (newKeyCopy != NewKey)
             {

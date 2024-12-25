@@ -245,6 +245,22 @@ public class LangsData
 {
     [JsonConverter(typeof(SortedDictionaryConverter<Languages, LangData>))]
     public ConcurrentDictionary<Languages, LangData> Langs { get; set; } = [];
+
+    public bool SetKey(Languages language, string key, string value)
+    {
+        LangData lang = Langs[language];
+
+        if (lang.FocusData.TryGetValue(key, out string? str))
+        {
+            if (str == value)
+            {
+                return false;
+            }
+        }
+        
+        lang.Data[key] = value;
+        return true;
+    }
 }
 
 public class LangData
@@ -257,6 +273,8 @@ public class LangData
     public ConcurrentDictionary<string, string> PersistedData { get; set; } = [];
     [JsonIgnore]
     public ConcurrentDictionary<string, string> UncommitedChanges { get; set; } = [];
+    [JsonIgnore]
+    public ConcurrentDictionary<string, string> FocusData { get; set; } = [];
 }
 
 public enum ToastTypes
@@ -312,20 +330,22 @@ public class ProjectCtx
     public UserSettings Settings { get; set; }
     public IJSRuntime Js { get; set; }
     public Localize Owner { get; set; }
+    public LangsData LangsData { get; set; }
 
-    public ProjectCtx(Project project, Decl decl, UserSettings settings, IJSRuntime js, Localize owner)
+    public ProjectCtx(Project project, Decl decl, UserSettings settings, LangsData langsData, IJSRuntime js, Localize owner)
     {
         Project = project;
         Decl = decl;
         Settings = settings;
         Js = js;
         Owner = owner;
+        LangsData = langsData;
     }
 }
 
 public interface ICommand
 {
-    Task<bool> Do();
+    Task<bool> Do(bool firstTime);
     Task Undo();
     public string GetName();
     public ProjectCtx Ctx { get; set; }
@@ -344,7 +364,7 @@ public class HistoryItem
     }
 }
 
-public class BaseCommand : ICommand
+public abstract class BaseCommand : ICommand
 {
     public ProjectCtx Ctx { get; set; } = default!;
 
@@ -353,16 +373,19 @@ public class BaseCommand : ICommand
     public UserSettings Settings => Ctx.Settings;
     public IJSRuntime Js => Ctx.Js;
     public Localize Owner => Ctx.Owner;
+    public LangsData LangsData => Ctx.LangsData;
+    
+    /// <summary>
+    /// Performs an action.
+    /// </summary>
+    /// <returns>Whether the action executed. If false the action is discarded and not placed into the history.</returns>
+    public abstract Task<bool> Do(bool firstTime);
 
-    public virtual Task<bool> Do()
-    {
-        return Task.FromResult(true);
-    }
-
-    public virtual Task Undo()
-    {
-        return Task.CompletedTask;
-    }
+    /// <summary>
+    /// Reverts an action
+    /// </summary>
+    /// <returns></returns>
+    public abstract Task Undo();
 
     public virtual string GetName()
     {
