@@ -1,12 +1,10 @@
-@using Blazored.Modal
-@using Blazored.Modal.Services
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Components.Shared
 @inject IJSRuntime Js
 @implements TeReoLocalizer.Shared.Code.IGenericModalRef
 @code {
     [CascadingParameter] 
-    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
     [Parameter]
     public Dictionary<string, object>? RenderFragmentParams { get; set; }
     [Parameter]

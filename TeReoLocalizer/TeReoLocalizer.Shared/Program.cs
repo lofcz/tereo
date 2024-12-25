@@ -1,5 +1,5 @@
 using System.Text;
-using Blazored.Modal;
+using BlazingModal;
 using Microsoft.AspNetCore.Diagnostics;
 using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
@@ -13,7 +13,7 @@ public class Program
 
     public static void AddSharedServices(IServiceCollection services)
     {
-        services.AddBlazoredModal();
+        services.AddBlazingModal();
     }
     
     public static async Task Main(string[] args)

@@ -265,6 +265,7 @@
         if (langCode.IsNullOrWhiteSpace())
         {
             await Js.Toast(ToastTypes.Error, "Kód jazyka nemůže být prázdný");
+            return;
         }
         
         string normalized = langCode.ToUpper().Trim();
@@ -1386,6 +1387,14 @@
         showGroupSettings = !showGroupSettings;
         StateHasChanged();
     }
+
+    async Task HandleKeyAddKeyPressed(KeyboardEventArgs args)
+    {
+        if (args.Code == "Enter")
+        {
+            await AddKey();
+        }
+    }
 }
 
 @if (!projectLoadingFinished)
@@ -1514,7 +1523,7 @@
 
         <div style="display: flex; gap: 10px; align-items: flex-start; flex: 1;">
             <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddKey">Přidat klíč</button>
-            <input class="form-control form-control-sm" @bind="NewKey" placeholder="Klíč"/>
+            <input class="form-control form-control-sm" @bind="NewKey" @onkeyup="@(async (args) => await HandleKeyAddKeyPressed(args))" placeholder="Klíč"/>
         </div>
     </div>
 </SectionContent>

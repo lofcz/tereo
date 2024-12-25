@@ -1,3 +1,4 @@
+@using BlazingModal
 @using TeReoLocalizer.Shared.Code
 @code {
     [Parameter]
@@ -5,7 +6,7 @@
     [Parameter]
     public Localize Owner { get; set; }
     [CascadingParameter] 
-    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
     
     bool saving;
     Key key = new Key();

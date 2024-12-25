@@ -1,5 +1,3 @@
-@using System.Linq.Expressions
-@using Blazored.Modal
 @using TeReoLocalizer.Shared.Code
 @inject IJSRuntime Js
 @code {
@@ -20,7 +18,7 @@
     [Parameter]
     public bool DescriptionAutoScroll { get; set; } = true;
     [CascadingParameter] 
-    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
     [Parameter]
     public DynamicComponentInfo? DescriptionComponent { get; set; }
     

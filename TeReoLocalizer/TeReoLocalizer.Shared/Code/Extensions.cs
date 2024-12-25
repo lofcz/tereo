@@ -1,14 +1,11 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.IO.MemoryMappedFiles;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Blazored.Modal;
-using Blazored.Modal.Services;
+using BlazingModal;
+using BlazingModal.Services;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using TeReoLocalizer.Shared.Components.Shared;
 

@@ -1,11 +1,10 @@
-@using System.Linq.Expressions
 @using TeReoLocalizer.Shared.Code
 @inject IJSRuntime Js
 @code {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
     [CascadingParameter] 
-    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
     [Parameter]
     public string? Title { get; set; }
     [Parameter]

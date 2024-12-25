@@ -1,5 +1,3 @@
-@using Blazored.Modal
-@using Blazored.Modal.Services
 @using TeReoLocalizer.Shared.Code.Services
 
 @using TeReoLocalizer.Shared.Code
@@ -11,7 +9,7 @@
     [Parameter]
     public Dictionary<string, object>? RenderFragmentParams { get; set; }
     [CascadingParameter]
-    BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
     
     public EdModal? SpecificModal { get; set; }
 
