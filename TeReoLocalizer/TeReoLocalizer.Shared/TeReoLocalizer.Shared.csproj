@@ -11,6 +11,7 @@
     <ItemGroup>
       <PackageReference Include="BlazingModal" Version="1.0.7" />
       <PackageReference Include="DeepL.net" Version="1.11.0" />
+      <PackageReference Include="DiffPlex" Version="1.7.2" />
       <PackageReference Include="Json5Core" Version="1.0.9" />
       <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />

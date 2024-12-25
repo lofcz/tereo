@@ -1,3 +1,8 @@
+using System.Text;
+using DiffPlex;
+using DiffPlex.DiffBuilder;
+using DiffPlex.DiffBuilder.Model;
+using DiffPlex.Model;
 using TeReoLocalizer.Annotations;
 
 namespace TeReoLocalizer.Shared.Code.Commands;
@@ -10,6 +15,8 @@ public class CmdSetKeyValue : BaseCommand
     private Languages Language { get; set; }
     private string Key { get; set; }
     private string Value { get; set; }
+    private DiffResult? Diff { get; set; }
+    private string? OldValue { get; set; }
 
     private readonly Dictionary<Languages, string?> originalValues = [];
     private TranslationModes translationMode = TranslationModes.Default;
@@ -29,7 +36,7 @@ public class CmdSetKeyValue : BaseCommand
         {
             return false;
         }
-     
+        
         translationMode = Ctx.Settings.TranslationMode;
 
         if (firstTime)
@@ -38,18 +45,17 @@ public class CmdSetKeyValue : BaseCommand
             {
                 foreach (KeyValuePair<Languages, LangData> lang in LangsData.Langs)
                 {
-                    if (lang.Value.FocusData.TryGetValue(Key, out string? originalValue))
+                    if (lang.Value.FocusData.TryGetValue(Key, out string? old))
                     {
-                        originalValues[lang.Key] = originalValue;
+                        originalValues[lang.Key] = old;
                     }
                 }
             }
-            else
+            
+            if (LangsData.Langs[Language].FocusData.TryGetValue(Key, out string? originalValue))
             {
-                if (LangsData.Langs[Language].FocusData.TryGetValue(Key, out string? originalValue))
-                {
-                    originalValues[Language] = originalValue;
-                }
+                originalValues[Language] = originalValue;
+                OldValue = originalValue;
             }
         }
 
@@ -95,5 +101,60 @@ public class CmdSetKeyValue : BaseCommand
         {
             await Ctx.Owner.SaveLanguages();
         }
+    }
+
+    public override string GetName()
+    {
+        if (Diff is not null)
+        {
+            var output = new StringBuilder();
+            int posOld = 0;
+            int posNew = 0;
+
+            foreach (var block in Diff.DiffBlocks)
+            {
+                // Přidej nezměněný text před blokem změn
+                while (posNew < block.InsertStartB)
+                {
+                    output.Append(Diff.PiecesNew[posNew]);
+                    posNew++;
+                }
+
+                // Přidej smazaný text
+                if (block.DeleteCountA > 0)
+                {
+                    output.Append("<del>");
+                    for (int i = 0; i < block.DeleteCountA; i++)
+                    {
+                        output.Append(Diff.PiecesOld[block.DeleteStartA + i]);
+                    }
+                    output.Append("</del>");
+                }
+
+                // Přidej nový text
+                if (block.InsertCountB > 0)
+                {
+                    output.Append("<ins>");
+                    for (int i = 0; i < block.InsertCountB; i++)
+                    {
+                        output.Append(Diff.PiecesNew[block.InsertStartB + i]);
+                    }
+                    output.Append("</ins>");
+                }
+
+                posOld = block.DeleteStartA + block.DeleteCountA;
+                posNew = block.InsertStartB + block.InsertCountB;
+            }
+            
+            while (posNew < Diff.PiecesNew.Length)
+            {
+                output.Append(Diff.PiecesNew[posNew]);
+                posNew++;
+            }
+
+            return output.ToString().TrimEnd();
+        }
+
+        return $"<code>{Language}</code> <del>{OldValue}</del> \u2192 <ins>{Value}</ins>";
     }
 }

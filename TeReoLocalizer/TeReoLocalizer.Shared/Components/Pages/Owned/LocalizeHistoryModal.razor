@@ -83,14 +83,14 @@
                 <ul style="padding: 0; list-style-type: none;">
                     @foreach (HistoryItem x in commandHistory.Before)
                     {
-                        <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
+                        <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@((MarkupString)x.Command.GetName())</li>
                     }
 
                     <li @onclick="SelectCurrent" class="historyEntry @(selected is null ? "historyEntrySelected" : string.Empty)">Současný stav</li>
 
                     @foreach (HistoryItem x in commandHistory.After)
                     {
-                        <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@x.Command.GetName() (@x.Index)</li>
+                        <li class="historyEntry @(x.Selected ? "historyEntrySelected" : string.Empty)" @onclick="(() => SelectItem(x))">@((MarkupString)x.Command.GetName())</li>
                     }
                 </ul>
             </EdScrollbar>
