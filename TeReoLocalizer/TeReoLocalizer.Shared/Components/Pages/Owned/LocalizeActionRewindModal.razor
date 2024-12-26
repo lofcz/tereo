@@ -1,0 +1,45 @@
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public RewindActions Action { get; set; }
+    [Parameter]
+    public ICommand Command { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter]
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
+
+    CommandProgress? lastProgress;
+    
+    Task HandleCancel()
+    {
+        Owner.RewindModalRef = null;
+        return Task.CompletedTask;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if (Command.Progress is not null)
+        {
+            Command.Progress = new Progress<CommandProgress>((progress) =>
+            {
+                lastProgress = progress;
+                StateHasChanged();
+            });
+        }
+    }
+
+}
+
+<EdModal CancelAction="HandleCancel" Title="@($"{(Action is RewindActions.Undo ? "Vrácení" : "Obnova")} akce")">
+    <p>Probíhá @($"{(Action is RewindActions.Undo ? "vrácení" : "obnova")} akce") akce.</p>
+    
+    @if (lastProgress is not null)
+    {
+        <div>Postup: @lastProgress.Percentage.ToProgressPercent()%</div>
+    }
+</EdModal>

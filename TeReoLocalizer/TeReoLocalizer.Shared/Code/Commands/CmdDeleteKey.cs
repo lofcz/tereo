@@ -16,7 +16,7 @@ public class CmdDeleteKey : BaseCommand
         Key = key;
     }
     
-    public override async Task<bool> Do(bool firstTime)
+    public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
         if (firstTime)
         {
@@ -37,7 +37,7 @@ public class CmdDeleteKey : BaseCommand
         await Owner.DeleteKey(Key);
         
         Owner.RecomputeVisibleKeys();
-        return true;
+        return new DataOrException<bool>(true);
     }
 
     public override async Task Undo()

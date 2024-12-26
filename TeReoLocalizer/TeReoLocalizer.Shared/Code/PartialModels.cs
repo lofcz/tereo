@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components.Pages;
 using TeReoLocalizer.Shared.Components.Shared;
 
@@ -346,10 +347,11 @@ public class ProjectCtx
 
 public interface ICommand
 {
-    Task<bool> Do(bool firstTime);
+    Task<DataOrException<bool>> Do(bool firstTime);
     Task Undo();
     public string GetName();
     public ProjectCtx Ctx { get; set; }
+    public IProgress<CommandProgress>? Progress { get; set; }
 }
 
 public class ReverseCommand : ICommand
@@ -362,10 +364,10 @@ public class ReverseCommand : ICommand
         Ctx = command.Ctx;
     }
 
-    public async Task<bool> Do(bool firstTime)
+    public async Task<DataOrException<bool>> Do(bool firstTime)
     {
         await originalCommand.Undo();
-        return true;
+        return new DataOrException<bool>(true);
     }
 
     public async Task Undo()
@@ -376,6 +378,7 @@ public class ReverseCommand : ICommand
     public string GetName() => $"Reverse of {originalCommand.GetName()}";
     
     public ProjectCtx Ctx { get; set; }
+    public IProgress<CommandProgress>? Progress { get; set; }
 }
 
 public class HistoryItem
@@ -394,6 +397,7 @@ public class HistoryItem
 public abstract class BaseCommand : ICommand
 {
     public ProjectCtx Ctx { get; set; } = default!;
+    public virtual IProgress<CommandProgress>? Progress { get; set; }
 
     public Project Project => Ctx.Project;
     public Decl Decl => Ctx.Decl;
@@ -406,7 +410,7 @@ public abstract class BaseCommand : ICommand
     /// Performs an action.
     /// </summary>
     /// <returns>Whether the action executed. If false the action is discarded and not placed into the history.</returns>
-    public abstract Task<bool> Do(bool firstTime);
+    public abstract Task<DataOrException<bool>> Do(bool firstTime);
 
     /// <summary>
     /// Reverts an action
@@ -563,4 +567,11 @@ public class DataOrException<T>
     }
 
     public static implicit operator DataOrException<T>(UpdateResult<T> data) => data.Error is not null ? new DataOrException<T>(new Exception(data.Error ?? "[neznámá chyba]")) : new DataOrException<T>(data.Data);
+}
+
+public enum RewindActions
+{
+    Unknown,
+    Undo,
+    Redo
 }

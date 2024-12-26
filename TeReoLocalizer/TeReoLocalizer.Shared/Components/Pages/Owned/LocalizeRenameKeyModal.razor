@@ -37,7 +37,7 @@
         submitting = true;
         StateHasChanged();
 
-        DataOrException<bool> result = await Owner.RenameAndSaveKey(originalKey, Name, new Progress<RenameProgress>((progress) =>
+        DataOrException<bool> result = await Owner.RenameAndSaveKey(originalKey, Name, new Progress<CommandProgress>((progress) =>
         {
             percentCompleted = progress.Percentage;
             StateHasChanged();

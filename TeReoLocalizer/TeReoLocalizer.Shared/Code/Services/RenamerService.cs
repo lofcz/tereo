@@ -13,6 +13,34 @@ public class RenameResult
     public int TotalReplacements { get; set; }
 }
 
+public class ProgressMessage
+{
+    public string Text { get; set; }
+}
+
+public class CommandProgress
+{
+    public double Percentage { get; }
+    public List<ProgressMessage> Messages { get; set; } = [];
+    
+    public CommandProgress(double percentage)
+    {
+        Percentage = percentage;
+    }
+    
+    public CommandProgress(double percentage, List<ProgressMessage> messages)
+    {
+        Percentage = percentage;
+        Messages = messages;
+    }
+    
+    public CommandProgress(double percentage, IEnumerable<ProgressMessage> messages)
+    {
+        Percentage = percentage;
+        Messages = messages.ToList();
+    }
+}
+
 public class RenameProgress
 {
     public double Percentage { get; }
@@ -31,7 +59,7 @@ public static partial class SymbolRenamer
 {
     private static readonly Regex ReoSymbolRegex = ReoRegexSrc();
 
-    public static async Task<RenameResult> RenameSymbol(string solutionPath, string oldSymbol, string newSymbol, IProgress<RenameProgress>? progress = null)
+    public static async Task<RenameResult> RenameSymbol(string solutionPath, string oldSymbol, string newSymbol, IProgress<CommandProgress>? progress = null)
     {
         ConcurrentBag<string> files = [];
 
@@ -80,7 +108,7 @@ public static partial class SymbolRenamer
 
             if (progress is not null && (progressPercentage % 10 < 0.1 || currentProcessed == totalFiles))
             {
-                progress.Report(new RenameProgress(progressPercentage, totalReplacements, new Dictionary<string, int>(fileReplacements)));
+                progress.Report(new CommandProgress(progressPercentage)); // , totalReplacements, new Dictionary<string, int>(fileReplacements)
             }
         });
    

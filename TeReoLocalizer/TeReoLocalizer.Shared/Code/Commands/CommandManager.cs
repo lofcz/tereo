@@ -7,7 +7,9 @@ public class CommandManager : IDisposable
 {
     public Func<Task>? OnBeforeJump { get; set; }
     public Func<Task>? OnAfterJump { get; set; }
-    
+    public Func<RewindActions, ICommand, Task>? OnBeforeRewindProgressCommand { get; set; }
+    public Func<RewindActions, ICommand, Task>? OnAfterRewindProgressCommand { get; set; }
+
     private readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
     private readonly CircularBuffer<ICommand> undoBuffer;
     private readonly CircularBuffer<ICommand> redoBuffer;
@@ -78,18 +80,20 @@ public class CommandManager : IDisposable
         redoBuffer = new CircularBuffer<ICommand>(historySize);
     }
     
-    public async Task Execute(ICommand command)
+    public async Task<DataOrException<bool>> Execute(ICommand command)
     {
         await semaphore.WaitAsync();
         try
         {
-            bool executed = await command.Do(true);
+            DataOrException<bool> executed = await command.Do(true);
 
-            if (executed)
+            if (executed.Exception is null && executed.Data)
             {
                 undoBuffer.Push(command);
                 redoBuffer.Clear();
             }
+
+            return executed;
         }
         finally
         {
@@ -118,7 +122,25 @@ public class CommandManager : IDisposable
         }
 
         ICommand command = undoBuffer.Pop();
+
+        if (command.Progress is not null)
+        {
+            if (OnBeforeRewindProgressCommand is not null)
+            {
+                await OnBeforeRewindProgressCommand.Invoke(RewindActions.Undo, command);
+            }
+        }
+        
         await command.Undo();
+        
+        if (command.Progress is not null)
+        {
+            if (OnAfterRewindProgressCommand is not null)
+            {
+                await OnAfterRewindProgressCommand.Invoke(RewindActions.Undo, command);
+            }
+        }
+        
         redoBuffer.Push(command);
     }
 
@@ -143,7 +165,25 @@ public class CommandManager : IDisposable
         }
 
         ICommand command = redoBuffer.Pop();
+        
+        if (command.Progress is not null)
+        {
+            if (OnBeforeRewindProgressCommand is not null)
+            {
+                await OnBeforeRewindProgressCommand.Invoke(RewindActions.Redo, command);
+            }
+        }
+        
         await command.Do(false);
+        
+        if (command.Progress is not null)
+        {
+            if (OnAfterRewindProgressCommand is not null)
+            {
+                await OnAfterRewindProgressCommand.Invoke(RewindActions.Redo, command);
+            }
+        }
+        
         undoBuffer.Push(command);
     }
 

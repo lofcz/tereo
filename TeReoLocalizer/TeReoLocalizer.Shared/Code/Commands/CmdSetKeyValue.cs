@@ -28,13 +28,13 @@ public class CmdSetKeyValue : BaseCommand
         Value = value;
     }
     
-    public override async Task<bool> Do(bool firstTime)
+    public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
         bool performed = Ctx.LangsData.SetKey(Language, Key, Value);
         
         if (!performed)
         {
-            return false;
+            return new DataOrException<bool>(false);
         }
         
         translationMode = Ctx.Settings.TranslationMode;
@@ -73,7 +73,7 @@ public class CmdSetKeyValue : BaseCommand
             await Ctx.Owner.SaveLanguages();
         }
         
-        return true;
+        return new DataOrException<bool>(true);
     }
 
     public override async Task Undo()

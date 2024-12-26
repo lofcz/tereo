@@ -237,29 +237,29 @@ public static class Extensions
         AnimationType = ModalAnimationType.None
     };
     
-    public static void ShowModal<T>(this IModalService? service, IDictionary<string, object?>? pars = null)
+    public static IModalReference? ShowModal<T>(this IModalService? service, IDictionary<string, object?>? pars)
     {
-        ModalParameters mp = new ModalParameters()
+        ModalParameters mp = new ModalParameters
         {
             { nameof(GenericModal.RenderFragmentType), typeof(T) }
         };
 
-        if (pars != null)
+        if (pars is not null)
         {
             mp.Add(nameof(GenericModal.RenderFragmentParams), pars);
         }
 
-        service?.Show<GenericModal>("", mp, CustomLayoutOpts);
+        return service?.Show<GenericModal>("", mp, CustomLayoutOpts);
     }
     
-    public static void ShowModal<T>(this IModalService? service, object? pars)
+    public static IModalReference? ShowModal<T>(this IModalService? service, object? pars)
     {
-        service.ShowModal<T>(pars?.ToDictionary());
+        return service.ShowModal<T>(pars?.ToDictionary());
     }
         
-    public static void ShowModal<T>(this IModalService? service)
+    public static IModalReference? ShowModal<T>(this IModalService? service)
     {
-        service.ShowModal<T>(null);
+        return service.ShowModal<T>(null);
     }
 
     public static IDictionary<string, object?>? ToDictionary(this object? obj)

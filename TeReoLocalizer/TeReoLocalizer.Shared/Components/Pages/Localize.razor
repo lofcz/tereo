@@ -31,6 +31,7 @@
     public readonly CommandManager CommandManager = new CommandManager();
     public bool JumpingInHistory { get; set; }
     public bool EnableRendering { get; set; } = true;
+    public IModalReference? RewindModalRef;
     InvertedIndex Index => Program.Index;
 
     DotNetObjectReference<Localize>? JsRef { get; set; }
@@ -55,8 +56,8 @@
     int keySelectedPage = 1;
     ElementReference? jumpToPageInput;
     bool renderSearchModeSelection;
-    List<ProjectError>? loadErrors = null;
-    bool projectLoadingFinished = false;
+    List<ProjectError>? loadErrors;
+    bool projectLoadingFinished;
     bool contentRendered;
 
     class ProjectError
@@ -128,6 +129,35 @@
             JumpingInHistory = false;
             EnableRendering = true;
             StateHasChanged();
+            return Task.CompletedTask;
+        };
+
+        CommandManager.OnBeforeRewindProgressCommand = (action, cmd) =>
+        {
+            if (RewindModalRef is not null)
+            {
+                RewindModalRef.Close();
+                RewindModalRef = null;
+            }
+            
+            RewindModalRef = Md.ShowModal<LocalizeActionRewindModal>(new
+            {
+                Owner = this,
+                Action = action,
+                Command = cmd
+            });
+
+            return Task.CompletedTask;
+        };
+
+        CommandManager.OnAfterRewindProgressCommand = (action, cmd) =>
+        {
+            if (RewindModalRef is not null)
+            {
+                RewindModalRef.Close();
+                RewindModalRef = null;
+            }
+            
             return Task.CompletedTask;
         };
         
@@ -363,11 +393,12 @@
         await Execute(new CmdAddKey(NewKey));
     }
 
-    async Task Execute(ICommand cmd)
+    public async Task<DataOrException<bool>> Execute(ICommand cmd)
     {
         cmd.Ctx = GetCtx();
-        await CommandManager.Execute(cmd);
+        DataOrException<bool> result = await CommandManager.Execute(cmd);
         StateHasChanged();
+        return result;
     }
 
     public async Task SaveProject()
@@ -642,60 +673,9 @@
         }
     }
 
-    public async Task<DataOrException<bool>> RenameAndSaveKey(string key, string newKeyName, Progress<RenameProgress>? progress = null)
+    public async Task<DataOrException<bool>> RenameAndSaveKey(string key, string newKeyName, IProgress<CommandProgress>? progress = null)
     {
-        newKeyName = Localizer.BaseIdentifier(newKeyName);
-        
-        if (string.Equals(key, newKeyName, StringComparison.Ordinal))
-        {
-            return new DataOrException<bool>(new Exception("Název klíče je po normalizaci shodný se současným názvem"));
-        }
-
-        if (Decl.Keys.TryGetValue(newKeyName, out Key? dupe))
-        {
-            return new DataOrException<bool>(new Exception($"Klíč <code>{dupe.Name}</code> je již ve skupině <code>{(Decl.Name ?? "výchozí skupina")}</code> deklarovaný"));
-        }
-        
-        foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
-        {
-            if (x.Value.Data.TryGetValue(key, out string? strValue))
-            {
-                x.Value.Data.TryAdd(newKeyName, strValue);
-                x.Value.Data.TryRemove(key, out _);
-            }
-        }
-
-        if (Settings.AutoSave)
-        {
-            await SaveLanguages();
-        }
-
-        if (Decl.Keys.TryGetValue(key, out Key? kVal))
-        {
-            kVal.Name = newKeyName;
-            Decl.Keys.TryRemove(key, out _);
-            Decl.Keys.TryAdd(newKeyName, kVal);
-
-            RecomputeVisibleKeys(true, kVal.Name);
-
-            if (Settings.AutoSave)
-            {
-                await SaveProject();
-            }
-        }
-
-        if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
-        {
-            RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, progress);
-
-            if (renameResult.TotalReplacements > 0)
-            {
-                await Generate();
-            }
-        }
-        
-        StateHasChanged();
-        return new DataOrException<bool>(true);
+        return await Execute(new CmdRenameKey(key, newKeyName, progress));
     }
 
     public void SetInputToFocus(string inputToFocus)
@@ -740,7 +720,7 @@
         });
     }
 
-    async Task<string> Generate()
+    public async Task<string> Generate()
     {
         Localizer l = new Localizer(Project, LangsData);
         string code = await l.Generate();

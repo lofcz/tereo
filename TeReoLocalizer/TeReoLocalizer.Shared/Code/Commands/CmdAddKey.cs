@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer.Shared.Code.Commands;
 
@@ -23,7 +24,7 @@ public class CmdAddKey : BaseCommand
         return $"Přidání klíče <code>{NewKey}</code>";
     }
     
-    public override async Task<bool> Do(bool firstTime)
+    public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
         string newKeyCopy = NewKey.Trim().FirstLetterToUpper();
         string baseKey = NewKey;
@@ -69,11 +70,11 @@ public class CmdAddKey : BaseCommand
         }
         else
         {
-            await Js.InvokeVoidAsync("alert", $"Klíč '{localKey.Name}' už existuje");
-            return false;
+            await Js.Toast(ToastTypes.Error, $"Klíč '{localKey.Name}' už existuje");
+            return new DataOrException<bool>(false);
         }
 
-        return true;
+        return new DataOrException<bool>(true);
     }
 
     public override async Task Undo()
