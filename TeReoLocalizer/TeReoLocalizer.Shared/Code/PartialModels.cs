@@ -351,6 +351,32 @@ public interface ICommand
     public ProjectCtx Ctx { get; set; }
 }
 
+public class ReverseCommand : ICommand
+{
+    private readonly ICommand originalCommand;
+
+    public ReverseCommand(ICommand command)
+    {
+        originalCommand = command;
+        Ctx = command.Ctx;
+    }
+
+    public async Task<bool> Do(bool firstTime)
+    {
+        await originalCommand.Undo();
+        return true;
+    }
+
+    public async Task Undo()
+    {
+        await originalCommand.Do(false);
+    }
+
+    public string GetName() => $"Reverse of {originalCommand.GetName()}";
+    
+    public ProjectCtx Ctx { get; set; }
+}
+
 public class HistoryItem
 {
     public ICommand Command { get; }

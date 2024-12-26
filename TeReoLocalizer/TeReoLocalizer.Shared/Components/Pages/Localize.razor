@@ -1282,14 +1282,7 @@
 
     public async Task TransferKey(string keyName, Decl newOwner)
     {
-        if (Decl.Keys.TryRemove(keyName, out Key? key))
-        {
-            newOwner.Keys.TryAdd(keyName, key);
-
-            await SaveProject();
-            RecomputeVisibleKeys();
-            StateHasChanged();
-        }
+        await Execute(new CmdMoveKey(keyName, newOwner));
     }
 
     async Task KeySearchModeSelected(KeySearchModes mode)
