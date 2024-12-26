@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -223,6 +224,11 @@ public static class Extensions
     public static void ShowPromptModal(this IModalService? service, string title, string? description, Func<string, Task> confirmAction, Func<Task>? cancelAction = null, ModalSizes size = ModalSizes.Medium, Button? confirmButton = null, Button? cancelButton = null, string? defaultText = null, string? inputPlaceholder = null)
     {
         ShowModal<PromptModal>(service, new Dictionary<string, object?> {{"Title", title}, {"Description", description}, {"ConfirmAction", confirmAction}, {"CancelAction", cancelAction}, {"Size", size}, {"ConfirmButton", confirmButton}, {"CancelButton", cancelButton}, {"DefaultText", defaultText}, {"Placeholder", inputPlaceholder}});
+    }
+    
+    public static string ToProgressPercent(this double value)
+    {
+        return value.ToString(Math.Abs(value - Math.Floor(value)) < 0.0001d ? "0" : "0.##", CultureInfo.InvariantCulture);
     }
     
     private static readonly ModalOptions CustomLayoutOpts = new ModalOptions

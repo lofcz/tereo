@@ -78,7 +78,7 @@ public static partial class SymbolRenamer
             int currentProcessed = Interlocked.Increment(ref processedFiles);
             double progressPercentage = (double)currentProcessed / totalFiles * 100;
 
-            if (progress != null && (progressPercentage % 10 < 0.1 || currentProcessed == totalFiles))
+            if (progress is not null && (progressPercentage % 10 < 0.1 || currentProcessed == totalFiles))
             {
                 progress.Report(new RenameProgress(progressPercentage, totalReplacements, new Dictionary<string, int>(fileReplacements)));
             }

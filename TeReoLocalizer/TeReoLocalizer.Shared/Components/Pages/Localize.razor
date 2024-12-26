@@ -642,16 +642,20 @@
         }
     }
 
-    async Task RenameAndSaveKey(string key, string newKeyName)
+    public async Task<DataOrException<bool>> RenameAndSaveKey(string key, string newKeyName, Progress<RenameProgress>? progress = null)
     {
         newKeyName = Localizer.BaseIdentifier(newKeyName);
         
         if (string.Equals(key, newKeyName, StringComparison.Ordinal))
         {
-            await Js.Toast(ToastTypes.Info, "Klíč není potřeba přegenerovat");
-            return;
+            return new DataOrException<bool>(new Exception("Název klíče je po normalizaci shodný se současným názvem"));
         }
 
+        if (Decl.Keys.TryGetValue(newKeyName, out Key? dupe))
+        {
+            return new DataOrException<bool>(new Exception($"Klíč <code>{dupe.Name}</code> je již ve skupině <code>{(Decl.Name ?? "výchozí skupina")}</code> deklarovaný"));
+        }
+        
         foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
         {
             if (x.Value.Data.TryGetValue(key, out string? strValue))
@@ -680,33 +684,18 @@
             }
         }
 
-        /*if (!search.Contains(newKeyName))
-        {
-            search = string.Empty;
-
-            foreach (KeyValuePair<string, Key> x in Decl.Keys)
-            {
-                x.Value.IsVisible = x.Key.ToLowerInvariant().Contains(search.ToBaseLatin());
-            }
-
-            RecomputeVisibleKeys();
-        }*/
-
         if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
         {
-            RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, new Progress<RenameProgress>(x =>
-            {
-                int z = 1;
-            }));
+            RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, key, newKeyName, progress);
 
             if (renameResult.TotalReplacements > 0)
             {
                 await Generate();
             }
         }
-
-        SetInputToFocus(newKeyName);
+        
         StateHasChanged();
+        return new DataOrException<bool>(true);
     }
 
     public void SetInputToFocus(string inputToFocus)
@@ -715,16 +704,13 @@
         InputToFocus = inputToFocus;
     }
 
-    async Task UpdateKey(string key)
+    async Task RenameKey(string key)
     {
-        Md.ShowPromptModal("Nový název klíče", null, async (str) =>
+        Md.ShowModal<LocalizeRenameKeyModal>(new
         {
-            if (!str.IsNullOrWhiteSpace())
-            {
-                str = str.Trim();
-                await RenameAndSaveKey(key, str);
-            }
-        }, defaultText: key, inputPlaceholder: "Nový název klíče");
+            Owner = this,
+            Name = key
+        });
     }
 
     public async Task DeleteKey(string key)
@@ -1634,7 +1620,7 @@
                                 <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" data-bs-boundary="window">Zobrazit akce</button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await UpdateKey(x.Key))">Přejmenovat</span>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await RenameKey(x.Key))">Přejmenovat</span>
                                     </li>
 
                                     <li>

@@ -1,0 +1,99 @@
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
+
+    string inputId = General.IIID();
+    bool submitting;
+    string originalKey = string.Empty;
+    double percentCompleted;
+    string? validation = null;
+    
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        originalKey = Name;
+    }
+
+    async Task Submit()
+    {
+        if (submitting)
+        {
+            return;
+        }
+
+        validation = null;
+        submitting = true;
+        StateHasChanged();
+
+        DataOrException<bool> result = await Owner.RenameAndSaveKey(originalKey, Name, new Progress<RenameProgress>((progress) =>
+        {
+            percentCompleted = progress.Percentage;
+            StateHasChanged();
+        }));
+
+        if (result.Exception is null)
+        {
+            await Cancel();
+            return;
+        }
+
+        validation = result.Exception.Message;
+        submitting = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            try
+            {
+                await Js.Focus(inputId);
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
+    }
+
+}
+
+<EdModal Title="Přejmenovat klíč">
+
+    <input id="@inputId" class="form-control form-control-sm" placeholder="Nový název klíče" @bind="Name" />
+    
+    @if (submitting || validation is not null)
+    {
+        <div style="height: 10px;"></div>
+    }
+    
+    @if (submitting)
+    {
+        <p>Probíhá přejmenovnání klíče @(percentCompleted.ToProgressPercent())%</p>
+    }
+    
+    @if (validation is not null)
+    {
+        <div style="color: #FF4136;">@((MarkupString)validation)</div>
+    }
+
+    <EdButtonsContainer Style="gap: 10px;">
+        <EdButton Disabled="@submitting" Size="ButtonSizes.Medium" OnClick="Submit">Potvrdit</EdButton>
+        <EdButton Disabled="@submitting" Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" Fill="ButtonFillModes.Outline" OnClick="Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>
