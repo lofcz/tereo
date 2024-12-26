@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using BlazingModal;
 using BlazingModal.Services;
+using Mapster;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using TeReoLocalizer.Shared.Components.Shared;
 
@@ -236,6 +237,11 @@ public static class Extensions
         UseCustomLayout = true,
         AnimationType = ModalAnimationType.None
     };
+    
+    public static T DeepClone<T>(this T t)
+    {
+        return t.Adapt<T>();
+    }
     
     public static IModalReference? ShowModal<T>(this IModalService? service, IDictionary<string, object?>? pars)
     {

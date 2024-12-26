@@ -10,6 +10,7 @@
     
     bool saving;
     Key key = new Key();
+    Key masterKey = new Key();
     bool ready;
 
     protected override async Task OnInitializedAsync()
@@ -18,7 +19,8 @@
 
         if (Owner.Project.SelectedDecl.Keys.TryGetValue(Name, out Key? existingKey))
         {
-            key = existingKey;
+            masterKey = existingKey;
+            key = existingKey.DeepClone();
         }
 
         ready = true;
@@ -37,11 +39,15 @@
         }
         
         saving = true;
+        StateHasChanged();
+
+        Owner.Project.SelectedDecl.Keys[Name] = key;
+        Owner.RecomputeVisibleKeys();
         
         await Owner.SaveProject();
+        saving = false;
         Owner.StateHasChanged();
         
-        saving = false;
         await BlazoredModal.CloseAsync();
     }
     
