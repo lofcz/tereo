@@ -48,6 +48,6 @@ public class CmdMoveKey : BaseCommand
 
     public override string GetName()
     {
-        return $"Přesun klíče <code>{Key}</code> ze skupiny <code>{(OldDeclName ?? "výchozí skupina")}</code> do skupiny <code>{Decl.Name}</code>";
+        return $"Přesun klíče <code>{Key}</code> ze skupiny <code>{(OldDeclName ?? "výchozí skupina")}</code> do skupiny <code>{NewDecl.Name}</code>";
     }
 }
