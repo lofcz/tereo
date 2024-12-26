@@ -11,6 +11,7 @@ public class CmdRenameKey : BaseCommand
     private string OldKeyName { get; set; }
     private string NewKeyName { get; set; }
     private IProgress<CommandProgress>? RenameProgress { get; set; }
+    private KeyRenameReasons Reason { get; set; }
 
     public override IProgress<CommandProgress>? Progress
     {
@@ -18,16 +19,22 @@ public class CmdRenameKey : BaseCommand
         set => RenameProgress = value;
     }
 
-    public CmdRenameKey(string oldKeyName, string newKeyName, IProgress<CommandProgress>? progress = null)
+    public CmdRenameKey(string oldKeyName, string newKeyName, KeyRenameReasons reason, IProgress<CommandProgress>? progress = null)
     {
         OldKeyName = oldKeyName;
         NewKeyName = newKeyName;
         RenameProgress = progress;
+        Reason = reason;
     }
     
     public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
         NewKeyName = Localizer.BaseIdentifier(NewKeyName);
+
+        if (NewKeyName.IsNullOrWhiteSpace())
+        {
+            return new DataOrException<bool>(new Exception("Název klíče nemůže být prázdný"));
+        }
         
         if (string.Equals(OldKeyName, NewKeyName, StringComparison.Ordinal))
         {
@@ -107,5 +114,15 @@ public class CmdRenameKey : BaseCommand
                 await Owner.Generate();
             }
         }
+    }
+
+    public override string GetName()
+    {
+        if (Reason is KeyRenameReasons.Regenerate)
+        {
+            return $"Název klíče přegenerován <code>{OldKeyName}</code> \u2192 <code>{NewKeyName}</code>";
+        }
+        
+        return $"Změna názvu klíče <code>{OldKeyName}</code> \u2192 <code>{NewKeyName}</code>";
     }
 }

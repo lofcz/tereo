@@ -575,3 +575,10 @@ public enum RewindActions
     Undo,
     Redo
 }
+
+public enum KeyRenameReasons
+{
+    Unknown,
+    Manual,
+    Regenerate
+}

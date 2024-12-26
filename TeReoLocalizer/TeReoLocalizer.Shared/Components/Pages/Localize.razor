@@ -663,19 +663,34 @@
         });
     }
 
-    async Task RegenerateKey(string key)
+    Task RegenerateKey(string key)
+    {
+        Md.ShowModal<LocalizeRegenerateKeyModal>(new
+        {
+            Owner = this,
+            Name = key
+        });
+
+        return Task.CompletedTask;
+    }
+
+    public async Task<DataOrException<bool>> DoRegenerateKey(string key, IProgress<CommandProgress>? progress = null)
     {
         if (LangsData.Langs[Languages.CS].Data.TryGetValue(key, out string? czechValue))
         {
             string newKeyCopy = czechValue.Trim().FirstLetterToUpper();
             string newKeyName = Localizer.BaseIdentifier(newKeyCopy);
-            await RenameAndSaveKey(key, newKeyName);
+            DataOrException<bool> result =  await RenameAndSaveKey(key, newKeyName, KeyRenameReasons.Regenerate, progress);
+
+            return result;
         }
+
+        return new DataOrException<bool>(new Exception("Klíč nemá hodnotu v primárním jazyce <code>CS</code>"));
     }
 
-    public async Task<DataOrException<bool>> RenameAndSaveKey(string key, string newKeyName, IProgress<CommandProgress>? progress = null)
+    public async Task<DataOrException<bool>> RenameAndSaveKey(string key, string newKeyName, KeyRenameReasons reason, IProgress<CommandProgress>? progress = null)
     {
-        return await Execute(new CmdRenameKey(key, newKeyName, progress));
+        return await Execute(new CmdRenameKey(key, newKeyName, reason, progress));
     }
 
     public void SetInputToFocus(string inputToFocus)

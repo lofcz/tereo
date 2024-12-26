@@ -115,9 +115,5 @@ public class CmdAddKey : BaseCommand
             Owner.InputToFocus = $"input_CS_{KeyToFocus}";
             Owner.StateHasChanged();
         }
-        else
-        {
-            await Js.InvokeVoidAsync("alert", $"Klíč '{newKeyCopy}' nebyl nalezen pro odstranění");
-        }
     }
 }

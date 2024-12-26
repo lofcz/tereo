@@ -152,6 +152,6 @@ public class CmdSetKeyValue : BaseCommand
             return output.ToString().TrimEnd();
         }
 
-        return $"<code>{Language}</code> <del>{OldValue}</del> \u2192 <ins>{Value}</ins>";
+        return $"<code>{Language}</code> <code>{Key}</code>: <del>{OldValue}</del> \u2192 <ins>{Value}</ins>";
     }
 }

@@ -8,22 +8,14 @@
     public Localize Owner { get; set; }
     [CascadingParameter] 
     BlazingModalInstance BlazoredModal { get; set; } = default!;
-
-    string inputId = General.IIID();
+    
     bool submitting;
-    string originalKey = string.Empty;
     double percentCompleted;
-    string? validation = null;
+    string? validation;
     
     async Task Cancel()
     {
         await BlazoredModal.CloseAsync();
-    }
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        originalKey = Name;
     }
 
     async Task Submit()
@@ -37,7 +29,7 @@
         submitting = true;
         StateHasChanged();
 
-        DataOrException<bool> result = await Owner.RenameAndSaveKey(originalKey, Name, KeyRenameReasons.Manual, new Progress<CommandProgress>((progress) =>
+        DataOrException<bool> result = await Owner.DoRegenerateKey(Name, new Progress<CommandProgress>((progress) =>
         {
             percentCompleted = progress.Percentage;
             StateHasChanged();
@@ -53,29 +45,11 @@
         submitting = false;
         StateHasChanged();
     }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-
-        if (firstRender)
-        {
-            try
-            {
-                await Js.Focus(inputId);
-            }
-            catch (Exception e)
-            {
-                
-            }
-        }
-    }
-
 }
 
-<EdModal Title="Přejmenovat klíč">
+<EdModal Title="@($"Přegenerovat klíč {Name}")">
 
-    <input id="@inputId" class="form-control form-control-sm" placeholder="Nový název klíče" @bind="Name" />
+    <p>Název klíče bude přegenerován konvenčně podle překladu v primárním jazyce <code>CS</code>.</p>
     
     @if (submitting || validation is not null)
     {
@@ -84,7 +58,7 @@
     
     @if (submitting)
     {
-        <p>Probíhá přejmenovnání klíče: @(percentCompleted.ToProgressPercent())%</p>
+        <p>Probíhá přegenerování názvu klíče: @(percentCompleted.ToProgressPercent())%</p>
     }
     
     @if (validation is not null)
