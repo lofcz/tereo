@@ -13,6 +13,7 @@ public class CmdAddKey : BaseCommand
     private string? Search { get; set; }
     private string? ToFocus { get; set; }
     private string? KeyToFocus { get; set; }
+    private string? DeclId { get; set; }
     
     public CmdAddKey(string newKey)
     {
@@ -37,7 +38,19 @@ public class CmdAddKey : BaseCommand
             Id = General.IIID()
         };
 
-        if (Decl.Keys.TryAdd(localKey.Name, localKey))
+        if (firstTime)
+        {
+            DeclId = Decl.Id;
+        }
+
+        Decl? match = Project.GetDecl(DeclId!);
+
+        if (match is null)
+        {
+            return new DataOrException<bool>(new Exception($"Skupina s ID {DeclId} nenalezena, klíč není možné přidat"));
+        }
+        
+        if (match.Keys.TryAdd(localKey.Name, localKey))
         {
             if (Settings.AutoSave)
             {
@@ -88,7 +101,14 @@ public class CmdAddKey : BaseCommand
             Id = General.IIID()
         };
         
-        if (Decl.Keys.TryRemove(localKey.Name, out Key? key))
+        Decl? match = Project.GetDecl(DeclId!);
+
+        if (match is null)
+        {
+            return;
+        }
+        
+        if (match.Keys.TryRemove(localKey.Name, out Key? key))
         {
             foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
             {

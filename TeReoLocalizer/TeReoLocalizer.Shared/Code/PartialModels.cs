@@ -65,6 +65,8 @@ public class Project
     public int VersionMinor { get; set; }
     [JsonIgnore]
     public int VersionPatch { get; set; }
+
+    public Decl? GetDecl(string id) => Decls.FirstOrDefault(x => x.Id == id);
 }
 
 public enum DisplayPositions

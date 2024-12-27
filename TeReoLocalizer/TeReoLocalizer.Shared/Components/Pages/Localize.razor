@@ -1052,31 +1052,19 @@
         }, defaultText: Decl.Name.IsNullOrWhiteSpace() ? string.Empty : Decl.Name);
     }
 
-    async Task AddDecl()
+    Task AddDecl()
     {
         Md.ShowPromptModal("Přidat skupinu", "Zadejte název nové skupiny", async (str) =>
         {
-            if (!str.IsNullOrWhiteSpace())
+            DataOrException<bool> result = await Execute(new CmdAddGroup(str));
+
+            if (result.Exception is not null)
             {
-                string declId = General.IIID();
-
-                Decl newDecl = new Decl
-                {
-                    Name = str,
-                    Id = declId,
-                    Keys = []
-                };
-
-                Project.Decls.Add(newDecl);
-                Project.SelectedDecl = newDecl;
-                await SaveProject();
-
-                Settings.SelectedDecl = declId;
-                await SaveUserSettings();
-                
-                StateHasChanged();
+                await Js.Toast(ToastTypes.Error, result.Exception.Message);
             }
         });
+
+        return Task.CompletedTask;
     }
 
     async Task DeleteDecl()
