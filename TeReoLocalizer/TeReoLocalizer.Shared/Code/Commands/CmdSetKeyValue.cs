@@ -152,6 +152,11 @@ public class CmdSetKeyValue : BaseCommand
             return output.ToString().TrimEnd();
         }
 
+        if (OldValue.IsNullOrWhiteSpace())
+        {
+            return $"<code>{Language}</code> <code>{Key}</code>: <ins>{Value}</ins>";
+        }
+        
         return $"<code>{Language}</code> <code>{Key}</code>: <del>{OldValue}</del> \u2192 <ins>{Value}</ins>";
     }
 }

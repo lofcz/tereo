@@ -5,6 +5,7 @@
 @using System.Text.RegularExpressions
 @using DeepL
 @using DeepL.Model
+@using Mapster
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Code.Commands
@@ -1082,14 +1083,13 @@
         
         Md.ShowConfirmActionModal($"Potvrďte odstranění skupiny '{Decl.Name}' (klíčů: {Decl.Keys.Count})", async () =>
         {
-            Project.Decls.Remove(Decl);
-            Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
-            await SaveProject();
+            DataOrException<bool> result = await Execute(new CmdDeleteGroup(Decl));
 
-            Settings.SelectedDecl = Project.SelectedDecl.Id;
-            await SaveUserSettings();
+            if (result.Exception is not null)
+            {
+                await Js.Toast(ToastTypes.Error, result.Exception.Message);
+            }
 
-            RecomputeVisibleKeys();
             StateHasChanged();
         });
     }

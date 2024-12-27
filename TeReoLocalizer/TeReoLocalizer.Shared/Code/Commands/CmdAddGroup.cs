@@ -78,4 +78,9 @@ public class CmdAddGroup : BaseCommand
         
         Owner.RecomputeVisibleKeys();
     }
+    
+    public override string GetName()
+    {
+        return $"Přidání skupiny <code>{GroupName}</code>";
+    }
 }
