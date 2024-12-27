@@ -57,4 +57,9 @@ public class CmdDeleteGroup : BaseCommand
         
         Owner.RecomputeVisibleKeys();
     }
+
+    public override string GetName()
+    {
+        return $"Odstranění skupiny <code>{(DeletedDecl?.Name ?? "Nepojmenovaná skupina")}</code>";
+    }
 }
