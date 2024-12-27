@@ -1,5 +1,6 @@
 @using BlazingModal
 @using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Commands
 @code {
     [Parameter]
     public string Name { get; set; }
@@ -41,13 +42,9 @@
         saving = true;
         StateHasChanged();
 
-        Owner.Project.SelectedDecl.Keys[Name] = key;
-        Owner.RecomputeVisibleKeys();
+        await Owner.Execute(new CmdSetKeySettings(masterKey, key));
         
-        await Owner.SaveProject();
-        saving = false;
         Owner.StateHasChanged();
-        
         await BlazoredModal.CloseAsync();
     }
     

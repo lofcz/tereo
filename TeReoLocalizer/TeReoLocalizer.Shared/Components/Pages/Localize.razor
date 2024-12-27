@@ -1041,12 +1041,14 @@
     {
         Md.ShowPromptModal($"Nový název skupiny {Decl.Name}", string.Empty, async (str) =>
         {
-            if (!str.IsNullOrWhiteSpace())
+            DataOrException<bool> result = await Execute(new CmdRenameGroup(str));
+
+            if (result.Exception is not null)
             {
-                Decl.Name = str;
-                await SaveProject();
-                StateHasChanged();
+                await Js.Toast(ToastTypes.Error, result.Exception.Message);
             }
+            
+            StateHasChanged();
         }, defaultText: Decl.Name.IsNullOrWhiteSpace() ? string.Empty : Decl.Name);
     }
 
