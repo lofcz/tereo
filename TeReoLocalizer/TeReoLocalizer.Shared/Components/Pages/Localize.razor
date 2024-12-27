@@ -390,7 +390,12 @@
             return;
         }
 
-        await Execute(new CmdAddKey(NewKey));
+        DataOrException<bool> result = await Execute(new CmdAddKey(NewKey));
+
+        if (result.Exception is not null)
+        {
+            await Js.Toast(ToastTypes.Error, result.Exception.Message);
+        }
     }
 
     public async Task<DataOrException<bool>> Execute(ICommand cmd)

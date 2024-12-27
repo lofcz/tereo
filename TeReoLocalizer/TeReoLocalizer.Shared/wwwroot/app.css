@@ -133,3 +133,8 @@ ins {
     border-collapse: separate;
     border-spacing: 0;
 }
+
+.toast-error code {
+    color: #FFDC00;
+    font-weight: 600;
+}

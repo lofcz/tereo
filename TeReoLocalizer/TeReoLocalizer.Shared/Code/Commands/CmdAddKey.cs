@@ -32,6 +32,18 @@ public class CmdAddKey : BaseCommand
 
         newKeyCopy = Localizer.BaseIdentifier(newKeyCopy);
 
+        if (newKeyCopy.IsNullOrWhiteSpace())
+        {
+            return new DataOrException<bool>(new Exception("Název klíče nemůže být prázdný"));
+        }
+
+        Decl? dupeKey = Project.Decls.FirstOrDefault(x => x.Keys.Any(y => y.Key == newKeyCopy));
+
+        if (dupeKey is not null)
+        {
+            return new DataOrException<bool>(new Exception($"Klíč <code>{newKeyCopy}</code> již existuje ve skupině <code>{dupeKey.Name}</code>"));
+        }
+        
         Key localKey = new Key
         {
             Name = newKeyCopy,
@@ -83,8 +95,7 @@ public class CmdAddKey : BaseCommand
         }
         else
         {
-            await Js.Toast(ToastTypes.Error, $"Klíč '{localKey.Name}' už existuje");
-            return new DataOrException<bool>(false);
+            return new DataOrException<bool>(new Exception($"Klíč <code>{localKey.Name}</code> již existuje ve skupině <code>{match.Name}</code>"));
         }
 
         return new DataOrException<bool>(true);
