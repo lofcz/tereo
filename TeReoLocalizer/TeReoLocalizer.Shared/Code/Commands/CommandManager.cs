@@ -83,6 +83,9 @@ public class CommandManager : IDisposable
     public async Task<DataOrException<bool>> Execute(ICommand command)
     {
         await semaphore.WaitAsync();
+
+        Busy = true;
+        
         try
         {
             DataOrException<bool> executed = await command.Do(true);
@@ -98,12 +101,16 @@ public class CommandManager : IDisposable
         finally
         {
             semaphore.Release();
+            Busy = false;
         }
     }
 
     public async Task Undo()
     {
         await semaphore.WaitAsync();
+
+        Busy = true;
+        
         try
         {
             await UndoInternal();
@@ -111,6 +118,7 @@ public class CommandManager : IDisposable
         finally
         {
             semaphore.Release();
+            Busy = false;
         }
     }
 
@@ -147,6 +155,9 @@ public class CommandManager : IDisposable
     public async Task Redo()
     {
         await semaphore.WaitAsync();
+
+        Busy = true;
+        
         try
         {
             await RedoInternal();
@@ -154,6 +165,7 @@ public class CommandManager : IDisposable
         finally
         {
             semaphore.Release();
+            Busy = false;
         }
     }
 
@@ -189,7 +201,8 @@ public class CommandManager : IDisposable
 
     public bool CanUndo => undoBuffer.Count > 0;
     public bool CanRedo => redoBuffer.Count > 0;
-    public bool AnyHistory => CanUndo || CanRedo;
+    public bool AnyHistory => CanUndo || CanRedo || Busy;
+    public bool Busy { get; private set; }
     
     public CommandHistory GetHistory(int limit = 100)
     {
@@ -246,6 +259,9 @@ public class CommandManager : IDisposable
     public async Task Jump(int relativeSteps)
     {
         await semaphore.WaitAsync();
+
+        Busy = true;
+        
         try
         {
             if (OnBeforeJump is not null)
@@ -284,6 +300,7 @@ public class CommandManager : IDisposable
         finally
         {
             semaphore.Release();
+            Busy = false;
         }
     }
     
