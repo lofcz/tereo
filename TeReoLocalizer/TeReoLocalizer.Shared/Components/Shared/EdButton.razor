@@ -52,6 +52,12 @@
         return $"btn {Size.GetStringValue()} btn-{(Design.GetStringValue())}";
     }
     
+    public void SetFormIsSubmitting(bool inProgress)
+    {
+        FormIsSubmitting = inProgress;
+        StateHasChanged();
+    }
+    
     async Task HandleClick()
     {
         await OnClick.InvokeAsync();

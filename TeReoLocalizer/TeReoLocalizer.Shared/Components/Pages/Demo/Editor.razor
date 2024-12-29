@@ -1,0 +1,24 @@
+@page "/demo/editor"
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@code {
+    
+    string myString = "test initial hodnota";
+    EdTextarea? refTextarea;
+    
+    async Task SetTestValue()
+    {
+        myString = "server side set value";
+
+        if (refTextarea is not null)
+        {
+            await refTextarea.SetValue(myString);
+        }
+    }
+
+}
+
+<EdTextarea @ref="refTextarea" Type="TextareaTypes.RTE" @bind-Value="myString" />
+<div>synced: @myString</div>
+
+<button @onclick="SetTestValue" class="btn btn-secondary btn-sm">Nastavit na test hodnotu</button>

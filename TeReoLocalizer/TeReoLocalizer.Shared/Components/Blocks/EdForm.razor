@@ -1,0 +1,417 @@
+@using System.Collections
+@using System.Collections.Concurrent
+@using TeReoLocalizer.Shared.Code
+@inject IJSRuntime Js
+@inherits AuthComponent
+@implements IAsyncDisposable
+@code {
+    [Parameter]
+    public TaskAggregator? InitialFetchAggregator { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public Func<Task<FormResult>>? OnSubmit { get; set; }
+    [Parameter]
+    public Func<FormUpdateArgs, Task>? OnUpdate { get; set; }
+    [Parameter]
+    public FlexColumns? Shape { get; set; }
+    [Parameter]
+    public ValidationFeedback? AfterSubmitValidation { get; set; }
+    [Parameter]
+    public ComponentBaseEx? Owner { get; set; }
+    [Parameter]
+    public bool? ClearAfterSubmit { get; set; }
+    [Parameter]
+    public SmartFormConfig? Smart { get; set; }
+    [Parameter]
+    public bool ValidateOnEnter { get; set; } = true;
+    [Parameter]
+    public EdFormRef? Bind { get; set; }
+    [Parameter]
+    public FormTypes Type { get; set; }
+    [Parameter]
+    public LabelPositions? LabelPosition { get; set; }
+    [Parameter]
+    public bool Render { get; set; } = true;
+    [Parameter]
+    public bool RenderSuccessFeedback { get; set; } = true;
+    [Parameter]
+    public bool RenderBusyFeedback { get; set; } = true;
+    [Parameter]
+    public RowMargins RowMargin { get; set; } = RowMargins.Single;
+    [Parameter] 
+    public bool EnableFormFeedback { get; set; } = true;
+
+    public bool ValidatePermissions()
+    {
+        return true;
+    }
+    
+    public HashSet<EdButton> OwnedButtons { get; set; } = [];
+    public EdFormFeedback? FormFeedback { get; set; }
+    public string Id { get; set; } = General.IIID();
+    public ConcurrentDictionary<IValidationComponent, bool>? ValidationsAccumulator { get; set; }
+    public bool FormIsSubmitting { get; set; }
+    public Dictionary<string, IVirtualInputComponent>? Inputs { get; set; }
+    public string? infoId { get; set; }
+    public EdFormStart? ContentStart { get; set; }
+    public bool initializedFormBind = false;
+    public HashSet<IVirtualInputComponent> FocusedInputs { get; set; } = [];
+    public object? SubmitSender { get; set; }
+
+    InternalEdFormFeedback? feedbackRef;
+    
+    DotNetObjectReference<EdForm>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        ValidationsAccumulator = new ConcurrentDictionary<IValidationComponent, bool>();
+        
+        if (Bind is {Initialized: false })
+        {
+            Bind.Form = this;
+            Bind.Initialized = true;
+            initializedFormBind = true;
+        }
+        
+        JsRef = DotNetObjectReference.Create(this);
+    }
+
+    protected override void OnParametersSet()
+    {
+        ValidationsAccumulator ??= [];
+        
+        if (Bind is not null)
+        {
+            Bind.Form = this;
+            Bind.Initialized = true;
+            initializedFormBind = true;
+        }
+        
+        base.OnParametersSet();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetAuthState();
+
+        if (initializedFormBind)
+        {
+            if (Bind?.OnBind is not null)
+            {
+                await Bind.OnBind.Invoke(this);   
+            }
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/form.js");
+                await InitJsModule();
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
+    }
+    
+    async Task InitJsModule()
+    {
+        if (JsObjectRef is null)
+        {
+            return;
+        }
+        
+        await JsObjectRef.InvokeVoidAsync("Init", new
+        {
+            id = Id,
+            net = JsRef
+        });
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (JsObjectRef is not null)
+            {
+                await JsObjectRef.InvokeVoidAsync("Destroy", new
+                {
+                    id = Id
+                });
+            }
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }
+
+    public bool SubmitSenderButtonNameIs(string name)
+    {
+        return SubmitSender is EdButton btn && btn.Name == name;
+    }
+    
+    public void ClearValidation()
+    {
+        AfterSubmitValidation?.Clear();
+        FormFeedback?.StateHasChanged();
+    }
+
+    public T? GetInputValue<T>(string fieldName)
+    {
+        if (Inputs is null)
+        {
+            return default;
+        }
+        
+        return Inputs.TryGetValue(fieldName, out IVirtualInputComponent? cmp) ? cmp.GetValue<T>() : default;
+    }
+
+    public async Task SelectSetOptions(string fieldName, Func<Task<IList?>> options)
+    {
+        if (Inputs is null)
+        {
+            return;
+        }
+        
+        if (Inputs.TryGetValue(fieldName, out IVirtualInputComponent? cmp))
+        {
+            if (cmp is ISelectInput sel)
+            {
+                sel.FetchedOptions = await options.Invoke();
+                await sel.SignalFetchedDataReady();
+            }
+        }
+    }
+    
+    public async Task SelectSetOptions<T>(string fieldName, Task<IEnumerable<T>?> options)
+    {
+        if (Inputs is null)
+        {
+            return;
+        }
+        
+        if (Inputs.TryGetValue(fieldName, out IVirtualInputComponent? cmp))
+        {
+            if (cmp is ISelectInput sel)
+            {
+                sel.FetchedOptions = (await options)?.ToList();
+                await sel.SignalFetchedDataReady();
+            }
+        }
+    }
+    
+    public async Task GroupSetValues<T>(string fieldName, IEnumerable<T> options)
+    {
+        if (Inputs is null)
+        {
+            return;
+        }
+        
+        if (Inputs.TryGetValue(fieldName, out IVirtualInputComponent? cmp))
+        {
+            if (cmp is IEdInputGroup grp)
+            {
+                await grp.SetOptions(options);
+            }
+        }
+    }
+    
+    public async Task SelectSetOptions<T>(string fieldName, IEnumerable<T>? options)
+    {
+        if (Inputs is null)
+        {
+            return;
+        }
+        
+        if (Inputs.TryGetValue(fieldName, out IVirtualInputComponent? cmp))
+        {
+            if (cmp is ISelectInput sel)
+            {
+                await sel.SetOptions(options?.ToList());
+            }
+        }
+    }
+
+    public async Task Clear()
+    {
+        if (Inputs is not null)
+        {
+            foreach (KeyValuePair<string, IVirtualInputComponent> cmp in Inputs)
+            {
+                await cmp.Value.Clear();
+            }
+        }
+    }
+
+    public async Task ServerBatchReady()
+    {
+        if (Inputs is null)
+        {
+            return;
+        }
+        
+        foreach (KeyValuePair<string, IVirtualInputComponent> el in Inputs)
+        {
+            if (el.Value is ISelectInput selectInput)
+            {
+                await selectInput.SignalFetchedDataReady();
+            }
+        }
+    }
+
+    public async Task InputSetValue(string inputName, object? val)
+    {
+        if (Inputs?.TryGetValue(inputName, out IVirtualInputComponent? cmp) ?? false)
+        {
+            await cmp.SetValue(val);
+        }
+    }
+
+    void SetOwnedButtonsSubmitting(bool submitting)
+    {
+        foreach (EdButton btn in OwnedButtons)
+        {
+            btn.SetFormIsSubmitting(submitting);
+        }
+    }
+    
+    public async Task<bool> Submit(object? sender = null)
+    {
+        SubmitSender = sender;
+        ClearValidation();
+        bool ok = true;
+        
+        if (ValidationsAccumulator is not null)
+        {
+            foreach (IValidationComponent cmp in ValidationsAccumulator.Keys)
+            {
+                if (!await cmp.RunValidations(ValidationEvents.Submit))
+                {
+                    ok = false;
+                }
+            }
+        }
+        
+        if (ok)
+        {
+            if (FormIsSubmitting)
+            {
+                SubmitSender = null;
+                return false;
+            }
+            
+            FormIsSubmitting = true;
+            AfterSubmitValidation?.Set("Probíhá zpracování požadavku", FeedbackTypes.Info);
+            feedbackRef?.StateHasChanged();
+            SetOwnedButtonsSubmitting(true);
+            StateHasChanged();
+            
+            if (OnSubmit is not null)
+            {
+                AfterSubmitValidation ??= new ValidationFeedback();
+                AfterSubmitValidation.Text = "Probíhá zpracování požadavku";
+                AfterSubmitValidation.Type = FeedbackTypes.Info;
+                feedbackRef?.StateHasChanged();
+                StateHasChanged();
+
+                if (OnSubmit is not null)
+                {
+                    FormResult fr = await OnSubmit.Invoke();
+                    AfterSubmitValidation.Text = fr.Msg;
+                    AfterSubmitValidation.Type = fr.Type;
+                    feedbackRef?.StateHasChanged();
+                    Owner?.StateHasChangedPublic();
+
+                    if (fr.Type == FeedbackTypes.Ok && (ClearAfterSubmit ?? false))
+                    {
+                        await Clear();
+                    }   
+                }
+            }
+            
+            SetOwnedButtonsSubmitting(false);
+            FormFeedback?.StateHasChangedPublic();
+            FormIsSubmitting = false;
+            SubmitSender = null;
+            feedbackRef?.StateHasChanged();
+            return true;   
+        }
+
+        SetOwnedButtonsSubmitting(false);
+        FormFeedback?.StateHasChangedPublic();
+        SubmitSender = null;
+        feedbackRef?.StateHasChanged();
+        StateHasChanged();
+        return false;
+    }
+
+    public async Task OnUpdateClosure(FormUpdateArgs args)
+    {
+        if (OnUpdate is not null)
+        {
+            args.CacheValue = args.Value switch
+            {
+                IEnumerable<ICacheStruct> cacheValues => cacheValues.Select(entry => entry.GetCacheValue()).ToList(),
+                ICacheStruct cacheValue => new List<object?> { cacheValue.GetCacheValue() },
+                _ => args.CacheValue
+            };
+
+            await OnUpdate.Invoke(args);
+        }
+    }
+    
+    public void SetFocusedInput(IVirtualInputComponent cmp, bool focused)
+    {
+        if (focused)
+        {
+            FocusedInputs.Add(cmp);
+        }
+        else
+        {
+            FocusedInputs.Remove(cmp);
+        }
+    }
+}
+
+@if ((Smart?.Smart ?? false) && ContentStart is null)
+{
+    <InternalEdFormSmart Owner="@this" />
+}
+
+<div style="@Style" class="form-horizontal" id="@Id">
+    <CascadingValue IsFixed="true" Value="@Shape" Name="EdFormShape">
+        <CascadingValue IsFixed="true" Value="@Submit">
+            <CascadingValue Value="@this" IsFixed="true">
+                <CascadingValue IsFixed="true" Value="null" Name="EdRowShape" TValue="FlexColumns">
+                    <CascadingValue IsFixed="true" Value="InitialFetchAggregator">
+                        <CascadingValue IsFixed="true" Value="OnUpdateClosure" Name="OnFormUpdate">
+                            <CascadingValue IsFixed="true" Name="FormLabelPosition" Value="LabelPosition">
+                                @if (Render)
+                                {
+                                    if (ChildContent is not null)
+                                    {
+                                        @ChildContent
+                                    }
+
+                                    if (OwnedButtons.Count is 0 && FormFeedback is null && EnableFormFeedback)
+                                    {
+                                        <InternalEdFormFeedback @ref="feedbackRef" RenderBusyFeedback="RenderBusyFeedback" RenderSuccessFeedback="RenderSuccessFeedback" AfterSubmitValidation="AfterSubmitValidation"/>
+                                    }
+                                }
+                            </CascadingValue>
+                        </CascadingValue>
+                    </CascadingValue>
+                </CascadingValue>
+            </CascadingValue>
+        </CascadingValue>
+    </CascadingValue>
+</div>

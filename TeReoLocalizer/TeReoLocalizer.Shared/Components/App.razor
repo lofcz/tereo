@@ -1,4 +1,14 @@
-﻿@code {
+﻿@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@code {
+    
+    protected override void OnInitialized()
+    {
+        Js.SetAppVersion(Consts.Entropy);
+        base.OnInitialized();
+    }
+    
     private static string GetBlazorScript()
     {
         if (SharedProxy.IsMaui)

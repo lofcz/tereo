@@ -176,6 +176,7 @@ public class Button
     public Func<Task>? OnClick { get; set; }
     public string? Icon { get; set; }
     public Icons? KnownIcon { get; set; }
+    public string EphemeralId { get; set; } = General.IIID();
     
     public Button()
     {

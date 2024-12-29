@@ -1,0 +1,54 @@
+@using TeReoLocalizer.Shared.Code
+@inherits ComponentBaseEx
+@code {
+    [Parameter]
+    public ValidationFeedback? AfterSubmitValidation { get; set; }
+    [Parameter]
+    public bool RenderSuccessFeedback { get; set; } = true;
+    [Parameter] 
+    public bool RenderBusyFeedback { get; set; } = true;
+    [CascadingParameter]
+    public EdForm? Context { get; set; }
+
+    bool ComputedRenderSuccessFeedback => RenderSuccessFeedback && (Context?.RenderSuccessFeedback ?? RenderSuccessFeedback);
+    bool ComputedRenderBusyFeedback => RenderBusyFeedback && (Context?.RenderBusyFeedback ?? RenderBusyFeedback);
+}
+
+@{
+    string iconSrc = AfterSubmitValidation?.Type switch
+    {
+        FeedbackTypes.Error => "/images/svg/error.svg",
+        FeedbackTypes.Ok => "/images/svg/success.svg",
+        FeedbackTypes.Warn => "/images/svg/warn.svg",
+        _ => ""
+    };
+
+    string textColor = AfterSubmitValidation?.Type switch 
+    {
+        FeedbackTypes.Error => "#FF3960",
+        FeedbackTypes.Ok => "#00A049",
+        FeedbackTypes.Info => "black",
+        FeedbackTypes.Warn => "#FF851B",
+        _ => ""
+    };
+}
+@if (AfterSubmitValidation?.Text is not null && !AfterSubmitValidation.Text.IsNullOrWhiteSpace())
+{
+    if (!ComputedRenderSuccessFeedback && AfterSubmitValidation.Type is FeedbackTypes.Ok)
+    {
+        return;
+    }
+
+    if (!ComputedRenderBusyFeedback && AfterSubmitValidation.Type is FeedbackTypes.Info)
+    {
+        return;
+    }
+    
+    <div style="display: flex; margin-top: 0.5rem; margin-bottom: 0.5rem; @Style">
+        @if (AfterSubmitValidation.Type != FeedbackTypes.Info)
+        {
+            <img src="@iconSrc" alt="" style="margin-top: auto; margin-bottom: auto; margin-right: 10px; display: block;"/>   
+        }
+        <div style="margin-top: auto; margin-bottom: auto; position: relative; top: 2px; font-weight: 500; color: @textColor">@((MarkupString)AfterSubmitValidation.Text)</div>
+    </div>
+}

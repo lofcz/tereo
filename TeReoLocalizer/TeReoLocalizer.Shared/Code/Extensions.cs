@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using BlazingModal;
 using BlazingModal.Services;
+using EnumsNET;
 using Mapster;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using TeReoLocalizer.Shared.Components.Shared;
@@ -242,6 +243,83 @@ public static class Extensions
     {
         return t.Adapt<T>();
     }
+    
+    public static bool ContainsOnlyWhitelistChars(this string s, HashSet<char> chars)
+    {
+        return s.All(chars.Contains);
+    }
+    
+    public static bool IsValidEmail(this string str)
+    {
+        return new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(str);
+    }
+    
+    public static MemoryStream ToMemoryStream(this string s)
+    {
+        MemoryStream stream = new MemoryStream();
+        StreamWriter writer = new StreamWriter(stream);
+        writer.Write(s);
+        writer.Flush();
+        stream.Position = 0;
+        return stream;
+    }
+    
+    public static object? ChangeType(this object? value, Type conversion) 
+    {
+        Type? t = conversion;
+
+        if (t.IsEnum && value != null)
+        {
+            if (Enums.TryParse(t, value.ToString(), true, out object? x))
+            {
+                return x;
+            }
+        }
+            
+        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)) 
+        {
+            if (value == null) 
+            { 
+                return null; 
+            }
+
+            t = Nullable.GetUnderlyingType(t);
+        }
+
+        if (t == typeof(int) && value?.ToString() == "")
+        {
+            return 0;
+        }
+            
+        if (t == typeof(int) && ((value?.ToString()?.Contains('.') ?? false) || (value?.ToString()?.Contains(',') ?? false)))
+        {
+            if (double.TryParse(value.ToString()?.Replace(",", "."), out double x))
+            {
+                return (int)x;
+            }
+        }
+
+        if (value != null && t is {IsGenericType: true} && value.GetType().IsGenericType)
+        {
+            Type destT = t.GetGenericArguments()[0];
+            Type sourceT = value.GetType().GetGenericArguments()[0];
+
+            if (destT.IsEnum && sourceT == typeof(int))
+            {
+                IList? instance = (IList?)Activator.CreateInstance(t);
+
+                foreach (object? x in (IList) value)
+                {
+                    instance?.Add(x);
+                }
+
+                return instance;
+            }
+        }
+
+        return t != null ? System.Convert.ChangeType(value, t) : null;
+    }
+
     
     public static IModalReference? ShowModal<T>(this IModalService? service, IDictionary<string, object?>? pars)
     {

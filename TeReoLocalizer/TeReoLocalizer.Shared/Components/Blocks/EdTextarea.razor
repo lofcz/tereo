@@ -1,0 +1,682 @@
+@using DiffMatchPatch
+@using TeReoLocalizer.Shared.Code
+@inherits ValidationComponent<string>
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public TextareaTypes Type { get; set; } = TextareaTypes.NativeLargeText;
+    [Parameter]
+    public TextareaHeights Height { get; set; } = TextareaHeights.Medium;
+    [Parameter]
+    public bool SubmitOnEnterPressed { get; set; }
+    [Parameter]
+    public Button? SubmitButton { get; set; }
+    [Parameter]
+    public RteConfig? RteConfig { get; set; }
+    [Parameter]
+    public bool Headless { get; set; }
+    [Parameter]
+    public Func<string, Dictionary<string, object?>?, Task>? OnContentClick { get; set; }
+    [Parameter]
+    public Func<string?, Task>? OnDataPacket { get; set; }
+    [Parameter]
+    public Func<EdTextarea, List<Button>>? ActionButtons { get; set; }
+    [Parameter]
+    public EventCallback OnSyncDataRequested { get; set; }
+
+    public bool Streaming { get; set; }
+    private const long MaxStreamLen = 500;
+
+    private string AutocompleteHtmlAttrValue { get; set; }
+    DotNetObjectReference<EdTextarea>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+    bool rteDestroyed = false;
+    private long streamLen;
+
+    string lastValue;
+    bool ignoreNext = false;
+    string rawVal;
+    bool isDirty = false;
+    string height;
+    string? prevValue;
+    int lkCounter = 0;
+    List<int> updatingValFromClient = [];
+    bool blurChangeEventBusy = false;
+    bool blurEventHandled = false;
+    string? lastNonBusyValue;
+    bool lastValChangedWhileBusy;
+    diff_match_patch? differ;
+    List<Button>? renderBtns;
+
+    private int GetLk()
+    {
+        if (lkCounter + 1 >= int.MaxValue)
+        {
+            lkCounter = 0;
+        }
+
+        lkCounter++;
+        return lkCounter;
+    }
+
+    public void SyncButtons()
+    {
+        renderBtns = ActionButtons?.Invoke(this);
+        StateHasChanged();
+    }
+
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (!isDirty)
+        {
+            rawVal = Value?.ToString() ?? string.Empty;
+        }
+
+        isDirty = false;
+        height = Height.GetStringValue("rows");
+    }
+
+    private async Task OnInputUpdate(ChangeEventArgs args)
+    {
+        Value = (string?)args.Value.ChangeType(typeof(string));
+        await ValueChanged.InvokeAsync(Value);
+        await RunValidations(ValidationEvents.OnInput);
+
+        if (OnFormUpdate is not null && TaskAggregator is null or { AllCompleted: true })
+        {
+            await OnFormUpdate.Invoke(new FormUpdateArgs(this, Value));
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        JsRef = DotNetObjectReference.Create(this);
+        SyncButtons();
+    }
+
+    public async Task SendPacket(string type, object? data)
+    {
+        if (JsObjectRef is not null && Type is TextareaTypes.RTE)
+        {
+            try
+            {
+                await JsObjectRef.InvokeVoidAsync("AcceptPacket", new
+                {
+                    id = Id,
+                    type = type,
+                    data = data
+                });
+            }
+            catch (Exception e)
+            {
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task AcceptDataPacketJs(string? data)
+    {
+        if (OnDataPacket is not null)
+        {
+            await OnDataPacket.Invoke(data);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (JsObjectRef is null || firstRender || rteDestroyed)
+        {
+            try
+            {
+                switch (Type)
+                {
+                    case TextareaTypes.RTE:
+                        rteDestroyed = false;
+                        JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", $"./Scripts/Scoped/rte.js?v={Consts.Entropy}");
+                        break;
+                    case TextareaTypes.NativeLargeText:
+                    case TextareaTypes.Native:
+                        JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", $"./Scripts/Scoped/textarea.js?v={Consts.Entropy}");
+                        break;
+                }
+
+                await InitJsModule();
+            }
+            catch (Exception e)
+            {
+            }
+        }
+    }
+
+    public override async Task Clear()
+    {
+        Value = default;
+
+        if (JsObjectRef is not null)
+        {
+            if (Type is TextareaTypes.RTE or TextareaTypes.Native or TextareaTypes.NativeLargeText)
+            {
+                await JsObjectRef.InvokeVoidAsync("SyncValue", new
+                {
+                    id = Id,
+                    value = "",
+                    hasButton = SubmitButton is not null
+                });
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+
+        try
+        {
+            Context?.SetFocusedInput(this, false);
+
+            if (JsObjectRef is not null)
+            {
+                rteDestroyed = true;
+                await JsObjectRef.InvokeVoidAsync("Destroy", new
+                {
+                    id = Id
+                });
+            }
+        }
+        catch (Exception e)
+        {
+        }
+    }
+
+    [JSInvokable]
+    public async Task ContentClicked(string eventName, string? data)
+    {
+        if (OnContentClick is not null)
+        {
+            await OnContentClick.Invoke(eventName, data?.JsonDecode<Dictionary<string, object?>>());
+        }
+    }
+
+    [JSInvokable]
+    public async Task GetValueJs(ClientInputEvents eventName = ClientInputEvents.Input, int diffIndex = 0)
+    {
+        await GetValue(validateStreaming: false, eventName: eventName, diffIndex: diffIndex);
+    }
+
+    public async Task<string?> GetValue(bool updateBind = true, long maxLen = MaxStreamLen, CancellationToken ct = default, bool validateStreaming = true, ClientInputEvents eventName = ClientInputEvents.Input, int diffIndex = 0)
+    {
+        if (!Streaming && validateStreaming)
+        {
+            return Value;
+        }
+
+        if (JsObjectRef is not null)
+        {
+            int lk = GetLk();
+            updatingValFromClient.Add(lk);
+
+            try
+            {
+                // todo: this is not disposed on purpose, blazor devs are to blame, see https://github.com/dotnet/aspnetcore/issues/53376
+                IJSStreamReference streamRef = await JsObjectRef.InvokeAsync<IJSStreamReference>("GetValueStreaming", ct, new
+                {
+                    id = Id,
+                    index = diffIndex
+                });
+
+                await using Stream stream = await streamRef.OpenReadStreamAsync(10_000_000L, ct);
+                using StreamReader reader = new StreamReader(stream);
+                string text = await reader.ReadToEndAsync(ct);
+
+                if (updateBind)
+                {
+                    Value = text;
+                    await ValueChanged.InvokeAsync(Value);
+                    ignoreJsSignals = false;
+                    await RunValidations(ValidationEvents.OnInput);
+
+                    if (OnUpdate is not null)
+                    {
+                        await OnUpdate.Invoke(this);
+                    }
+
+                    if (OnBlur is not null && eventName is ClientInputEvents.Blur)
+                    {
+                        await OnBlur.Invoke(this);
+                    }
+
+                    if (OnFormUpdate is not null && TaskAggregator is null or { AllCompleted: true })
+                    {
+                        await OnFormUpdate.Invoke(new FormUpdateArgs(this, Value));
+                    }
+                }
+
+                return text;
+            }
+            catch (Exception e)
+            {
+            }
+            finally
+            {
+                updatingValFromClient.Remove(lk);
+            }
+        }
+
+        return null;
+    }
+
+    [JSInvokable]
+    public async Task SyncDataJs()
+    {
+        if (OnSyncDataRequested.HasDelegate)
+        {
+            await OnSyncDataRequested.InvokeAsync();
+        }
+    }
+
+    [JSInvokable]
+    public async Task SetStreaming()
+    {
+        if (!Streaming)
+        {
+            Streaming = true;
+            StateHasChanged();
+
+            try
+            {
+                await ValueChanged.InvokeAsync(Value);
+            }
+            catch (Exception e)
+            {
+            }
+        }
+    }
+
+    async Task AfterBusy()
+    {
+        if (lastValChangedWhileBusy)
+        {
+            lastValChangedWhileBusy = false;
+            await base.SetValue(lastNonBusyValue);
+            await SyncValue(true, lastNonBusyValue ?? string.Empty);
+        }
+    }
+
+    [JSInvokable]
+    public async Task UpdateValJs(string val, ClientInputEvents eventName = ClientInputEvents.Input, ClientTransferProtocols protocol = ClientTransferProtocols.Plaintext)
+    {
+        int lk = GetLk();
+        updatingValFromClient.Add(lk);
+
+        try
+        {
+            ignoreJsSignals = true;
+
+            if (protocol is ClientTransferProtocols.Unknown or ClientTransferProtocols.Plaintext)
+            {
+                Value = val;
+            }
+            else
+            {
+                differ ??= new diff_match_patch();
+                List<Patch> patches = differ.patch_fromText(val);
+                object[] patchResults = differ.patch_apply(patches, Value ?? string.Empty);
+
+                if (patchResults.Length > 0)
+                {
+                    if (patchResults[0] is string str)
+                    {
+                        Value = str;
+                    }
+                }
+            }
+
+            if (Streaming)
+            {
+                Streaming = false;
+                StateHasChanged();
+            }
+
+            await ValueChanged.InvokeAsync(Value);
+            ignoreJsSignals = false;
+            await RunValidations(ValidationEvents.OnInput);
+
+            if (OnBlur is not null && eventName is ClientInputEvents.Blur)
+            {
+                await OnBlur.Invoke(this);
+            }
+            else if (OnUpdate is not null)
+            {
+                await OnUpdate.Invoke(this);
+            }
+
+            if (OnFormUpdate is not null && TaskAggregator is null or { AllCompleted: true })
+            {
+                await OnFormUpdate.Invoke(new FormUpdateArgs(this, Value));
+            }
+        }
+        catch (Exception e)
+        {
+        }
+
+        updatingValFromClient.Remove(lk);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (Type is TextareaTypes.Native or TextareaTypes.NativeLargeText)
+        {
+            if (prevValue != Value)
+            {
+                prevValue = Value;
+
+                if (updatingValFromClient.Count is 0)
+                {
+                    await base.SetValue(Value);
+                    await SyncValue(true, null);
+                }
+            }
+        }
+    }
+
+    public override void OnValueSet(string? newVal)
+    {
+        if (ignoreJsSignals)
+        {
+            return;
+        }
+
+// [todo] figure out how to set MCE content without shifting the carret
+//SyncValueSync(newVal);
+    }
+
+    public async Task SyncRteSettings()
+    {
+        if (JsObjectRef is not null)
+        {
+            if (Type is TextareaTypes.RTE or TextareaTypes.Native or TextareaTypes.NativeLargeText)
+            {
+                try
+                {
+                    await JsObjectRef.InvokeVoidAsync("SyncTools", new
+                    {
+                        id = Id,
+                        config = RteConfig
+                    });
+                }
+                catch (Exception e)
+                {
+                }
+            }
+        }
+    }
+
+    private async Task OnInput(string? value)
+    {
+        Value = value;
+
+        isDirty = true;
+        rawVal = Value ?? string.Empty;
+
+        await SyncValue(false, null);
+        await ValueChanged.InvokeAsync(Value);
+
+        if (TaskAggregator is not null)
+        {
+            await TaskAggregator.AnnouceTaskCompleted(RandomKey);
+        }
+    }
+
+    public async Task SetDisabled(bool disabled)
+    {
+        if (JsObjectRef is not null)
+        {
+            if (Type is TextareaTypes.RTE)
+            {
+                try
+                {
+                    await JsObjectRef.InvokeVoidAsync("SetDisabled", new
+                    {
+                        id = Id,
+                        disabled
+                    });
+                }
+                catch (Exception e)
+                {
+                }
+            }
+        }
+    }
+
+    public override async Task SetValue(object? value)
+    {
+        string? str = (string?)value.ChangeType(typeof(string));
+        Value = str;
+
+        await SyncValue(false, null);
+        await ValueChanged.InvokeAsync(Value);
+
+        if (TaskAggregator is not null)
+        {
+            await TaskAggregator.AnnouceTaskCompleted(RandomKey);
+        }
+    }
+
+    void SyncValueSync(string? newVal)
+    {
+        if (Value == lastValue)
+        {
+            return;
+        }
+
+        JsObjectRef?.InvokeVoidAsync("SyncValue", new
+        {
+            id = Id,
+            value = newVal
+        });
+
+        lastValue = Value ?? string.Empty;
+    }
+
+    async Task SyncValue(bool silent, string? forceValue)
+    {
+        if (JsObjectRef is not null && Type is TextareaTypes.RTE or TextareaTypes.Native or TextareaTypes.NativeLargeText)
+        {
+            if (Value is not null && Value.Length >= MaxStreamLen)
+            {
+                Streaming = true;
+
+                try
+                {
+                    // neither steam nor streamRef can be disposed. Stream is disposed by disposed streamRef. StremRef is disposed by Blazor after transmission to JS.
+                    MemoryStream stream = (forceValue ?? Value).ToMemoryStream();
+                    DotNetStreamReference streamRef = new DotNetStreamReference(stream);
+
+                    await JsObjectRef.InvokeVoidAsync("SetValueStreaming", new
+                    {
+                        id = Id,
+                        stream = streamRef,
+                        silent = silent
+                    });
+                }
+                catch (Exception e)
+                {
+                }
+            }
+            else
+            {
+                try
+                {
+                    await JsObjectRef.InvokeVoidAsync("SyncValue", new
+                    {
+                        id = Id,
+                        value = forceValue ?? Value,
+                        silent = silent
+                    });
+                }
+                catch (Exception e)
+                {
+                }
+            }
+        }
+    }
+
+    async Task InitJsModule()
+    {
+        if (JsObjectRef is null)
+        {
+            return;
+        }
+
+        bool streamInitialContent = false && Value?.Length > MaxStreamLen; // todo: fixme
+        string? initialContent = streamInitialContent ? string.Empty : Value;
+
+        switch (Type)
+        {
+            case TextareaTypes.RTE:
+                await JsObjectRef.InvokeVoidAsync("Init", new
+                {
+                    id = Id,
+                    net = JsRef,
+                    announce = OnReady?.Method.Name,
+                    defaultContent = initialContent,
+                    config = RteConfig,
+                    disabled = Disabled
+                });
+                break;
+            case TextareaTypes.Native:
+                await JsObjectRef.InvokeVoidAsync("Init", new
+                {
+                    id = Id,
+                    net = JsRef,
+                    sendOnEnter = SubmitOnEnterPressed,
+                    autogrow = true,
+                    hasButton = SubmitButton is not null
+                });
+                break;
+            case TextareaTypes.NativeLargeText:
+                await JsObjectRef.InvokeVoidAsync("Init", new
+                {
+                    id = Id,
+                    net = JsRef,
+                    sendOnEnter = SubmitOnEnterPressed,
+                    autogrow = true,
+                    hasButton = SubmitButton is not null,
+                    type = (int)Type,
+                    defaultContent = initialContent
+                });
+                break;
+        }
+
+        if (streamInitialContent)
+        {
+            await SyncValue(true, null);
+        }
+    }
+
+    private async Task OnInputChange()
+    {
+        if (!(Value ?? string.Empty).IsNullOrWhiteSpace())
+        {
+            await RunValidations(ValidationEvents.OnChange);
+        }
+
+        Context?.SetFocusedInput(this, false);
+
+        if (OnUpdate is not null)
+        {
+            await OnUpdate.Invoke(this);
+        }
+
+        if (OnFormUpdate is not null && TaskAggregator is null or { AllCompleted: true })
+        {
+            await OnFormUpdate.Invoke(new FormUpdateArgs(this, Value));
+        }
+    }
+
+    private async Task OnFocus()
+    {
+        Context?.SetFocusedInput(this, true);
+    }
+
+    private async Task OnSubmitButtonClicked()
+    {
+        if (SubmitButton is null)
+        {
+            return;
+        }
+
+        if (SubmitButton.OnClick is not null)
+        {
+            await SubmitButton.OnClick.Invoke();
+            return;
+        }
+
+        await Submit();
+    }
+
+    [JSInvokable]
+    public override async Task AttemptSubmitJs()
+    {
+        await Submit();
+    }
+
+}
+
+<InternalEdInputRoot Owner="this">
+    @switch (Type)
+    {
+        case TextareaTypes.RTE:
+        {
+            <div style="border: 1px solid black;" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" autocomplete="@(Autocomplete ? "on" : AutocompleteHtmlAttrValue)" class="rteTextarea @height @(RteConfig is not null && RteConfig.Mode != RteConfigModes.Default ? "textareaInline" : "") @(Headless ? "headless" : "")" id="@Id" placeholder="@Placeholder"></div>
+            break;
+        }
+        case TextareaTypes.Native:
+        case TextareaTypes.NativeLargeText:
+        {
+            int btnsWidth = 0;
+
+            <div class="textareaNativeRoot" style="position: relative">
+                <textarea data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" id="@Id" class="form-control textareaNative" style="width: 100%; user-select: none; @(SubmitButton is not null || renderBtns?.Count > 0 ? "padding-bottom: 40px;" : string.Empty)" placeholder="@Placeholder" rows="@height"></textarea>
+
+                @if (renderBtns is not null)
+                {
+                    foreach (Button btn in renderBtns)
+                    {
+                        <EdTooltip @key="@btn.EphemeralId" OnClick="@(() => btn.OnClick is not null ? btn.OnClick.Invoke() : Task.CompletedTask)" Class="textareaButtonTooltip" Text="@btn.Tooltip" Style="bottom: 10px; user-select: none; left: 15px; position: absolute; cursor: pointer;">
+                            @if (btn.Icon is not null)
+                            {
+                                <img class="textareaButtonIcon" src="/Images/Svg/@btn.Icon" ondragstart="return false;" alt="" width="24" height="24"/>
+                            }
+                            else
+                            {
+                                <span>@btn.Text</span>
+                            }
+                        </EdTooltip>
+
+                        btnsWidth += 24;
+                    }
+                }
+
+                @if (SubmitButton is not null)
+                {
+                    <EdTooltip OnClick="OnSubmitButtonClicked" Class="textareaButtonTooltip" Id="@($"{Id}_button_container")" Text="@SubmitButton.Text" Style="bottom: 10px; user-select: none; right: 15px; position: absolute; cursor: pointer;">
+                        <svg class="textareaButtonIcon @(SubmitButton.KnownIcon)" style="margin-top: auto; margin-bottom: auto; width: 18px; height: auto; " id="@(Id)_button_icon" ondragstart="return false;" alt="" height="512" viewBox="0 0 24 24" width="512" xmlns="http://www.w3.org/2000/svg">
+                            <path d="m22.1012 10.5616-19.34831-9.43824c-.1664-.08117-.34912-.12336-.53427-.12336-.67302 0-1.21862.5456-1.21862 1.21862v.03517c0 .16352.02005.32643.05971.48507l1.85597 7.42384c.05069.2028.22214.3526.42986.3757l8.15756.9064c.2829.0314.4969.2705.4969.5552s-.214.5238-.4969.5552l-8.15756.9064c-.20772.0231-.37917.1729-.42986.3757l-1.85597 7.4238c-.03966.1587-.05971.3216-.05971.4851v.0352c0 .673.5456 1.2186 1.21862 1.2186.18515 0 .36787-.0422.53427-.1234l19.34831-9.4382c.5499-.2682.8988-.8265.8988-1.4384s-.3489-1.1702-.8988-1.4384z"/>
+                        </svg>
+                    </EdTooltip>
+                }
+            </div>
+
+            break;
+        }
+    }
+</InternalEdInputRoot>

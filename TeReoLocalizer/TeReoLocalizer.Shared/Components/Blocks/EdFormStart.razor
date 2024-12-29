@@ -1,0 +1,20 @@
+@inherits TeReoLocalizer.Shared.Code.ComponentBaseEx
+@code {
+    [CascadingParameter]
+    public EdForm? Context { get; set; }
+ 
+    protected override void OnInitialized()
+    {
+        if (Context is not null)
+        {
+            Context.ContentStart = this;
+        }
+        
+        base.OnInitialized();
+    }
+}
+
+@if (Context is not null)
+{
+    <InternalEdFormSmart Owner="@Context" />
+}

@@ -12,7 +12,9 @@
       <PackageReference Include="BlazingModal" Version="1.0.7" />
       <PackageReference Include="DeepL.net" Version="1.11.0" />
       <PackageReference Include="DiffPlex" Version="1.7.2" />
-      <PackageReference Include="Json5Core" Version="1.0.10" />
+      <PackageReference Include="Enums.NET" Version="5.0.0" />
+      <PackageReference Include="Json5Core" Version="1.0.11" />
+      <PackageReference Include="Lofcz.Forks.DiffMatchPatch" Version="1.0.0" />
       <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.Highlighter" Version="4.8.0-beta00016" />
@@ -39,8 +41,10 @@
     <ItemGroup>
       <TypeScriptCompile Include="wwwroot\Scripts\nanoMcf.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\native.ts" />
+      <TypeScriptCompile Include="wwwroot\Scripts\Scoped\rte.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\Scrollbar.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\tabulator.ts" />
+      <TypeScriptCompile Include="wwwroot\Scripts\Scoped\textarea.ts" />
     </ItemGroup>
 
     <ItemGroup>

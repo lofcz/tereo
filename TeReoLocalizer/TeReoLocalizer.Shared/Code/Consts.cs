@@ -16,7 +16,7 @@ public class Config
 public class Consts
 {
     private static Config? cfg;
-    public static string Entropy { get; set; } = Code.General.IIID();
+    public static string Entropy { get; set; } = General.IIID();
     
     public static Config Cfg
     {

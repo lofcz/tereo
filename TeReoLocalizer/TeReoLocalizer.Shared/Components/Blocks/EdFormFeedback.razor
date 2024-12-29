@@ -1,0 +1,40 @@
+@inherits ComponentBaseEx
+@using TeReoLocalizer.Shared.Code
+@implements IDisposable
+@code {
+    [Parameter]
+    public TextAligns Align { get; set; } = TextAligns.Left;
+    [CascadingParameter]
+    public EdForm? Context { get; set; }
+    [Parameter]
+    public bool RenderSuccessFeedback { get; set; } = true;
+    [Parameter]
+    public bool RenderBusyFeedback { get; set; } = true;
+    [Parameter]
+    public string? InternalStyle { get; set; }
+ 
+    protected override void OnInitialized()
+    {
+        if (Context is not null)
+        {
+            Context.FormFeedback = this;
+        }
+        
+        base.OnInitialized();
+    }
+
+    public void Dispose()
+    {
+        if (Context is not null) 
+        {
+            Context.FormFeedback = null;
+        }
+    }
+}
+
+@if (Context is not null)
+{
+    <div style="@(Align is TextAligns.Center ? "display: flex; justify-content: center;" : Align == TextAligns.Right ? "display: flex; justify-content: right;" : string.Empty) @Style">
+        <InternalEdFormFeedback RenderBusyFeedback="RenderBusyFeedback" RenderSuccessFeedback="RenderSuccessFeedback" AfterSubmitValidation="Context.AfterSubmitValidation" Style="@InternalStyle" />
+    </div>
+}
