@@ -48,11 +48,12 @@ public class CmdGenerateMissingKeyValues : BaseCommand
                     {
                         currentVal = strValue;
                         adding = false;
-                        originalValues[(x.Key, keys.Key)] = strValue;
                     }
-
+                    
                     if (currentVal.IsNullOrWhiteSpace())
                     {
+                        originalValues[(x.Key, keys.Key)] = strValue ?? string.Empty;
+                        
                         if (Ctx.LangsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
                         {
                             Owner.ToTranslate.Add(new TranslateTaskInput
@@ -104,6 +105,8 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             }
         }
         
+        Owner.RecomputeVisibleInputHeights();
+        
         Owner.ToTranslate.Clear();
         Owner.Translated = 0;
         Owner.Translating = false;
@@ -126,6 +129,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             }
         }
 
+        Owner.RecomputeVisibleInputHeights();
         await Ctx.Owner.SaveLanguages();
     }
 
