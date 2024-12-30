@@ -719,6 +719,10 @@ var moduleCommonFunctions = {
             }
         }
     },
+    getElementValue: (elId) => {
+        let el = document.getElementById(elId);
+        return el?.value;
+    },
     decode: (encodedString) => {
         var txt = document.createElement("textarea");
         txt.innerHTML = encodedString;

@@ -905,6 +905,10 @@ var moduleCommonFunctions = {
             }
         }
     },
+    getElementValue: (elId) => {
+        let el = document.getElementById(elId) as HTMLInputElement;
+        return el?.value;
+    },
     /**
      * Dekóduje string
      * @param encodedString enkódovaný string

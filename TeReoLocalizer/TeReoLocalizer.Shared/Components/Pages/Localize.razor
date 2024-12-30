@@ -511,27 +511,6 @@
     {
         LangData lang = LangsData.Langs[language];
         lang.Data[key] = value;
-
-        if (Settings.AutoSave)
-        {
-            return;
-        }
-        
-        if (lang.PersistedData.TryGetValue(key, out string? persistedVal))
-        {
-            if (persistedVal == value)
-            {
-                lang.UncommitedChanges.TryRemove(key, out _);
-            }
-            else
-            {
-                lang.UncommitedChanges[key] = value;
-            }
-        }
-        else
-        {
-            lang.UncommitedChanges[key] = value;
-        }
     }
 
     public async Task SetKey(Languages language, string key, string value)
@@ -1280,14 +1259,26 @@
         }
     }
 
-    void HandleEditorClick(Languages language, string key, string value)
+    async Task HandleEditorClick(Languages language, string key, string value)
     {
+        string? freshValue = null;
+        
+        try
+        {
+            // the value reported here is possibly stale, if the value has been edited prior to clicking the RTE icon without blur event happening interim
+            freshValue = await Js.InvokeAsync<string?>("mcf.getElementValue", $"input_{language}_{key}");
+        }
+        catch (Exception e)
+        {
+            
+        }
+        
         Md.ShowModal<LocalizeKeyEditorModal>(new
         {
             Owner = this,
             Language = language,
             Key = key,
-            Value = value
+            Value = freshValue ?? value
         });
     }
 }
@@ -1441,58 +1432,6 @@
 
 @if (ready && !Consts.Cfg.Experimental)
 {
-    if (!Settings.AutoSave)
-    {
-        int uncommited = LangsData.Langs.OrderBy(y => y.Key).Where(local => local.Value.UncommitedChanges.Count > 0).Sum(local => local.Value.UncommitedChanges.Count);
-
-        if (uncommited > 0)
-        {
-            <div class="actionLink" style="margin-bottom: 10px;" @onclick="ToggleUncommitedChangesDetail">@(Settings.ShowUncommitedChangesDetail ? "\u25bc" : "\u25b6") Neuložené změny (@uncommited)</div>
-        }
-
-        if (Settings.ShowUncommitedChangesDetail)
-        {
-            <div style="max-height: 800px; overflow: auto;">
-                @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
-                {
-                    if (local.Value.UncommitedChanges.Count > 0)
-                    {
-                        <div>@local.Key</div>
-
-                        <ul>
-                            @foreach (KeyValuePair<string, string> change in local.Value.UncommitedChanges.OrderBy(x => x.Key))
-                            {
-                                <li>
-                                    @if (local.Value.PersistedData.TryGetValue(change.Key, out string? persistedVal))
-                                    {
-                                        <span>
-                                            <del>@persistedVal</del>
-                                        </span>
-                                        <span> → </span>
-                                        <span>
-                                            <ins>@change.Value</ins>
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span>Přidáno:</span>
-                                        <span>
-                                            <ins>@change.Value</ins>
-                                        </span>
-                                    }
-
-                                    <span style="margin-left: 10px;">
-                                        <button onclick="@(async () => await DiscardChange(local.Key, change.Key))" class="btn btn-danger btn-sm">Zahodit</button>
-                                    </span>
-                                </li>
-                            }
-                        </ul>
-                    }
-                }
-            </div>
-        }
-    }
-
     <div style="max-height: 800px; overflow: auto;">
         <table id="@($"table_{id}")" class="table table-sm table-bordered table-responsive tableMain tableSticky">
             <thead>
@@ -1588,7 +1527,7 @@
                                     else
                                     {
                                         <textarea style="padding-right: 20px;" lang="@langKey" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" @key="@($"input_{local.Key}_{x.Key}")" id="@($"input_{local.Key}_{x.Key}")" class="keyEditorTextarea form-control form-control-md" @onfocus="@(() => HandleKeyFocus(local.Key, x.Key, str))" @onblur="@(async () => await HandleKeyUpdate(local.Key, x.Key, str))" @bind="str" @bind:after="@(() => SetKeyValue(local.Key, x.Key, str))"></textarea>
-                                        <div @onmousedown="@(() => HandleEditorClick(local.Key, x.Key, str))" @onclick:stopPropagation="true" style="position: absolute; right: 2px; top: 2px; z-index: 10; width: 14px; height: 14px;" title="Otevřít v editoru" class="keyEditorIcon keyEditorIconElement svg-icon" >
+                                        <div @onmousedown="@(async () => await HandleEditorClick(local.Key, x.Key, str))" @onclick:stopPropagation="true" style="position: absolute; right: 2px; top: 2px; z-index: 10; width: 14px; height: 14px;" title="Otevřít v editoru" class="keyEditorIcon keyEditorIconElement svg-icon" >
                                             <svg style="vertical-align: top;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M432.4 787.2c-24.1 27.6-34.7 34.2-68.4 46.6-51.9 19.4-147 55.1-208.9 78.3-11.7 4.6-55.9 2.3-37.4-41.1 21-60.4 51.8-149.6 69.4-200.5 12.8-35.9 17.9-45.2 43.7-69.3l266.5-266.5L686 523.4C686 523.4 506.6 710.1 432.4 787.2z"  /><path d="M726.5 482.9 537.9 294.3 578.3 253.8 767 442.5Z"  /><path d="M888.3 321.2l-80.8 80.9L618.8 213.4l80.9-80.8c29.8-29.8 78-29.8 107.8 0l80.9 80.8C918.1 243.1 918.1 291.4 888.3 321.2z"  /></svg>
                                         </div>
                                     }
