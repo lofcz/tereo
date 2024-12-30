@@ -96,18 +96,22 @@ export async function Init(pars = {
             }
             const topMenuBar = document.querySelector('.topMenuBar');
             const bottomMenuBar = document.querySelector('.bottomMenuBar');
+            const contentArticle = document.querySelector('article.content');
             const tableTop = table.getBoundingClientRect().top;
             const windowHeight = window.innerHeight;
-            const offset = 0;
+            const offset = 20;
             const topMenuStyle = topMenuBar ? window.getComputedStyle(topMenuBar) : null;
             const bottomMenuStyle = bottomMenuBar ? window.getComputedStyle(bottomMenuBar) : null;
+            const contentStyle = contentArticle ? window.getComputedStyle(contentArticle) : null;
             const topMenuBarHeight = topMenuBar ? (topMenuBar.offsetHeight +
                 parseFloat(topMenuStyle?.marginTop || '0') +
                 parseFloat(topMenuStyle?.marginBottom || '0')) : 0;
             const bottomMenuBarHeight = bottomMenuBar ? (bottomMenuBar.offsetHeight +
                 parseFloat(bottomMenuStyle?.marginTop || '0') +
                 parseFloat(bottomMenuStyle?.marginBottom || '0')) : 0;
-            const calculatedHeight = windowHeight - tableTop - offset - topMenuBarHeight - bottomMenuBarHeight;
+            const contentPadding = contentArticle ? (parseFloat(contentStyle?.paddingTop || '0') +
+                parseFloat(contentStyle?.paddingBottom || '0')) : 0;
+            const calculatedHeight = windowHeight - offset - topMenuBarHeight - bottomMenuBarHeight - contentPadding;
             table.parentNode.style.maxHeight = `${calculatedHeight}px`;
         },
         setupResizeObserver: () => {

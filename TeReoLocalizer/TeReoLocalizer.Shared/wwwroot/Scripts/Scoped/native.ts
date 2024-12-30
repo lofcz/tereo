@@ -124,13 +124,15 @@ export async function Init(pars = {
             
             const topMenuBar = document.querySelector('.topMenuBar') as HTMLElement;
             const bottomMenuBar = document.querySelector('.bottomMenuBar') as HTMLElement;
+            const contentArticle = document.querySelector('article.content') as HTMLElement;
 
             const tableTop = table.getBoundingClientRect().top;
             const windowHeight = window.innerHeight;
-            const offset = 0;
+            const offset = 20;
             
             const topMenuStyle = topMenuBar ? window.getComputedStyle(topMenuBar) : null;
             const bottomMenuStyle = bottomMenuBar ? window.getComputedStyle(bottomMenuBar) : null;
+            const contentStyle = contentArticle ? window.getComputedStyle(contentArticle) : null;
             
             const topMenuBarHeight = topMenuBar ? (
                 topMenuBar.offsetHeight +
@@ -144,7 +146,13 @@ export async function Init(pars = {
                 parseFloat(bottomMenuStyle?.marginBottom || '0')
             ) : 0;
 
-            const calculatedHeight = windowHeight - tableTop - offset - topMenuBarHeight - bottomMenuBarHeight;
+            const contentPadding = contentArticle ? (
+                parseFloat(contentStyle?.paddingTop || '0') +
+                parseFloat(contentStyle?.paddingBottom || '0')
+            ) : 0;
+
+            const calculatedHeight = windowHeight - offset - topMenuBarHeight - bottomMenuBarHeight - contentPadding;
+
             (table.parentNode as HTMLElement).style.maxHeight = `${calculatedHeight}px`;
         },
         setupResizeObserver: () => {
