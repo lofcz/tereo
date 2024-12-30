@@ -602,13 +602,20 @@
                 visibleKeys.Add(x);
             }
 
-            if (Settings.RenderMode is RenderModes.Textarea)
+            RecomputeVisibleInputHeights();
+        }
+    }
+
+    public void RecomputeVisibleInputHeights()
+    {
+        if (Settings.RenderMode is RenderModes.Textarea)
+        {
+            nativeCommands.Add(new NativeCommand
             {
-                nativeCommands.Add(new NativeCommand
-                {
-                    Type = NativeCommands.SetTextareaHeight
-                });
-            }
+                Type = NativeCommands.SetTextareaHeight
+            });
+            
+            StateHasChanged();
         }
     }
 

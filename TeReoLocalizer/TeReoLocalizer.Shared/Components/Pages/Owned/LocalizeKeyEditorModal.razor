@@ -36,6 +36,7 @@
         StateHasChanged();
         
         await Owner.Execute(new CmdSetKeyValue(Language, Key, value));
+        Owner.RecomputeVisibleInputHeights();
         await Cancel();
     }
     
