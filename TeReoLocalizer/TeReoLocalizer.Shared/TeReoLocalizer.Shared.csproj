@@ -57,6 +57,12 @@
       <Content Update="Components\Shared\EdScrollbar.razor.scss">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
+      <Content Update="Components\Blocks\EdTextarea.razor.scss">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </Content>
+      <Content Update="Components\Blocks\EdTip.razor.scss">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </Content>
     </ItemGroup>
 
     <ItemGroup>

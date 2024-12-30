@@ -322,6 +322,7 @@ public class UserSettings
     public KeySearchModes KeySearchMode { get; set; } = KeySearchModes.Contains;
     public Languages? KeySearchLang { get; set; }
     public bool AutoSave { get; set; } = true;
+    public bool DisableTips { get; set; }
         
     // dynamic
     [JsonIgnore]

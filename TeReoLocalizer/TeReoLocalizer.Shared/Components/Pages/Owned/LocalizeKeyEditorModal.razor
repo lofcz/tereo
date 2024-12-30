@@ -1,0 +1,60 @@
+@using TeReoLocalizer.Annotations
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Commands
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public Languages Language { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [Parameter]
+    public string Key { get; set; }
+    [Parameter]
+    public string Value { get; set; }
+    [CascadingParameter] 
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
+    
+    bool submitting;
+    double percentCompleted;
+    string value;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        value = Value;
+    }
+
+    async Task Submit()
+    {
+        if (submitting)
+        {
+            return;
+        }
+        
+        submitting = true;
+        StateHasChanged();
+        
+        await Owner.Execute(new CmdSetKeyValue(Language, Key, value));
+        await Cancel();
+    }
+    
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
+}
+
+<EdModal Title="@($"<span style=\"display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\">Editor klíče <code>{Language}</code>/<code>{Key}</code></span>")">
+    <EdTextarea @bind-Value="value" Type="TextareaTypes.RTE" />
+    
+    @if (!Owner.Settings.DisableTips)
+    {
+        <EdTip>Pro zobrazení nástrojů vyberte text.</EdTip>    
+    }
+    
+    <EdButtonsContainer Style="gap: 10px;">
+        <EdButton Disabled="submitting" Size="ButtonSizes.Medium" OnClick="Submit">Uložit</EdButton>
+        <EdButton Disabled="submitting" Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" Fill="ButtonFillModes.Outline" OnClick="Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>

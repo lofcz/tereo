@@ -60,7 +60,7 @@ export async function Init(pars = {
     type: TextareaTypes.Native
 }) {
     var el = document.getElementById(pars.id);
-    await mcf.requireLibArrAsync(["react", "react-dom", "tiptap-island"]);
+    await mcf.requireLibArrAsync(["react", "react-dom", "tiptap-island", "diffpatch_full"]);
     await mcf.requireCssAsync("tiptap-island");
     window[`textareaApi_${pars.id}`] = {
         dispose: () => {
@@ -85,10 +85,7 @@ export async function Init(pars = {
             }
         },
         getValue: () => {
-            if (!window[`textareaApi_${pars.id}`].el) {
-                return "";
-            }
-            return window[`textareaApi_${pars.id}`].el.value;
+            return window[`textareaApi_${pars.id}`].lastVal;
         },
         editor: null,
         el: el,
@@ -109,20 +106,18 @@ export async function Init(pars = {
         storeDiff: (oldText, newText, callback = (patchObj) => { }) => {
             window[`textareaApi_${pars.id}`].msgCounter++;
             var msgIndex = window[`textareaApi_${pars.id}`].msgCounter;
-            mcf.requireLib("diffpatch_full", () => {
-                if (!window[`textareaApi_${pars.id}`].differ) {
-                    window[`textareaApi_${pars.id}`].differ = new window["diff_match_patch"]();
-                }
-                var diff = window[`textareaApi_${pars.id}`].differ;
-                var patch = diff.patch_make(oldText || "", newText || "");
-                var patchText = diff.patch_toText(patch);
-                var patchObj = {
-                    id: msgIndex,
-                    content: patchText
-                };
-                window[`textareaApi_${pars.id}`].diffs.push(patchObj);
-                callback(patchObj);
-            });
+            if (!window[`textareaApi_${pars.id}`].differ) {
+                window[`textareaApi_${pars.id}`].differ = new window["diff_match_patch"]();
+            }
+            var diff = window[`textareaApi_${pars.id}`].differ;
+            var patch = diff.patch_make(oldText || "", newText || "");
+            var patchText = diff.patch_toText(patch);
+            var patchObj = {
+                id: msgIndex,
+                content: patchText
+            };
+            window[`textareaApi_${pars.id}`].diffs.push(patchObj);
+            callback(patchObj);
         },
         restoreBookmark: (bookmark) => {
             window[`textareaApi_${pars.id}`].el.selectionStart = bookmark.start;

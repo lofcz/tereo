@@ -1,0 +1,9 @@
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
+
+<div class="lightbulbContainer alert alert-warning" role="alert">
+    <img class="lightbulbIcon" ondragstart="return false;" src="/Images/Svg/lightbulb.svg" width="24" height="24" />
+    <div class="lightbulbText">@ChildContent</div>
+</div>

@@ -636,7 +636,7 @@
     {
         case TextareaTypes.RTE:
         {
-            <div style="border: 1px solid black;" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" autocomplete="@(Autocomplete ? "on" : AutocompleteHtmlAttrValue)" class="rteTextarea @height @(RteConfig is not null && RteConfig.Mode != RteConfigModes.Default ? "textareaInline" : "") @(Headless ? "headless" : "")" id="@Id" placeholder="@Placeholder"></div>
+            <div data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" autocomplete="@(Autocomplete ? "on" : AutocompleteHtmlAttrValue)" class="rteTextarea tiptap @height @(RteConfig is not null && RteConfig.Mode != RteConfigModes.Default ? "textareaInline" : "") @(Headless ? "headless" : "")" id="@Id" placeholder="@Placeholder"></div>
             break;
         }
         case TextareaTypes.Native:
