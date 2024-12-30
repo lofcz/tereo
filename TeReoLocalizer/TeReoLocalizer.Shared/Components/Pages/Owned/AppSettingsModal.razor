@@ -1,6 +1,4 @@
-@using BlazingModal
 @using TeReoLocalizer.Shared.Code
-@using TeReoLocalizer.Shared.Code.Services
 @inject IJSRuntime Js
 @code {
     [Parameter]
@@ -9,7 +7,15 @@
     public Localize Owner { get; set; }
     [CascadingParameter] 
     BlazingModalInstance BlazoredModal { get; set; } = default!;
+
+    UserSettings settings = new UserSettings();
     
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        settings = Owner.Settings.DeepClone();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -17,6 +23,7 @@
 
     async Task Submit()
     {
+        Owner.Settings = settings;
         await Owner.SaveUserSettings();
         await Cancel();
     }
@@ -30,8 +37,8 @@
 <EdModal Title="Nastavení aplikace">
     <div style="margin-bottom: 1rem;">
         <div class="form-check">
-            <input style="cursor: pointer;" @bind="Owner.Settings.AutoSave" class="form-check-input" type="checkbox" id="autosave"/>
-            <label style="cursor: pointer; user-select: none;" class="form-check-label" for="autosave">Automaticky ukládat změny</label>
+            <input style="cursor: pointer;" @bind="settings.DisableTips" class="form-check-input" type="checkbox" id="autosave"/>
+            <label style="cursor: pointer; user-select: none;" class="form-check-label" for="autosave">Vypnout tipy v aplikaci</label>
         </div>
     </div>
     
