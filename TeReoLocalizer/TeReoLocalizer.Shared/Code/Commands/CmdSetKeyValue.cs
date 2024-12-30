@@ -58,19 +58,21 @@ public class CmdSetKeyValue : BaseCommand
                 OldValue = originalValue;
             }
         }
+        
+        Owner.RecomputeVisibleKeys();
 
         if (translationMode is TranslationModes.Default)
         {
-            await Ctx.Owner.SaveLanguage(Language);
+            await Owner.SaveLanguage(Language);
         }
         else
         {
-            foreach (KeyValuePair<Languages, LangData> x in Ctx.LangsData.Langs.Where(x => x.Key != Language))
+            foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs.Where(x => x.Key != Language))
             {
                 x.Value.Data.TryRemove(Key, out _);
             }
 
-            await Ctx.Owner.SaveLanguages();
+            await Owner.SaveLanguages();
         }
         
         return new DataOrException<bool>(true);
@@ -93,13 +95,15 @@ public class CmdSetKeyValue : BaseCommand
             }
         }
         
+        Owner.RecomputeVisibleInputHeights();
+        
         if (translationMode is TranslationModes.Default)
         {
-            await Ctx.Owner.SaveLanguage(Language);
+            await Owner.SaveLanguage(Language);
         }
         else
         {
-            await Ctx.Owner.SaveLanguages();
+            await Owner.SaveLanguages();
         }
     }
 
@@ -108,7 +112,6 @@ public class CmdSetKeyValue : BaseCommand
         if (Diff is not null)
         {
             StringBuilder output = new StringBuilder();
-            int posOld = 0;
             int posNew = 0;
 
             foreach (DiffBlock? block in Diff.DiffBlocks)
@@ -138,8 +141,7 @@ public class CmdSetKeyValue : BaseCommand
                     }
                     output.Append("</ins>");
                 }
-
-                posOld = block.DeleteStartA + block.DeleteCountA;
+                
                 posNew = block.InsertStartB + block.InsertCountB;
             }
             
