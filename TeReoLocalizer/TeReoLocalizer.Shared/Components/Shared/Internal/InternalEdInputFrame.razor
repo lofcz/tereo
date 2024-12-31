@@ -1,0 +1,20 @@
+@using TeReoLocalizer.Shared.Code
+@inherits RowChildComponent
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public LabelPositions LabelPosition { get; set; }
+}
+
+@if (LabelPosition is LabelPositions.Before or LabelPositions.After)
+{
+    <div class="form-row">
+        @ChildContent
+    </div>
+}
+else
+{
+    @ChildContent
+}

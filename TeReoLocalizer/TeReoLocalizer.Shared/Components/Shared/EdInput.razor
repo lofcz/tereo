@@ -1,0 +1,367 @@
+@using System.Globalization
+@using TeReoLocalizer.Shared.Code
+@typeparam TValue
+@inherits ValidationComponent<TValue>
+@inject IJSRuntime Js
+@inject NavigationManager NavMgr
+@code {
+    [Parameter]
+    public InputTypes Type { get; set; } = InputTypes.Text;
+    [Parameter]
+    public string InputClass { get; set; }
+    [Parameter]
+    public string? InputStyle { get; set; }
+    [Parameter]
+    public int? MinValue { get; set; }
+    [Parameter]
+    public int? MaxValue { get; set; }
+    [Parameter]
+    public bool EnableHints { get; set; }
+    [Parameter]
+    public List<ISelectOption>? Hints { get; set; }
+    [Parameter]
+    public EventCallback<ISelectOption> OnHintSelected { get; set; }
+    [Parameter]
+    public HintFetchUrls? HintsFetchUrl { get; set; }
+
+    bool isDirty = false;
+    string rawVal;
+    DotNetObjectReference<EdInput<TValue>>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+    IJSObjectReference? JsObjectRefAutocomplete;
+    
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Nm = NavMgr;
+        
+        try
+        {
+            JsRef = DotNetObjectReference.Create(this);
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }    
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (!isDirty)
+        {
+            rawVal = Value?.ToString() ?? string.Empty;
+        }
+
+        isDirty = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/input.js");
+                await InitJsModule();
+
+                if (EnableHints)
+                {
+                    JsObjectRefAutocomplete = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/autocomplete.js");
+                    await InitAutocompleteInput();
+                    
+                    if (JsObjectRefAutocomplete is not null)
+                    {
+                        await JsObjectRefAutocomplete.InvokeVoidAsync("UpdateAutocompleteList", new
+                        {
+                            net = JsRef,
+                            id = Id,
+                            list = Hints
+                        });
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
+    }
+
+    public async Task UpdateHints()
+    {
+        if (JsObjectRefAutocomplete is not null)
+        {
+            try
+            {
+                await JsObjectRefAutocomplete.InvokeVoidAsync("UpdateAutocompleteList", new
+                {
+                    net = JsRef,
+                    id = Id,
+                    list = Hints
+                });
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
+    }
+    
+    async Task InitAutocompleteInput()
+    {
+        if (JsObjectRefAutocomplete is not null)
+        {
+            await JsObjectRefAutocomplete.InvokeVoidAsync("Init", new
+            {
+                id = Id,
+                net = JsRef,
+                source = HintsFetchUrl?.GetStringValue()
+            });
+        }
+    }
+    
+    async Task InitJsModule()
+    {
+        if (JsObjectRef is null)
+        {
+            return;
+        }
+        
+        await JsObjectRef.InvokeVoidAsync("Init", new
+        {
+            id = Id,
+            net = JsRef,
+            hintsEnabled = EnableHints
+        });
+    }
+    
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        
+        try
+        {
+            if (JsObjectRef is not null)
+            {
+                await JsObjectRef.InvokeVoidAsync("Destroy", new
+                {
+                    id = Id
+                });
+            }
+            
+            if (JsObjectRefAutocomplete is not null)
+            {
+                await JsObjectRefAutocomplete.InvokeVoidAsync("Dispose", new
+                {
+                    id = Id
+                });
+            }
+            
+            JsObjectRef?.DisposeAsync();
+            JsObjectRefAutocomplete?.DisposeAsync();
+            JsRef?.Dispose();
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }
+    
+    private async Task OnInput(string? value)
+    {
+        bool solved = false;
+        
+        switch (Value)
+        {
+            case int:
+            {
+                if (int.TryParse(value, CultureInfo.InvariantCulture, out int intVal))
+                {
+                    Value = (TValue)(dynamic)intVal;
+                    Clamp();
+                    solved = true;
+                }
+                break;
+            }
+            case double:
+            {
+                if (double.TryParse(value, CultureInfo.InvariantCulture, out double intVal))
+                {
+                    Value = (TValue)(dynamic)intVal;
+                    Clamp();
+                    solved = true;
+                }
+                break;
+            }
+            case float:
+            {
+                if (float.TryParse(value, CultureInfo.InvariantCulture, out float intVal))
+                {
+                    Value = (TValue)(dynamic)intVal;
+                    Clamp();
+                    solved = true;
+                }
+                break;
+            }
+            case string:
+                Value = (TValue?)(dynamic?)value;
+                solved = true;
+                break;
+        }
+
+        if (!solved) // when Value is null
+        {
+            if (typeof(TValue) == typeof(int) || typeof(TValue) == typeof(int?))
+            {
+                if (int.TryParse(value, CultureInfo.InvariantCulture, out int intVal))
+                {
+                    Value = (TValue)(dynamic)intVal;
+                    Clamp();
+                }
+            }
+            else if (typeof(TValue) == typeof(double) || typeof(TValue) == typeof(double?))
+            {
+                if (double.TryParse(value, CultureInfo.InvariantCulture, out double intVal))
+                {
+                    Value = (TValue)(dynamic)intVal;
+                    Clamp();
+                }
+            }
+            else if (typeof(TValue) == typeof(float) || typeof(TValue) == typeof(float?))
+            {
+                if (float.TryParse(value, CultureInfo.InvariantCulture, out float intVal))
+                {
+                    Value = (TValue)(dynamic)intVal;
+                    Clamp();
+                }
+            }
+            else if (typeof(TValue) == typeof(string))
+            {
+                Value = (TValue?)(dynamic?)value;
+            }
+        }
+
+        isDirty = true;
+        rawVal = Value?.ToString() ?? string.Empty;
+        
+        // async logic can only be placed after we set the value
+        await OnInputUpdate();
+
+        void Clamp()
+        {
+            if (Value is not null)
+            {
+                switch (Type)
+                {
+                    case InputTypes.Number when MinValue is not null && MaxValue is not null:
+                        Value = (TValue)(dynamic)Math.Clamp((double)(dynamic)Value, (double)MinValue, (double)MaxValue);
+                        break;
+                    case InputTypes.Number when MinValue is not null:
+                    {
+                        double val = (double)(dynamic)Value;
+
+                        if (val < MinValue)
+                        {
+                            Value = (TValue)(dynamic)MinValue;
+                        }
+                        break;
+                    }
+                    case InputTypes.Number when MaxValue is not null:
+                    {
+                        double val = (double)(dynamic)Value;
+
+                        if (val > MaxValue)
+                        {
+                            Value = (TValue)(dynamic)MaxValue;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    [JSInvokable]
+    public async Task OptionSelected(string value)
+    {
+        NativeSelectOption? option = value.JsonDecode<NativeSelectOption>();
+        
+        if (option is not null)
+        {
+            if (OnHintSelected.HasDelegate)
+            {
+                await OnHintSelected.InvokeAsync(option);
+            }
+        }
+    }
+
+    private async Task OnInputUpdate()
+    {
+        await ValueChanged.InvokeAsync(Value);
+        await RunValidations(ValidationEvents.OnInput);
+
+        if (OnUpdate is not null)
+        {
+            await OnUpdate.Invoke(this);
+        }
+        
+        if (OnFormUpdate is not null && TaskAggregator is null or {AllCompleted: true })
+        {
+            await OnFormUpdate.Invoke(new FormUpdateArgs(this, Value));
+        }
+    }
+    
+    private async Task OnInputChange()
+    {
+        if (!(Value?.ToString() ?? "").IsNullOrWhiteSpace())
+        {
+            await RunValidations(ValidationEvents.OnChange);
+        }
+    }
+    
+    private string AutocompleteHtmlAttrValue { get; set; }
+    
+    protected override Task OnInitializedAsync()
+    {
+        if (!Autocomplete)
+        {
+            AutocompleteHtmlAttrValue = Type switch
+            {
+                InputTypes.Email => "new-email",
+                InputTypes.Password => "new-password",
+                InputTypes.Text => "new-text",
+                _ => "off"
+            };
+        }
+        
+        return base.OnInitializedAsync();
+    }
+    
+    [JSInvokable]
+    public override async Task AttemptSubmitJs()
+    {
+        bool continueSubmit = OnSubmit is null || await OnSubmit.Invoke();
+
+        if (continueSubmit)
+        {
+            await Submit();   
+        }
+    }   
+
+    [JSInvokable]
+    public async Task SubmitJs()
+    {
+        if (Context is not null)
+        {
+            await Context.Submit();
+        }
+    }
+}
+
+<InternalEdInputRoot Owner="this">
+    <div style="position: relative;">
+        <input attr-instid="@Id" disabled="@Disabled" min="@MinValue" max="@MaxValue" autocomplete="@(Autocomplete ? "on" : AutocompleteHtmlAttrValue)" @bind:set="OnInput" @bind:get="rawVal" @bind:event="oninput" type="@Type" class="form-control @InputClass @(EnableHints ? "form-control-autocomplete hints-form-control" : string.Empty)" id="@Id" placeholder="@Placeholder" style="@InputStyle" @onblur="OnInputChange"/>
+    </div>
+</InternalEdInputRoot>

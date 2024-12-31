@@ -1,0 +1,26 @@
+@using TeReoLocalizer.Shared.Code
+@code {
+    [Parameter]
+    public IValidationComponent? Owner { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
+
+@if (Owner is not null)
+{
+    <InternalEdRowFrame Owner="Owner">
+        <div class="@Owner.SerializeRow()" style="@(Owner.TextAlign != TextAligns.Inherit ? $"text-align: {Owner.TextAlign.GetStringValue()}" : "") @Owner.Style">
+            <InternalEdInputFrame LabelPosition="Owner.ComputedLabelPosition">
+                @if (Owner.RenderLabel)
+                {
+                    <InternalEdInputLabel Style="@Owner.LabelStyle" Owner="Owner" DecorateLabel="Owner.DecorateLabel" TValue="string" For="@Owner.Id" ForceRender="Owner.ForceRenderLabel" Label="@Owner.Label" LabelPosition="Owner.ComputedLabelPosition" LabelSize="Owner.ComputedLabelSize"/>
+                }
+                 
+                <div class="@Owner.ComputedInputSize">
+                    @ChildContent
+                    <span style="@(Owner.RenderValidation ? "" : "display: none")" class="text-danger field-validation-error">@Owner.ValidationMsg</span>
+                </div>
+            </InternalEdInputFrame>
+        </div>
+    </InternalEdRowFrame>
+}

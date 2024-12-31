@@ -1,0 +1,117 @@
+@typeparam TValue
+@using TeReoLocalizer.Shared.Code
+@inherits RowChildComponent
+
+@code {
+    [Parameter]
+    public string? For { get; set; }
+    [Parameter]
+    public string? Label { get; set; }
+    [Parameter]
+    public HorizontalPositions HorizontalPosition { get; set; }
+    [Parameter]
+    public bool ForceRender { get; set; }
+    [Parameter]
+    public bool Render { get; set; } = true;
+    [Parameter]
+    public LabelPositions LabelPosition { get; set; } = LabelPositions.Above;
+    [Parameter]
+    public FlexColumns? LabelSize { get; set; }
+    [Parameter]
+    public bool DecorateLabel { get; set; } = false;
+    [Parameter]
+    public List<LabelTool>? Tools { get; set; }
+    [Parameter]
+    public IInputComponent? Owner { get; set; }
+    [Parameter]
+    public bool MarginBottom { get; set; } = true;
+    
+    [CascadingParameter]
+    public ValidationComponent<TValue>? Context { get; set; }
+
+    private bool IsLg = true;
+   
+    MarkupString GetLabel()
+    {
+        if (!Label.IsNullOrWhiteSpace())
+        {
+            string? str = DecorateLabel ? LabelPosition == LabelPositions.Before ? $"{Label}:" : Label : Label;
+            
+            return (MarkupString)(str ?? "");
+        }
+
+        if (ForceRender && IsLg)
+        {
+            return (MarkupString) "&nbsp;";
+        }
+        
+        return (MarkupString)string.Empty;
+    }
+
+    bool LabelShouldRender => (IsLg || !Label.IsNullOrWhiteSpace()) && Render;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Tools is not null && Owner is not null)
+        {
+            foreach (LabelTool tool in Tools)
+            {
+                LabelToolRender result = await tool.Render(Owner);
+                tool.LastRenderResult = result;
+            }   
+        }
+    }
+
+    async Task HandleToolClick(LabelTool tool)
+    {
+        if (Owner is not null)
+        {
+            bool render = await tool.OnClick(Owner);
+
+            if (render)
+            {
+                StateHasChanged();
+            }
+        }
+    }
+}
+
+@if (LabelShouldRender)
+{
+    <div style="display: flex; gap: 15px; margin-inline: 6px; @(MarginBottom ? "margin-bottom: 0.25em;" : string.Empty)">
+        <label for="@For" class="@(LabelPosition is LabelPositions.Before or LabelPositions.After ? $"{LabelSize?.Serialize()}" : string.Empty) @(Context?.GetType() == typeof(EdCheckbox) ? "custom-control-label" : "form-label")" style="user-select: none; cursor: pointer; margin-top: auto; margin-bottom: auto; font-weight: 500; @(HorizontalPosition is HorizontalPositions.Center ? "width: 100%; text-align: center;" : string.Empty) @(Context is ISelectInput ? "padding: 0;" : string.Empty) @Style">
+            <span>@GetLabel()</span>
+            
+            @if (DecorateLabel)
+            {
+                <span style="color: #FF4136;" title="Povinné">*</span>
+            }
+        </label>
+        
+        @if (Tools is not null && Tools.Count > 0)
+        {
+            <div style="display: flex; margin-top: auto; margin-bottom: auto; gap: 10px;">
+                @foreach (LabelTool tool in Tools)
+                {
+                    if (tool.LastRenderResult is not null)
+                    {
+                        LabelToolRender render = tool.LastRenderResult;
+
+                        <EdTooltip Text="@render.Tooltip" OnClick="@(async () => await HandleToolClick(tool))">
+                            @if (render.Icon is null && !render.Text.IsNullOrWhiteSpace())
+                             {
+                                 <div style="cursor: pointer;">@render.Text</div>
+                             }
+                             else if (render.Icon is not null)
+                             {
+                                 <div class="iconContainer">
+                                     <EdIcon Icon="@render.Icon" Style="margin: auto; position: relative; left: 3px; top: -2px;" Width="15" />
+                                 </div>
+                             }
+                        </EdTooltip>
+                    }
+                }
+            </div>
+        }
+    </div>    
+}

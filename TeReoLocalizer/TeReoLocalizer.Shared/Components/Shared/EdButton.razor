@@ -1,7 +1,7 @@
-@using TeReoLocalizer.Shared.Code
-@inherits ComponentBaseEx
 @implements IAsyncDisposable
 @inject IJSRuntime Js
+@using TeReoLocalizer.Shared.Code
+@inherits AuthComponent
 @code {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -16,7 +16,7 @@
     [Parameter]
     public ButtonFillModes Fill { get; set; } = ButtonFillModes.Fill;
     [Parameter]
-    public ButtonSizes Size { get; set; } = ButtonSizes.Medium;
+    public ButtonSizes Size { get; set; } = ButtonSizes.MediumFixed;
     [Parameter]
     public string? Href { get; set; }
     [Parameter]
@@ -36,6 +36,8 @@
 
     [CascadingParameter]
     public Func<Task<bool>>? BeforeSubmit { get; set; }
+    [CascadingParameter]
+    public EdForm? Context { get; set; }
     [CascadingParameter(Name = "ModalRef")]
     public EdModal? ModalContext { get; set; }
     [CascadingParameter(Name = "ButtonsContainer")]
@@ -45,26 +47,77 @@
     DotNetObjectReference<EdButton>? JsRef { get; set; }
     IJSObjectReference? JsObjectRef;
     
-    bool IsDisabled => Disabled || FormIsSubmitting;
-
-    string ComputeClass()
+    protected override void OnInitialized()
     {
-        return $"btn {Size.GetStringValue()} btn-{(Design.GetStringValue())}";
+        base.OnInitialized();
+        Context?.OwnedButtons.Add(this);
+        
+        if (TooltipFn is not null)
+        {
+            JsRef = DotNetObjectReference.Create(this);   
+        }
     }
     
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+    }
+
     public void SetFormIsSubmitting(bool inProgress)
     {
         FormIsSubmitting = inProgress;
         StateHasChanged();
     }
     
+    bool IsDisabled => Disabled || FormIsSubmitting;
+
+    string ComputeClass()
+    {
+        return $"btn {Size.GetStringValue()} btn-{(Design.GetStringValue())} {(Disabled ? "disabled" : string.Empty)} {Class}";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (TooltipFn is not null && firstRender)
+        {
+            JsObjectRef = await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/tooltip.js");
+            await JsObjectRef.InvokeVoidAsync("Init", new
+            {
+                id = Id,
+                net = JsRef
+            });
+        }
+        
+        await base.OnAfterRenderAsync(firstRender);
+    }
+    
+    [JSInvokable]
+    public async Task<string> GetTooltipContent()
+    {
+        if (TooltipFn is not null)
+        {
+            return await TooltipFn.Invoke();
+        }
+
+        return "[funkce GetTooltipContent nemá implementaci]";
+    }
+
     async Task HandleClick()
     {
-        await OnClick.InvokeAsync();
+        if (Type is ButtonTypes.Submit && Context is not null)
+        {
+            await Context.Submit(this);
+        } 
+        else 
+        {
+            await OnClick.InvokeAsync();
+        } 
     }
 
     public async ValueTask DisposeAsync()
     {
+        Context?.OwnedButtons.Remove(this);
+        
         if (JsObjectRef is not null)
         {
             try
@@ -82,6 +135,20 @@
 
 }
 
+@if (EnableFeedback && Context is {FormFeedback: null })
+{
+    <InternalEdFormFeedback AfterSubmitValidation="Context.AfterSubmitValidation" />
+}
+
 <div style="display: inline-grid; @ContainerStyle" class="btnBase">
-    <button id="@Id" @onclick="HandleClick" class="@(ComputeClass())" disabled="@IsDisabled">@ChildContent</button>
+    @if (Href.IsNullOrWhiteSpace())
+    {
+        <button style="@Style" id="@Id" @onclick="HandleClick" class="@(ComputeClass())" disabled="@IsDisabled">@ChildContent</button>
+    }
+    else
+    {
+        <a style="@Style" id="@Id" href="@Href" @onclick="HandleClick" class="@(ComputeClass()) btnA" disabled="@IsDisabled">
+            <span class="btnAContent">@ChildContent</span>
+        </a>
+    }
 </div>

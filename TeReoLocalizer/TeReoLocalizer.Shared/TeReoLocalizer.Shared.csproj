@@ -40,6 +40,7 @@
 
     <ItemGroup>
       <TypeScriptCompile Include="wwwroot\Scripts\nanoMcf.ts" />
+      <TypeScriptCompile Include="wwwroot\Scripts\Scoped\input.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\native.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\rte.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\Scrollbar.ts" />
@@ -57,10 +58,10 @@
       <Content Update="Components\Shared\EdScrollbar.razor.scss">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
-      <Content Update="Components\Blocks\EdTextarea.razor.scss">
+      <Content Update="Components\Pages\Owned\AppSettingsModal.razor.scss">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
-      <Content Update="Components\Blocks\EdTip.razor.scss">
+      <Content Update="Components\Blocks\Internal\InternalEdInputLabel.razor.scss">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
     </ItemGroup>

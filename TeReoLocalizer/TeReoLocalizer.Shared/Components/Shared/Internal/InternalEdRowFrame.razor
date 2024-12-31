@@ -1,0 +1,23 @@
+@using TeReoLocalizer.Shared.Code
+@inherits RowChildComponent
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public FlexColumns? ForceShape { get; set; }
+    [Parameter]
+    public bool Render { get; set; } = true;
+    [Parameter]
+    public IValidationComponent? Owner { get; set; }
+}
+
+@if (EdRowShape is null && ForceShape is null && Render)
+{
+    <div class="row @(Owner?.Class) @Class" style="@Style">
+        @ChildContent
+    </div>
+}
+else
+{
+    @ChildContent
+}

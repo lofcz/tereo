@@ -43,6 +43,21 @@ public class TranslateTaskInput
     public KeyValuePair<string, Key> Key { get; set; }
 }
 
+public class ProjectSettings
+{
+    public TranslationProviders TranslationProviders { get; set; } = new TranslationProviders();
+}
+
+public class TranslationProviders
+{
+    public TranslationProviderDeeplL DeepL { get; set; } = new TranslationProviderDeeplL();
+}
+
+public class TranslationProviderDeeplL
+{
+    public string? Context { get; set; }
+}
+
 public class Project
 {
     public static readonly int LatestVersionMajor = 1;
@@ -53,6 +68,7 @@ public class Project
 
     public string SchemaVersion { get; set; } = LatestVersion;
     public List<Decl> Decls { get; set; } = [];
+    public ProjectSettings Settings { get; set; } = new ProjectSettings();
 
     public bool NeedsUpgrade => VersionMajor < LatestVersionMajor || VersionMinor < LatestVersionMinor || VersionPatch < LatestVersionPatch;
     

@@ -1,0 +1,14 @@
+::deep .iconContainer {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.17);
+  cursor: pointer;
+}
+
+.iconContainer:hover {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  filter: brightness(1.1);
+}
+
+/*# sourceMappingURL=InternalEdInputLabel.razor.css.map */

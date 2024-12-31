@@ -70,7 +70,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
 
             TextTranslateOptions opts = new TextTranslateOptions
             {
-                Context = "Aplikace pro přípravu podkladů na vyučovací hodiny",
+                Context = Project.Settings.TranslationProviders.DeepL.Context,
                 TagHandling = "xml"
             };
             opts.IgnoreTags.Add("ignore");

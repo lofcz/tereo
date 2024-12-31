@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using Newtonsoft.Json;
-using TeReoLocalizer.Shared.Components.Blocks;
+using TeReoLocalizer.Shared.Components.Shared;
+using TeReoLocalizer.Shared.Components.Shared.Internal;
 
 namespace TeReoLocalizer.Shared.Code;
 
@@ -1221,4 +1222,33 @@ public enum ClientTransferProtocols
     Unknown,
     Plaintext,
     Patch
+}
+
+public enum HorizontalPositions
+{
+    Left,
+    Center,
+    Right
+}
+
+public enum InputTypes
+{
+    Text,
+    Number,
+    Email,
+    Password,
+    Search,
+    Date
+}
+
+public enum HintFetchUrls
+{
+    Unknown
+}
+
+public enum CheckboxAlignments
+{
+    Default,
+    [StringValue("checkboxAlignTop")]
+    Top
 }

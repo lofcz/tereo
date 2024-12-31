@@ -169,3 +169,24 @@ ins {
 .ProseMirror {
     min-height: 150px;
 }
+
+
+.nav-pills .nav-link {
+    text-align: left;
+}
+
+[data-bs-theme="dark"] {
+    .nav-pills .nav-link {
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    .nav-pills .nav-link:hover {
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-pills .nav-link.active {
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.17);
+    }
+}
