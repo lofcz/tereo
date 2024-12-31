@@ -1,0 +1,41 @@
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Commands
+@inject IJSRuntime Js
+@code {
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
+
+    DeclSettings settings = new DeclSettings();
+    
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        settings = Owner.Decl.Settings.DeepClone();
+    }
+
+    async Task<FormResult> Submit()
+    {
+        await Owner.Execute(new CmdUpdateGroupSettings(settings));
+        await Cancel();
+        return new FormResult(true);
+    }
+   
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
+}
+
+<EdModal Title="@($"Nastavení skupiny <code>{Owner.Decl.Name}</code>")">
+    <EdForm OnSubmit="Submit">
+        <EdCheckbox Label="Generovat kód C#" @bind-Value="settings.Codegen.Backend" />
+        <EdCheckbox Label="Generovat kód JS" @bind-Value="settings.Codegen.Frontend" />
+        <EdButtonsContainer>
+            <EdButton Size="ButtonSizes.Medium" Type="ButtonTypes.Submit">Uložit</EdButton>
+            <EdButton Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" Fill="ButtonFillModes.Outline" OnClick="Cancel">Zrušit</EdButton>
+        </EdButtonsContainer>
+        <EdFormFeedback/>
+    </EdForm>
+</EdModal>

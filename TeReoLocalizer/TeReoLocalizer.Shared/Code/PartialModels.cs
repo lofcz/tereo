@@ -266,6 +266,19 @@ public class Decl
     public string? Name { get; set; }
     [JsonConverter(typeof(SortedDictionaryConverter<string, Key>))]
     public ConcurrentDictionary<string, Key> Keys { get; set; } = [];
+
+    public DeclSettings Settings { get; set; } = new DeclSettings();
+}
+
+public class DeclSettings
+{
+    public DeclSettingsCodegen Codegen { get; set; } = new DeclSettingsCodegen();
+}
+
+public class DeclSettingsCodegen
+{
+    public bool Frontend { get; set; }
+    public bool Backend { get; set; } = true;
 }
 
 public class LangsData

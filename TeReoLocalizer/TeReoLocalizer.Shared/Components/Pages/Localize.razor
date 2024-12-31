@@ -936,7 +936,17 @@
         await File.WriteAllTextAsync($"{basePath}\\TeReo\\userSettings.json", Settings.ToJson());
     }
 
-    async Task RenameDecl()
+    Task EditDecl()
+    {
+        Md.ShowModal<LocalizeGroupSettingsModal>(new
+        {
+            Owner = this
+        });
+        
+        return Task.CompletedTask;
+    }
+
+    Task RenameDecl()
     {
         Md.ShowPromptModal($"Nový název skupiny {Decl.Name}", string.Empty, async (str) =>
         {
@@ -949,6 +959,8 @@
             
             StateHasChanged();
         }, defaultText: Decl.Name.IsNullOrWhiteSpace() ? string.Empty : Decl.Name);
+
+        return Task.CompletedTask;
     }
 
     Task AddDecl()
@@ -1568,6 +1580,7 @@
                     <div style="display: flex; flex-flow: wrap; gap: 5px; margin-bottom: 5px;">
                         <button class="@($"btn btn-sm btn-secondary")" @onclick="RenameDecl">Přejmenovat skupinu</button>
                         <button class="@($"btn btn-sm btn-secondary")" @onclick="AddDecl">Přidat skupinu</button>
+                        <button class="@($"btn btn-sm btn-secondary")" @onclick="EditDecl">Upravit skupinu</button>
                         <button class="@($"btn btn-sm btn-danger")" @onclick="DeleteDecl">Odstranit skupinu</button>
                     </div>   
                 }
