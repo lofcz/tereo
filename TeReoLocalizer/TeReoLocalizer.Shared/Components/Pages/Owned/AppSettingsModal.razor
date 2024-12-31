@@ -73,12 +73,13 @@
             </div>
             <div class="tab-pane" id="v-pills-settings" role="tabpanel">
                 <EdForm OnSubmit="SubmitProject">
-                    <EdTextarea Type="TextareaTypes.NativeLargeText" @bind-Value="projectSettings.TranslationProviders.DeepL.Context" Label="Kontext DeepL" />
+                    <EdInput Label="Jmenný prostor" @bind-Value="projectSettings.Codegen.Namespace" />
+                    <EdTextarea Type="TextareaTypes.NativeLargeText" @bind-Value="projectSettings.TranslationProviders.DeepL.Context" Label="Kontext DeepL"/>
                     <EdButtonsContainer>
                         <EdButton Type="ButtonTypes.Submit">Uložit</EdButton>
                         <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
                     </EdButtonsContainer>
-                    <EdFormFeedback />
+                    <EdFormFeedback/>
                 </EdForm>
             </div>
         </div>

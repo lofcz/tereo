@@ -43,8 +43,14 @@ public class TranslateTaskInput
     public KeyValuePair<string, Key> Key { get; set; }
 }
 
+public class CodegenSettings
+{
+    public string Namespace { get; set; }
+}
+
 public class ProjectSettings
 {
+    public CodegenSettings Codegen { get; set; } = new CodegenSettings();
     public TranslationProviders TranslationProviders { get; set; } = new TranslationProviders();
 }
 
