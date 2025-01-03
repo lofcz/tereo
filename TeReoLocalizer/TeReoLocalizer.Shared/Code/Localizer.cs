@@ -229,7 +229,7 @@ public partial class Localizer(Project project, LangsData langsData)
                 
                 sb.AppendLine("     /**");
                 
-                if (langsData.Langs[Languages.CS].Data.TryGetValue(x.Key, out string? primaryVal))
+                if (langsData.Langs[project.Settings.PrimaryLanguage].Data.TryGetValue(x.Key, out string? primaryVal))
                 {
                     sb.AppendLine($"     * @description {primaryVal.Replace("*/", "*\\/")}");    
                 }
@@ -465,7 +465,7 @@ public partial class Localizer(Project project, LangsData langsData)
 
         string? DefaultLangValue(string propName)
         {
-            return langsData.Langs[Languages.CS].Data.GetValueOrDefault(propName);
+            return langsData.Langs[project.Settings.PrimaryLanguage].Data.GetValueOrDefault(propName);
         }
 
         bool DefaultLangValueHtml(string propName)

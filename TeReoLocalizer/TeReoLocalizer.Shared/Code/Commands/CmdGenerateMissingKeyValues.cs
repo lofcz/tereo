@@ -36,7 +36,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             {
                 foreach (KeyValuePair<Languages, LangData> x in Ctx.LangsData.Langs)
                 {
-                    if (x.Key is Languages.CS)
+                    if (x.Key == Owner.Project.Settings.PrimaryLanguage)
                     {
                         continue;
                     }
@@ -54,7 +54,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
                     {
                         originalValues[(x.Key, keys.Key)] = strValue ?? string.Empty;
                         
-                        if (Ctx.LangsData.Langs[Languages.CS].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
+                        if (Ctx.LangsData.Langs[Owner.Project.Settings.PrimaryLanguage].Data.TryGetValue(keys.Key, out string? csValue) && !csValue.IsNullOrWhiteSpace())
                         {
                             Owner.ToTranslate.Add(new TranslateTaskInput
                             {
@@ -80,7 +80,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
                 try
                 {
                     string finalVal = DeeplifyText(input.PrimaryValue);
-                    TextResult result = await translator.TranslateTextAsync(finalVal, LanguageCode.Czech, DeeplCode(input.Source.Key), opts, token);
+                    TextResult result = await translator.TranslateTextAsync(finalVal, DeeplCode(Owner.Project.Settings.PrimaryLanguage), DeeplCode(input.Source.Key), opts, token);
 
                     string translatedText = UndeeplifyText(result.Text);
                     newValues.TryAdd((input.Source.Key, input.Key.Key), translatedText);
@@ -152,16 +152,36 @@ public class CmdGenerateMissingKeyValues : BaseCommand
     {
         return lang switch
         {
+            Languages.AR => LanguageCode.Arabic,
+            Languages.BG => LanguageCode.Bulgarian,
             Languages.CS => LanguageCode.Czech,
-            Languages.EN => LanguageCode.EnglishAmerican,
-            Languages.PL => LanguageCode.Polish,
-            Languages.ES => LanguageCode.Spanish,
-            Languages.SL => LanguageCode.Slovak,
-            Languages.FR => LanguageCode.French,
+            Languages.DA => LanguageCode.Danish,
             Languages.DE => LanguageCode.German,
-            Languages.RU => LanguageCode.Russian,
-            Languages.UK => LanguageCode.Ukrainian,
+            Languages.EL => LanguageCode.Greek,
+            Languages.EN => LanguageCode.English,
+            Languages.ES => LanguageCode.Spanish,
+            Languages.ET => LanguageCode.Estonian,
+            Languages.FI => LanguageCode.Finnish,
+            Languages.FR => LanguageCode.French,
+            Languages.HU => LanguageCode.Hungarian,
+            Languages.IN => LanguageCode.Indonesian,
+            Languages.IT => LanguageCode.Italian,
+            Languages.JA => LanguageCode.Japanese,
+            Languages.KO => LanguageCode.Korean,
+            Languages.LT => LanguageCode.Lithuanian,
+            Languages.LV => LanguageCode.Latvian,
+            Languages.NO => LanguageCode.Norwegian,
+            Languages.NL => LanguageCode.Dutch,
+            Languages.PL => LanguageCode.Polish,
             Languages.PT => LanguageCode.Portuguese,
+            Languages.RO => LanguageCode.Romanian,
+            Languages.RU => LanguageCode.Russian,
+            Languages.SK => LanguageCode.Slovak,
+            Languages.SL => LanguageCode.Slovenian,
+            Languages.SV => LanguageCode.Swedish,
+            Languages.TR => LanguageCode.Turkish,
+            Languages.UK => LanguageCode.Ukrainian,
+            Languages.ZH => LanguageCode.Chinese,
             _ => LanguageCode.English
         };
     }

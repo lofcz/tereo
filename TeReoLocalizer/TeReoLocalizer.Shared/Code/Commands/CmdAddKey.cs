@@ -71,7 +71,7 @@ public class CmdAddKey : BaseCommand
 
             if (newKeyCopy != baseKey)
             {
-                await Owner.SetKey(Languages.CS, newKeyCopy, baseKey);
+                await Owner.SetKey(Owner.Project.Settings.PrimaryLanguage, newKeyCopy, baseKey);
             }
 
             Search = Owner.KeySearch;
@@ -87,9 +87,9 @@ public class CmdAddKey : BaseCommand
 
             KeyToFocus = Owner.LastAddedKey;
             Owner.LastAddedKey = localKey.Name;
-            ToFocus = $"input_CS_{newKeyCopy}";
+            ToFocus = $"input_{Owner.Project.Settings.PrimaryLanguage}_{newKeyCopy}";
             Owner.NewKey = string.Empty;
-            Owner.SetInputToFocus($"input_CS_{newKeyCopy}");
+            Owner.SetInputToFocus($"input_{Owner.Project.Settings.PrimaryLanguage}_{newKeyCopy}");
             Owner.RecomputeVisibleKeys(true, newKeyCopy);
             Owner.StateHasChanged();
         }
@@ -100,7 +100,7 @@ public class CmdAddKey : BaseCommand
 
         return new DataOrException<bool>(true);
     }
-
+    
     public override async Task Undo()
     {
         string newKeyCopy = NewKey.Trim().FirstLetterToUpper();
@@ -141,9 +141,9 @@ public class CmdAddKey : BaseCommand
             }
 
             Owner.LastAddedKey = KeyToFocus;
-            Owner.LastFocusedInput = $"input_CS_{KeyToFocus}";
+            Owner.LastFocusedInput = $"input_{Owner.Project.Settings.PrimaryLanguage}_{KeyToFocus}";
             Owner.RecomputeVisibleKeys(true, KeyToFocus);
-            Owner.InputToFocus = $"input_CS_{KeyToFocus}";
+            Owner.InputToFocus = $"input_{Owner.Project.Settings.PrimaryLanguage}_{KeyToFocus}";
             Owner.StateHasChanged();
         }
     }

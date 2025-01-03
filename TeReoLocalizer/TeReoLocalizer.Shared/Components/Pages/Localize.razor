@@ -675,16 +675,21 @@
 
     public async Task<DataOrException<bool>> DoRegenerateKey(string key, IProgress<CommandProgress>? progress = null)
     {
-        if (LangsData.Langs[Languages.CS].Data.TryGetValue(key, out string? czechValue))
+        if (!LangsData.Langs.TryGetValue(Project.Settings.PrimaryLanguage, out LangData? data))
         {
-            string newKeyCopy = czechValue.Trim().FirstLetterToUpper();
+            return new DataOrException<bool>(new Exception($"Překlady v jazyce <code>{Project.Settings.PrimaryLanguage}</code> nejsou dostupné"));
+        }
+        
+        if (data.Data.TryGetValue(key, out string? primaryValue))
+        {
+            string newKeyCopy = primaryValue.Trim().FirstLetterToUpper();
             string newKeyName = Localizer.BaseIdentifier(newKeyCopy);
             DataOrException<bool> result =  await RenameAndSaveKey(key, newKeyName, KeyRenameReasons.Regenerate, progress);
 
             return result;
         }
 
-        return new DataOrException<bool>(new Exception("Klíč nemá hodnotu v primárním jazyce <code>CS</code>"));
+        return new DataOrException<bool>(new Exception($"Klíč nemá hodnotu v primárním jazyce <code>{Project.Settings.PrimaryLanguage}</code>"));
     }
 
     public async Task<DataOrException<bool>> RenameAndSaveKey(string key, string newKeyName, KeyRenameReasons reason, IProgress<CommandProgress>? progress = null)
@@ -819,24 +824,6 @@
         await UpgradeProjectIfNeeded();
         await Js.Toast(ToastTypes.Success, "Kód vygenerován a zapsán");
         StateHasChanged();
-    }
-
-    static string DeeplCode(Languages lang)
-    {
-        return lang switch
-        {
-            Languages.CS => LanguageCode.Czech,
-            Languages.EN => LanguageCode.EnglishAmerican,
-            Languages.PL => LanguageCode.Polish,
-            Languages.ES => LanguageCode.Spanish,
-            Languages.SL => LanguageCode.Slovak,
-            Languages.FR => LanguageCode.French,
-            Languages.DE => LanguageCode.German,
-            Languages.RU => LanguageCode.Russian,
-            Languages.UK => LanguageCode.Ukrainian,
-            Languages.PT => LanguageCode.Portuguese,
-            _ => LanguageCode.English
-        };
     }
 
     async Task GenerateMissing()

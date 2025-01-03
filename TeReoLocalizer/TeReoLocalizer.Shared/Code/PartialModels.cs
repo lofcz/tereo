@@ -68,7 +68,7 @@ public class TranslationProviderDeeplL
 public class Project
 {
     public static readonly int LatestVersionMajor = 1;
-    public static readonly int LatestVersionMinor = 2;
+    public static readonly int LatestVersionMinor = 3;
     public static readonly int LatestVersionPatch = 0;
     
     public static string LatestVersion => $"{LatestVersionMajor}.{LatestVersionMinor}.{LatestVersionPatch}";
