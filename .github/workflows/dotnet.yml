@@ -29,13 +29,13 @@ jobs:
         node-version: '20'
         
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore TeReo
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build TeReo --no-restore
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test TeReo --no-build --verbosity normal
 
     - name: Update GitHub status check
       if: always()
