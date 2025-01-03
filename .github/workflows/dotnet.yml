@@ -27,6 +27,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '20'
+
+    - name: Install MAUI Workload
+      run: |
+        dotnet workload install maui
+        dotnet workload install maui-tizen
         
     - name: Restore dependencies
       run: dotnet restore TeReoLocalizer
