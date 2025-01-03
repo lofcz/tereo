@@ -589,10 +589,12 @@ public partial class Localizer(Project project, LangsData langsData)
             return lcidSb.ToString().Trim();
         }
     }
+    
+    private static readonly char[] NewLineChars = ['\r', '\n'];
 
     private static string SimpleFormatCSharpCode(string code)
     {
-        string[] lines = code.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = code.Split(NewLineChars, StringSplitOptions.RemoveEmptyEntries);
         int indentLevel = 0;
         List<string> formattedLines = [];
 
