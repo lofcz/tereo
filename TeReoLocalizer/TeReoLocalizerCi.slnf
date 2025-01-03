@@ -1,0 +1,10 @@
+﻿{
+  "solution": {
+    "path": "TeReoLocalizer.sln",
+    "projects": [
+      "TeReoLocalizer.Shared\\TeReoLocalizer.Shared.csproj",
+      "TeReoLocalizer.Annotations\\TeReoLocalizer.Annotations.csproj",
+      "TeReoLocalizer.Shared.Tests\\TeReoLocalizer.Shared.Tests.csproj"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+﻿{
+  "solution": {
+    "path": "TeReo.sln",
+    "projects": [
+      "TeReo.Tests\\TeReo.Tests.csproj",
+      "TeReo.Analyzer\\TeReo.Analyzer.csproj"
+    ]
+  }
+}
