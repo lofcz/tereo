@@ -238,7 +238,6 @@
         projectLoadingFinished = true;
         Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
 
-
         if (File.Exists($"{basePath}/TeReo/userSettings.json"))
         {
             Settings = (await File.ReadAllTextAsync($"{basePath}/TeReo/userSettings.json")).JsonDecode<UserSettings>() ?? Settings;
@@ -1640,7 +1639,7 @@
                     </select>
                 </div>
                 
-                <div @onclick="ToggleGroupSettings" style="margin-bottom: 10px;" class="link-light">Nastavení skupin</div>
+                <div @onclick="ToggleGroupSettings" style="margin-bottom: 10px;" class="link-light">Správa skupin</div>
                 
                 @if (showGroupSettings)
                 {

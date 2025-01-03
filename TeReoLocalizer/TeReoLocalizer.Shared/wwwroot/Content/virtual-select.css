@@ -1,0 +1,930 @@
+/*! * Virtual Select v1.0.35 * https://sa-si-dev.github.io/virtual-select * Licensed under MIT (https://github.com/sa-si-dev/virtual-select/blob/master/LICENSE) */
+@-webkit-keyframes vscomp-animation-spin{
+    to{
+        transform:rotateZ(360deg)
+    }
+}
+@keyframes vscomp-animation-spin{
+    to{
+        transform:rotateZ(360deg)
+    }
+}
+.vscomp-popup-active{
+    overflow:hidden !important
+}
+.vscomp-ele{
+    display:inline-block;
+    width:100%
+}
+.vscomp-wrapper{
+    color:#333;
+    display:inline-flex;
+    flex-wrap:wrap;
+    font-family:sans-serif;
+    font-size:14px;
+    position:relative;
+    text-align:left;
+    width:100%
+}
+.vscomp-wrapper *,.vscomp-wrapper *::before,.vscomp-wrapper *::after{
+    box-sizing:border-box
+}
+.vscomp-wrapper:focus{
+    outline:none
+}
+.vscomp-dropbox-wrapper{
+    left:0;
+    position:absolute;
+    top:0
+}
+.vscomp-value{
+    height:20px;
+    line-height:20px;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    display: flex;
+    flex-flow: nowrap;
+}
+.vscomp-clear-icon{
+    height:12px;
+    position:relative;
+    width:12px
+}
+.vscomp-clear-icon::before,.vscomp-clear-icon::after{
+    background-color:#999;
+    content:"";
+    height:12px;
+    left:5px;
+    position:absolute;
+    top:0;
+    width:2px
+}
+.vscomp-clear-icon::before{
+    transform:rotate(45deg)
+}
+.vscomp-clear-icon::after{
+    transform:rotate(-45deg)
+}
+.vscomp-clear-icon:hover::before,.vscomp-clear-icon:hover::after{
+    background:#333
+}
+.vscomp-clear-button{
+    align-items:center;
+    border-radius:50%;
+    display:none;
+    height:24px;
+    justify-content:center;
+    margin-top:-12px;
+    position:absolute;
+    right:30px;
+    top:50%;
+    width:24px
+}
+
+.vscomp-clear-button:hover .vscomp-clear-icon::before,.vscomp-clear-button:hover .vscomp-clear-icon::after{
+    background-color:#333
+}
+.vscomp-dropbox-close-button{
+    align-items:center;
+    background-color:#fff;
+    border-radius:50%;
+    bottom:-48px;
+    cursor:pointer;
+    display:none;
+    height:40px;
+    justify-content:center;
+    left:50%;
+    margin-left:-20px;
+    position:absolute;
+    width:40px
+}
+.vscomp-value-tag.more-value-count{
+    white-space:nowrap
+}
+.vscomp-dropbox-container{
+    width:100%;
+    z-index:2
+}
+.vscomp-dropbox{
+    background-color:#fff;
+    width:100%
+}
+.vscomp-options-container{
+    max-height:210px;
+    overflow:auto;
+    position:relative
+}
+.vscomp-options-bottom-freezer{
+    bottom:0;
+    height:2px;
+    left:0;
+    position:absolute;
+    right:0
+}
+.vscomp-option{
+    align-items:center;
+    cursor:pointer;
+    display:flex;
+    height:40px;
+    padding:0 15px;
+    position:relative;
+    color: #a0aab3;
+}
+.vscomp-option.selected{
+    color: white;
+}
+.vscomp-option.focused{
+    color:white;
+}
+.vscomp-option.disabled{
+    cursor:default;
+    opacity:.5
+}
+.vscomp-option.group-title .vscomp-option-text{
+    cursor:default;
+    opacity:.6
+}
+.vscomp-option.group-title.selected{
+    background-color:rgba(0,0,0,0)
+}
+.vscomp-option.group-option{
+    padding-left:30px
+}
+.vscomp-option.group-option.group-nest-level-2 {
+    padding-left:45px;
+}
+.vscomp-new-option-icon{
+    height:30px;
+    position:absolute;
+    right:0;
+    top:0;
+    width:30px
+}
+.vscomp-new-option-icon::before{
+    border:15px solid #512da8;
+    border-bottom-color:rgba(0,0,0,0);
+    border-left-color:rgba(0,0,0,0);
+    content:"";
+    position:absolute;
+    right:0;
+    top:0
+}
+.vscomp-new-option-icon::after{
+    align-items:center;
+    color:#fff;
+    content:"+";
+    display:flex;
+    font-size:18px;
+    height:15px;
+    justify-content:center;
+    position:absolute;
+    right:1px;
+    top:0;
+    width:15px
+}
+.vscomp-option-text{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+    width:100%;
+    display: flex;
+}
+.vscomp-option-description{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#666;
+    font-size:13px;
+    line-height:15px;
+    width:100%
+}
+.vscomp-search-container{
+    align-items:center;
+    border-bottom:1px solid #495057;
+    display:flex;
+    height:40px;
+    padding:0 5px 0 15px;
+    position:relative;
+    background-color: #212529;
+}
+.vscomp-search-input{
+    background-color:rgba(0,0,0,0);
+    border:0;
+    color: #FFFFFF7F;
+    font-size:15px;
+    height:38px;
+    padding:10px 0;
+    width:calc(100% - 30px)
+}
+.vscomp-search-input:focus{
+    outline:none
+}
+.vscomp-search-clear{
+    align-items:center;
+    color:#999;
+    cursor:pointer;
+    display:flex;
+    font-size:25px;
+    height:30px;
+    justify-content:center;
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+    width:30px;
+    position: relative;
+}
+
+
+
+.vscomp-search-clear:hover{
+    color:inherit
+}
+.vscomp-no-options,.vscomp-no-search-results{
+    align-items:center;
+    display:none;
+    justify-content:center;
+    padding:20px 10px
+}
+.vscomp-options-loader{
+    display:none;
+    padding:20px 0;
+    text-align:center
+}
+.vscomp-options-loader::before{
+    -webkit-animation:vscomp-animation-spin .8s infinite linear;
+    animation:vscomp-animation-spin .8s infinite linear;
+    background-color:#fff;
+    border-radius:50%;
+    box-shadow:-4px -5px 3px -3px rgba(0,0,0,.3);
+    content:"";
+    display:inline-block;
+    height:40px;
+    opacity:.7;
+    width:40px
+}
+.vscomp-ele[disabled]{
+    cursor:not-allowed;
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none
+}
+.vscomp-ele[disabled] .vscomp-wrapper{
+    opacity:.7;
+    pointer-events:none
+}
+.vscomp-wrapper .checkbox-icon{
+    display:inline-flex;
+    height:24px;
+    border: 2px solid #AFBBC3;
+    border-radius: 6px;
+    margin-right: 10px;
+    position:relative;
+    width:24px
+}
+.vscomp-wrapper .checkbox-icon::after{
+    transition-duration:.0s;
+    content:"";
+    display:inline-block;
+    height:100%;
+    width:100%
+}
+.vscomp-wrapper .checkbox-icon.checked::after{
+    background: url('/Images/Svg/mdiCheck.svg') no-repeat center center / contain;
+    filter: invert(1);
+    border-color:#512da8;
+    border-left-color:rgba(0,0,0,0);
+    border-top-color:rgba(0,0,0,0);
+    width:100%
+}
+.vscomp-wrapper.show-as-popup .vscomp-dropbox-container{
+    align-items:center;
+    background-color:rgba(0,0,0,.5);
+    display:flex;
+    height:100vh;
+    justify-content:center;
+    left:0;
+    opacity:1;
+    overflow:auto;
+    padding:0 10px;
+    position:fixed;
+    top:0;
+    width:100vw;
+    z-index: 100000 !important;
+}
+.vscomp-wrapper.show-as-popup .vscomp-dropbox{
+    margin-top:-24px;
+    max-height:calc(80% - 48px);
+    max-width:500px;
+    position:relative;
+    width:80%;
+    border-top: 1px solid;
+}
+.vscomp-wrapper.show-as-popup .vscomp-dropbox-close-button{
+    display:flex
+}
+.vscomp-wrapper.popup-position-left .vscomp-dropbox-container{
+    justify-content:flex-start
+}
+.vscomp-wrapper.popup-position-right .vscomp-dropbox-container{
+    justify-content:flex-end
+}
+.vscomp-wrapper.has-select-all .vscomp-toggle-all-button{
+    align-items:center;
+    cursor:pointer;
+    display:flex
+}
+.vscomp-wrapper.has-select-all .vscomp-search-input,.vscomp-wrapper.has-select-all .vscomp-toggle-all-label{
+    width:calc(100% - 55px)
+}
+.vscomp-wrapper.has-select-all .vscomp-toggle-all-label{
+    display:none
+}
+.vscomp-wrapper:not(.has-search-input) .vscomp-toggle-all-button{
+    width:100%
+}
+.vscomp-wrapper:not(.has-search-input) .vscomp-toggle-all-label{
+    display:inline-block
+}
+.vscomp-wrapper.multiple .vscomp-option .vscomp-option-text{
+    width:calc(100% - 25px);
+    display: flex;
+}
+.vscomp-wrapper.multiple .vscomp-option .vscomp-option-description{
+    padding-left:25px
+}
+.vscomp-wrapper.multiple .vscomp-option.selected .checkbox-icon::after{
+    background: url('/Images/Svg/mdiCheck.svg') no-repeat center center / contain;
+    filter: invert(1);
+    border-color:#512da8;
+    border-left-color:rgba(0,0,0,0);
+    border-top-color:rgba(0,0,0,0);
+    width:100%
+}
+.vscomp-wrapper.focused .vscomp-toggle-button,.vscomp-wrapper:focus .vscomp-toggle-button{
+    /*box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2)*/
+}
+.vscomp-wrapper.closed .vscomp-dropbox-container,.vscomp-wrapper.closed.vscomp-dropbox-wrapper{
+    display:none
+}
+.vscomp-wrapper.has-clear-button.has-value .vscomp-clear-button{
+    display:flex
+}
+.vscomp-wrapper.has-clear-button .vscomp-toggle-button{
+    padding-right:54px
+}
+.vscomp-wrapper.has-no-options .vscomp-options-container,.vscomp-wrapper.has-no-search-results .vscomp-options-container{
+    display:none
+}
+.vscomp-wrapper.has-no-options .vscomp-no-options{
+    display:flex;
+    color: #a0aab3;
+    text-align: center;
+}
+.vscomp-wrapper.has-no-search-results .vscomp-no-search-results{
+    display:flex
+}
+.vscomp-wrapper.has-search-value .vscomp-search-clear{
+    visibility:visible
+}
+.vscomp-wrapper.has-no-options .vscomp-toggle-all-button{
+    opacity:.5;
+    pointer-events:none
+}
+.vscomp-wrapper.keep-always-open .vscomp-toggle-button{
+    padding-right:24px
+}
+.vscomp-wrapper.keep-always-open .vscomp-clear-button{
+    right:5px
+}
+.vscomp-wrapper.keep-always-open .vscomp-arrow{
+    display:none
+}
+.vscomp-wrapper.keep-always-open .vscomp-dropbox-container{
+    position:relative;
+    z-index:1
+}
+.vscomp-wrapper.keep-always-open .vscomp-dropbox{
+    transition-duration:0s;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    box-shadow:none
+}
+.vscomp-wrapper.keep-always-open.focused,.vscomp-wrapper.keep-always-open:focus,.vscomp-wrapper.keep-always-open:hover{
+    box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2)
+}
+.vscomp-wrapper.server-searching .vscomp-options-list{
+    display:none
+}
+.vscomp-wrapper.server-searching .vscomp-options-loader{
+    display:block
+}
+.vscomp-wrapper.has-error .vscomp-toggle-button{
+    border-color:#b00020
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-toggle-button{
+    padding:4px 22px 0 10px
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-value{
+    display:flex;
+    flex-wrap:wrap;
+    height:auto;
+    min-height:28px;
+    overflow:auto;
+    text-overflow:unset;
+    white-space:normal
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-value-tag{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    align-items:center;
+    border:1px solid #ddd;
+    border-radius:20px;
+    display:inline-flex;
+    font-size:12px;
+    line-height:16px;
+    margin:0 4px 4px 0;
+    max-width:100%;
+    padding:2px 3px 2px 8px
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-value-tag.more-value-count{
+    padding-right:8px
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-value-tag-content{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    width:calc(100% - 20px)
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-value-tag-clear-button{
+    align-items:center;
+    display:flex;
+    height:20px;
+    justify-content:center;
+    width:20px
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-value-tag-clear-button .vscomp-clear-icon{
+    transform:scale(0.8)
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-arrow{
+    height:34px
+}
+.vscomp-wrapper.show-value-as-tags .vscomp-clear-button{
+    margin-top:0;
+    top:5px
+}
+.vscomp-wrapper.show-value-as-tags.has-value .vscomp-arrow{
+    display:none
+}
+.vscomp-wrapper.show-value-as-tags.has-value .vscomp-clear-button{
+    right:2px
+}
+.vscomp-wrapper.show-value-as-tags:not(.has-value) .vscomp-toggle-button{
+    padding-bottom:2px
+}
+.vscomp-wrapper.show-value-as-tags:not(.has-value) .vscomp-value{
+    align-items:center;
+    padding-bottom:3px
+}
+.vscomp-wrapper.text-direction-rtl{
+    direction:rtl
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-toggle-button{
+    padding:7px 10px 7px 30px
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-arrow{
+    left:0;
+    right:auto
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-clear-button{
+    left:30px;
+    right:auto !important
+}
+.vscomp-wrapper.text-direction-rtl .checkbox-icon{
+    margin-left:10px;
+    margin-right:0
+}
+.vscomp-wrapper.text-direction-rtl .checkbox-icon.checked::after{
+    transform:rotate(45deg) translate(-4px, 1px)
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-search-container{
+    padding:0 15px 0 5px
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-toggle-all-label{
+    text-align:right
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-option{
+    text-align:right
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-option.group-option{
+    padding-right:30px
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-new-option-icon{
+    left:0;
+    right:auto
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-new-option-icon::before{
+    border-left-color:#512da8;
+    border-right-color:rgba(0,0,0,0)
+}
+.vscomp-wrapper.text-direction-rtl .vscomp-new-option-icon::after{
+    left:1px;
+    right:auto
+}
+.vscomp-wrapper.text-direction-rtl.multiple .vscomp-option.selected .checkbox-icon::after{
+    transform:rotate(45deg) translate(-4px, 1px)
+}
+.vscomp-wrapper.text-direction-rtl.has-clear-button .vscomp-toggle-button{
+    padding-left:54px
+}
+.vscomp-wrapper.text-direction-rtl.keep-always-open .vscomp-toggle-button{
+    padding-left:24px
+}
+.vscomp-wrapper.text-direction-rtl.keep-always-open .vscomp-clear-button{
+    left:5px
+}
+.vscomp-wrapper.text-direction-rtl.show-value-as-tags .vscomp-toggle-button{
+    padding:4px 10px 0 22px
+}
+.vscomp-wrapper.text-direction-rtl.show-value-as-tags .vscomp-value-tag{
+    margin:0 0 4px 4px;
+    padding:2px 8px 2px 3px
+}
+.vscomp-wrapper.text-direction-rtl.show-value-as-tags .vscomp-value-tag.more-value-count{
+    padding-left:8px
+}
+.vscomp-wrapper.text-direction-rtl.show-value-as-tags.has-value .vscomp-clear-button{
+    left:2px
+}
+/*! * Popover v1.0.12 * https://sa-si-dev.github.io/popover * Licensed under MIT (https://github.com/sa-si-dev/popover/blob/master/LICENSE) */
+.pop-comp-wrapper{
+    display:none;
+    position:absolute;
+    top:0px;
+    left:0;
+    opacity:0;
+    color:#000;
+    background-color:transparent;
+    box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2);
+    text-align:left;
+    flex-wrap:wrap;
+    z-index:1
+}
+.pop-comp-arrow{
+    position:absolute;
+    z-index:1;
+    width:16px;
+    height:16px;
+    overflow:hidden;
+    pointer-events:none
+}
+.pop-comp-arrow::before{
+    content:"";
+    position:absolute;
+    top:8px;
+    left:8px;
+    width:16px;
+    height:16px;
+    background-color:#fff;
+    box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2);
+    -webkit-transform-origin:left top;
+    transform-origin:left top;
+    -webkit-transform:rotate(45deg);
+    transform:rotate(45deg)
+}
+.pop-comp-content{
+    position:relative;
+    z-index:2
+}
+.pop-comp-wrapper.position-bottom>.pop-comp-arrow{
+    margin-left:-8px;
+    left:0;
+    top:-15px
+}
+.pop-comp-wrapper.position-bottom>.pop-comp-arrow::before{
+    box-shadow:0px 0px 2px 0 rgba(0,0,0,.14)
+}
+.pop-comp-wrapper.position-top>.pop-comp-arrow{
+    margin-left:-8px;
+    left:0;
+    bottom:-15px
+}
+.pop-comp-wrapper.position-right>.pop-comp-arrow{
+    margin-top:-8px;
+    top:0;
+    left:-15px
+}
+.pop-comp-wrapper.position-left>.pop-comp-arrow{
+    margin-top:-8px;
+    top:0;
+    right:-15px
+}
+.pop-comp-disable-events{
+    pointer-events:none
+}
+
+
+
+
+
+
+
+
+.vscomp-clear-button {
+    position: absolute;
+    display: none;
+    top: 50%;
+    right: 30px;
+    width: 24px;
+    height: 24px;
+    justify-content: center;
+    border-radius: 50%;
+    margin-top: -12px;
+    background-size: 1.5rem 1.5rem;
+    background-position: center center;
+    background-repeat: no-repeat;
+   /* background-color: #2b3135; */
+    margin-right: 6px;
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+}
+
+.opened .vscomp-toggle-button {
+    border-bottom-right-radius: 0rem;
+    border-bottom-left-radius: 0rem;
+}
+
+.vscomp-clear-button::before,
+.vscomp-clear-button::after {
+    content: '';
+}
+
+.vscomp-clear-button::before {
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.vscomp-clear-button::after {
+    -webkit-transform: rotate(-45deg);
+    transform: rotate(-45deg);
+}
+
+
+.vscomp-wrapper.closed .vscomp-dropbox {
+    display: none;
+}
+
+.vscomp-wrapper:not(.has-value) .vscomp-value {
+    color: #FFFFFF7F;
+}
+
+.vscomp-wrapper.has-value .vscomp-clear-button {
+    display: flex;
+}
+
+.vscomp-wrapper .vscomp-toggle-button {
+    padding-right: 54px;
+}
+
+.vscomp-wrapper.has-no-options .vscomp-options-container,
+.vscomp-wrapper.has-no-search-results .vscomp-options-container {
+    display: none;
+}
+
+.vscomp-wrapper.has-no-options .vscomp-no-options {
+    display: block;
+}
+
+.vscomp-wrapper.has-no-search-results .vscomp-no-search-results {
+    display: block;
+}
+
+.vscomp-wrapper.has-value .vscomp-clear-button {
+    visibility: visible;
+    display: block;
+}
+
+.vscomp-arrow {
+    position: absolute;
+    display: flex;
+    top: 0;
+    right: 0;
+    width: 30px;
+    height: 100%;
+    align-items: center;
+    justify-content: center
+}
+
+.vscomp-arrow::after {
+    display: inline-block;
+    position: relative;
+    left: -0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    content: "";
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23dee2e6' d='M7.41 7.84L12 12.42l4.59-4.58L18 9.25l-6 6-6-6z'/%3E%3C/svg%3E");
+    background-size: 1.5rem 1.5rem;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.vscomp-wrapper.focused .vscomp-arrow::after {
+    transform: rotate(180deg);
+}
+
+.vscomp-dropbox {
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-top: none;
+    background-color: var(--bs-body-bg);
+    z-index: 1;
+    -webkit-transition-duration: 0ms;
+    transition-duration: 0ms;
+    border-bottom-right-radius: 0.4rem;
+    border-bottom-left-radius: 0.4rem;
+}
+
+.vscomp-ele {
+    font-family: sans-serif;
+    display: inline-block;
+    width: 100%;
+}
+
+.vscomp-wrapper {
+    display: inline-flex;
+    position: relative;
+    width: 100%;
+    font-size: 14px;
+    color: #a0aab3;
+    text-align: left;
+    min-height: 38px;
+    user-select: none;
+    outline: none;
+}
+
+.vscomp-wrapper.focused > .vscomp-toggle-button {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+}
+
+.required .vscomp-wrapper {
+    background-color: #3E454A;
+    border-radius: 8px;
+}
+
+.vscomp-wrapper *,
+.vscomp-wrapper *::before,
+.vscomp-wrapper *::after {
+    box-sizing: border-box
+}
+
+.vscomp-wrapper:focus {
+    outline: none
+}
+
+.vscomp-toggle-button {
+    display: flex;
+    position: relative;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+    border: 1px solid #afbbc3;
+    line-height: calc(2.2em + .75rem);
+    padding: .375rem 2.25rem .375rem .75rem;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.has-value .vscomp-toggle-button {
+    /*background-color: #2b3135;*/
+}
+
+.vscomp-value {
+    width: 100%;
+    height: 20px;
+    line-height: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 1rem;
+    text-align: left;
+    color: white;
+}
+
+.vscomp-wrapper.focused .vscomp-toggle-button {
+    border-bottom-right-radius: 0rem;
+    border-bottom-left-radius: 0rem;
+}
+
+.vs-position-top .vscomp-wrapper.focused .vscomp-toggle-button {
+    border-bottom-right-radius: 0.4rem;
+    border-bottom-left-radius: 0.4rem;
+    border-top-right-radius: 0rem;
+    border-top-left-radius: 0rem;
+}
+
+.vscomp-options-container {
+    margin-top: 1px;
+}
+
+.vscomp-option {
+    user-select: none;
+    outline: none;
+}
+
+.vscomp-search-input {
+    color: white;
+}
+
+.vscomp-no-search-results {
+    text-align: center;
+    padding: 20px 10px;
+    color: #FFFFFF7F;
+}
+
+.vscomp-search-after {
+    content: '';
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23adb5bd' d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+    background-size: 1.25rem 1.25rem;
+    background-position: center center;
+    background-repeat: no-repeat;
+    position: absolute;
+    z-index: 1;
+    pointer-events: all;
+}
+
+.vscomp-clear-button:hover {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23cccccc' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+}
+
+.vscomp-clear-button.neverRender {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.vscompWithDescription {
+    flex-flow: wrap;
+}
+
+.vscomp-option-description {
+    width: 100%;
+}
+
+.vscomp-option.selected .vscomp-option-description, .vscomp-option.focused .vscomp-option-description {
+    color: #999;
+}
+
+.vscomp-dropbox-container.position-top {
+
+}
+
+.vscomp-dropbox-container.position-top .vscomp-dropbox {
+    border-bottom-right-radius: 0rem;
+    border-bottom-left-radius: 0rem;
+    border-top: 1px solid #afbbc3;
+}
+
+.vscomp-ele.vs-position-top > .vscomp-ele-wrapper {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.vscomp-ele.vs-position-bottom > .vscomp-ele-wrapper {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.vscomp-dropbox-container-top {
+    height: 0;
+    display: none;
+}
+
+.vscomp-dropbox-container-bottom {
+    height: 0;
+    display: none;
+}
+
+.vscomp-search-label {
+    display: none;
+    pointer-events: none;
+}
+
+.vscomp-clear-icon {
+    display: none;
+    pointer-events: none;
+}
+
+.vscomp-search-clear {
+    display: none;
+}

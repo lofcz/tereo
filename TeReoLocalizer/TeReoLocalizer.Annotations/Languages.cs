@@ -2,6 +2,7 @@
 
 public enum Languages
 {
+    Unknown,
     /// <summary>Afar</summary>
     AA,
     /// <summary>Abkhazian</summary>

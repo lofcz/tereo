@@ -52,6 +52,7 @@ public class ProjectSettings
 {
     public CodegenSettings Codegen { get; set; } = new CodegenSettings();
     public TranslationProviders TranslationProviders { get; set; } = new TranslationProviders();
+    public Languages PrimaryLanguage { get; set; }
 }
 
 public class TranslationProviders

@@ -1,5 +1,7 @@
 using System.Collections;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -1251,4 +1253,123 @@ public enum CheckboxAlignments
     Default,
     [StringValue("checkboxAlignTop")]
     Top
+}
+
+public enum SelectTypes
+{
+    Native,
+    Virtual,
+    Tagify,
+    Tags,
+    Pills,
+    Dropdown,
+    Radioboxes,
+    Phone
+}
+
+[TypeConverter(typeof(TcStringToListInt))]
+public class ConvertibleList<T> : List<T>
+{
+    public ConvertibleList()
+    {
+        
+    }
+
+    public ConvertibleList(IEnumerable<T>? collection)
+    {
+        if (collection is not null)
+        {
+            AddRange(collection);            
+        }
+    }
+}
+
+public class TcStringToListInt : TypeConverter
+{
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
+    {
+        return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+    }
+
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
+    {
+        return value is string casted ? new List<int>(casted.FromCsv()) : base.ConvertFrom(context, culture, value);
+    }
+    
+    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
+    {
+        return destinationType == typeof (string) && value is List<int> casted ? casted.ToCsv() : base.ConvertTo(context, culture, value, destinationType);
+    }
+}
+
+public enum SelectDesignTypes
+{
+    Unknown,
+    Default,
+    InlineDescription
+}
+
+public class NativeSelectOptionGroup : ISelectOptionGroup
+{
+    public string Name { get; set; }
+    public dynamic? Value { get; set; }
+    public bool Selected { get; set; }
+    public IEnumerable<dynamic>? Options { get; set; }
+}
+
+public interface ISelectOptionGroup : ISelectOption
+{
+    public IEnumerable<dynamic>? Options { get; set; }
+}
+
+public enum SelectOptionModes
+{
+    Options,
+    Groups
+}
+
+public class TagSelectOption : ISelectOption
+{
+    public string Icon { get; set; }
+    public string Description { get; set; }
+    public string Name { get; set; }
+    public dynamic? Value { get; set; }
+    public bool Selected { get; set; }
+}
+
+public class PillSelectOption : TooltipSelectOption
+{
+    public string? Decorator { get; set; }
+}
+
+public class TooltipSelectOption : NativeSelectOption
+{
+    [JsonIgnore]
+    public Func<Task<string>>? GetTooltip { get; set; }
+}
+
+public class OrderIndexAttribute : Attribute
+{
+    public int Index { get; set; }
+
+    public OrderIndexAttribute(int index)
+    {
+        Index = index;
+    }
+}
+
+public class ImageSelectOption : NativeSelectOption
+{
+    public string Image { get; set; }
+}
+
+public class ImageSelectOptionExtended : ImageSelectOption
+{
+    public int ImageWidth { get; set; }
+    public int ImageHeight { get; set; }
+    
+    /// <summary>
+    /// Turn this on to render the option's image in selected preview
+    /// </summary>
+    public bool RenderSelectedImage { get; set; }
 }

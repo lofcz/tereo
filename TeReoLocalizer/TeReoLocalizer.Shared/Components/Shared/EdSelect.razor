@@ -1,0 +1,1034 @@
+@using System.Collections
+@using System.Text.Json
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@using Type = System.Type
+@typeparam TValue
+@inherits ValidationComponent<TValue>
+@inject IJSRuntime Js
+@implements IInputComponentMultivalue<TValue>
+@implements ISelectInput
+@inject NavigationManager NavMgr
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public SelectTypes Type { get; set; } = SelectTypes.Native;
+    [Parameter]
+    public bool Multiple { get; set; }
+    [Parameter]
+    public int MultipleMax { get; set; } = 20;
+
+    [Parameter]
+    public ConvertibleList<TValue?>? Values { get; set; }
+    [Parameter]
+    public EventCallback<ConvertibleList<TValue?>> ValuesChanged { get; set; }
+    [Parameter]
+    public List<int>? ResultsCount { get; set; }
+    [Parameter]
+    public string? HeaderText { get; set; }
+    [Parameter]
+    public bool EnableClear { get; set; } = true;
+    [Parameter]
+    public string? Text { get; set; }
+    [Parameter]
+    public string? OptionDescription { get; set; }
+    [Parameter]
+    public List<string>? ExtraSearchIndicies { get; set; }
+    [Parameter]
+    public bool NormalizeRowMargin { get; set; }
+    [Parameter]
+    public bool EnableSearch { get; set; } = true;
+    [Parameter] 
+    public bool EnableNewOption { get; set; }
+    [Parameter]
+    public EventCallback<string> OnOptionAdded { get; set; }
+    [Parameter]
+    public object? DefaultCustomOption { get; set; }
+    [Parameter]
+    public string? NewOptionTitle { get; set; }
+    [Parameter] 
+    public SelectDesignTypes Design { get; set; } = SelectDesignTypes.Default;
+    [Parameter] 
+    public string? SearchPlaceholder { get; set; }
+    [Parameter]
+    public Type? DynamicValueType { get; set; }
+    [Parameter]
+    public bool EnableAutocomplete { get; set; }
+    [Parameter] 
+    public bool RenderContainerMargin { get; set; } = true;
+    
+    [CascadingParameter(Name = "ModalRef")]
+    public EdModal? ModalRef { get; set; }
+    [CascadingParameter(Name = "ScrollbarRef")]
+    public EdScrollbar? ScrollbarRef { get; set; }
+    
+    public bool DefaultOptionSelected { get; set; }
+    DotNetObjectReference<EdSelect<TValue>>? JsRef { get; set; }
+    IJSObjectReference? JsObjectRef;
+    List<dynamic?>? defaultSelected { get; set; }
+    bool valuesAreEnum = false;
+    bool forceRerender = false;
+    bool isDirty = false;
+    bool rendered = false, canRender = false, renderedWithoutOptions = false;
+    string rawVal;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        Nm = NavMgr;
+        Values ??= [];
+        valuesAreEnum = typeof(TValue).IsEnum;
+        
+        await SyncData(false, null, false);
+        await base.OnInitializedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (!isDirty)
+        {
+            rawVal = Value?.ToString() ?? string.Empty;   
+        }
+
+        isDirty = false;
+    }
+    
+    public async Task SignalFetchedDataReady()
+    {
+        await SetupFetchedOptions();
+    }
+
+    public override async Task Clear()
+    {
+        await base.Clear();
+        await Js.SafeCall($"vselectApi_{Id}.clear");
+    }
+
+    public override async Task SyncData(bool freshRender, object? selected, bool instantRender)
+    { 
+        if (freshRender)
+        {
+            forceRerender = true;
+        }
+
+        bool ok = false;
+        
+        if (!Fetch?.HasData ?? false)
+        {
+            if (Fetch.FetchAsync is not null)
+            {
+                FetchedOptions = await Fetch.FetchAsync.Invoke();
+            }
+            else if (Fetch.FetchSync is not null)
+            {
+                FetchedOptions = Fetch.FetchSync.Invoke();
+            }
+
+            ok = true;
+        }
+        else if ((Fetch?.HasData ?? false) && Fetch.Provider == Providers.ServerOnceSelfHandle)
+        {
+            FetchedOptions = Fetch.Data;
+            ok = true;
+        }
+
+        if (selected is not null && FetchedOptions is not null)
+        {
+            if (selected is TValue value)
+            {
+                selected = new List<TValue> {value};   
+            }
+        }
+
+        List<TValue?>? selectedResolved = null;
+
+        if (selected is not null && FetchedOptions is not null && selected is IEnumerable<TValue?> tmpVals)
+        {
+            selectedResolved = tmpVals.ToList();
+            
+            if (FetchedOptions is IEnumerable<ISelectOption> newOptions)
+            {
+                newOptions = newOptions.ToList();
+                
+                Type providedInnerType = selectedResolved.GetType().GetGenericArguments()[0];
+                IList? castedList = null;
+                bool smartCast = false;
+                
+                if (newOptions.Any())
+                {
+                    ISelectOption? firstOption = newOptions.FirstOrDefault();
+
+                    if (firstOption is not null)
+                    {
+                        if (firstOption.Value is not null && firstOption.Value.GetType() != providedInnerType)
+                        {
+                            Type? destType = firstOption.Value.GetType();
+                            smartCast = true;
+                            castedList = destType.InstantiateList();
+
+                            foreach (object? val in selectedResolved.Select(value => value.ChangeType(destType)).Where(val => val is not null))
+                            {
+                                castedList.Add(val);
+                            }
+                        }
+                    }
+                }
+
+                foreach (ISelectOption option in newOptions)
+                {
+                    option.Selected = false;
+                    
+                    if (smartCast && castedList is not null)
+                    {
+                        if (castedList.Contains(option.Value))
+                        {
+                            option.Selected = true;
+                        }
+
+                        continue;
+                    }
+                    
+                    dynamic? firstOrDefault = selectedResolved.FirstOrDefault(x => x == option.Value);
+                    
+                    if (firstOrDefault is not null && firstOrDefault != default(TValue))
+                    {
+                        option.Selected = true;
+                    }
+
+                    if (option is NativeSelectOptionGroup {Options: not null } grp)
+                    {
+                        option.Selected = false;
+                        
+                        foreach (ISelectOption grpOption in grp.Options)
+                        {
+                            grpOption.Selected = false;
+                            
+                            firstOrDefault = selectedResolved.FirstOrDefault(x => x == grpOption.Value);
+                            
+                            if (firstOrDefault is not null && firstOrDefault != default(TValue))
+                            {
+                                grpOption.Selected = true;
+                            }
+                        }
+                    }
+                }   
+            }
+        }
+        
+        if (ok)
+        {
+            await SetupFetchedOptions(selectedResolved);   
+        }
+        
+        if (instantRender)
+        {
+            await JsSyncData();
+        }
+    }
+
+    public async Task JsSyncData(bool withoutValueChange = false)
+    {
+        if (JsObjectRef is not null)
+        {
+            switch (Type)
+            {
+                case SelectTypes.Virtual:
+                    try
+                    {
+                        await JsObjectRef.InvokeVoidAsync("SetData", GetJsOptions(false, withoutValueChange));
+                    }
+                    catch (Exception e) // might crash on JsObjectRef being disposed
+                    {
+                    
+                    }
+                    break;
+                case SelectTypes.Tagify:
+                    try
+                    {
+                        await JsObjectRef.InvokeVoidAsync("SetData", GetJsOptions(false, withoutValueChange));
+                    }
+                    catch (Exception e)
+                    {
+                    
+                    }
+                    break;
+            }
+        }
+    }
+
+    public async Task SetupFetchedOptions(List<TValue?>? preselected = null)
+    {
+        if (FetchedOptions is not null)
+        {
+            switch (FetchedOptions)
+            {
+                case IEnumerable<ISelectOptionGroup> fetchedOptionGroups:
+                {
+                    defaultSelected ??= [];
+                    defaultSelected.Clear();
+
+                    foreach (ISelectOptionGroup grp in fetchedOptionGroups)
+                    {
+                        if (grp.Options is IEnumerable<ISelectOption> groupOptions)
+                        {
+                            List<ISelectOption> enumerated = groupOptions.ToList();
+                            List<ISelectOption> selected = enumerated.Where(x => x.Selected).ToList();
+
+                            if (selected.Any())
+                            {
+                                defaultSelected.Add(selected.Select(x => x.Value));   
+                            }
+                        }
+                    }
+                    break;
+                }
+                case IEnumerable<ISelectOption> fetchedOptions:
+                {
+                    defaultSelected = fetchedOptions.Where(x => x.Selected).Select(x => x.Value).ToList();
+                    break;
+                }
+            }
+
+            if (Multiple)
+            {
+                await InitValueInternal(preselected);
+            }
+
+            canRender = true;
+        }
+
+        if (renderedWithoutOptions)
+        {
+            renderedWithoutOptions = false;
+
+            await JsSyncData();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            JsRef = DotNetObjectReference.Create(this);
+        }
+        catch (Exception e)
+        {
+            
+        }
+        base.OnInitialized();
+    }
+
+    public async Task SetOptions(IList? options)
+    {
+        FetchedOptions = options;
+        await SignalFetchedDataReady();
+        await JsSyncData();
+    }
+    
+    public async Task SetOptionsWithoutDataReset(IList? options)
+    {
+        FetchedOptions = options;
+        await SignalFetchedDataReady();
+        await JsSyncData(true);
+    }
+
+    public async Task SetCustomValue(object? customValue)
+    {
+        if (JsObjectRef is not null)
+        {
+            if (Type is SelectTypes.Virtual)
+            {
+                try
+                {
+                    await JsObjectRef.InvokeVoidAsync("SetCustomValue", new
+                    {
+                        id = Id,
+                        value = customValue
+                    });
+                }
+                catch (Exception e)
+                {
+                    
+                }
+            }   
+        }
+    }
+    
+    public override async Task SetValue(object? value)
+    {
+        if (!Multiple && value is TValue tVal)
+        {
+            Values ??= new ConvertibleList<TValue?>();
+            Values.Clear();
+            Values.Add(tVal);
+            await ValuesChanged.InvokeAsync(Values);
+        
+            if (TaskAggregator is not null)
+            {
+                await TaskAggregator.AnnouceTaskCompleted(RandomKey);
+            }
+
+            await AfterUpdate();
+        }
+        else if (Multiple && value is IEnumerable<TValue> tValList)
+        {
+            Values ??= new ConvertibleList<TValue?>();
+            Values.Clear();
+            Values.AddRange(tValList);
+            await ValuesChanged.InvokeAsync(Values);
+        
+            if (TaskAggregator is not null)
+            {
+                await TaskAggregator.AnnouceTaskCompleted(RandomKey);
+            }
+
+            await AfterUpdate();
+        }
+        
+        SyncValue();
+    }
+
+    public async Task SyncPlaceholder(string placeholder)
+    {
+        if (Type == SelectTypes.Virtual)
+        {
+            if (JsObjectRef is not null)
+            {
+                try
+                {
+                    await JsObjectRef.InvokeVoidAsync("SetPlaceholder", new
+                    {
+                        id = Id,
+                        placeholder = placeholder
+                    });
+                }
+                catch (Exception e)
+                {
+                    
+                }
+            }
+        }
+    }
+
+    void SyncValue()
+    {
+        if (ignoreJsSignals)
+        {
+            return;
+        }
+        
+        if (JsObjectRef is not null)
+        {
+            if (FetchedOptions is not null)
+            {
+                foreach (ISelectOption option in FetchedOptions)
+                {
+                    if (option.GetType() == typeof(TValue))
+                    {
+                        option.Selected = Values?.Any(x => x == option.Value) ?? false;
+                    }
+                    else
+                    {
+                        option.Selected = Values?.Any(x => x == (dynamic)(TValue)option.Value!) ?? false;
+                    }
+                }   
+            }
+            
+            if (Type == SelectTypes.Virtual)
+            {
+                try
+                {
+                    JsObjectRef.InvokeVoidAsync("SetValue", new
+                    {
+                        value = Multiple ? (object?)Values : Value,
+                        id = Id,
+                        net = JsRef
+                    });
+                }
+                catch (Exception e) // disposed
+                {
+                    
+                }
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task UpdateValue(JsonElement value)
+    {
+        ignoreJsSignals = true;
+        ConvertibleList<TValue?>? values = value.JsonDecode<ConvertibleList<TValue?>>();
+
+        if (values is null)
+        {
+            values = new ConvertibleList<TValue?>();
+            values.AddJsonElement(value, false);
+
+            if (EnableNewOption && values.Count is 0)
+            {
+                if (value.ValueKind is JsonValueKind.String)
+                {
+                    string? strVal = value.GetString();
+
+                    if (strVal is not null)
+                    {
+                        await OnOptionAdded.InvokeAsync(strVal);
+                    }
+                }
+            }
+        }
+
+        Values = values;
+        
+        if (!Multiple)
+        {
+            Value = values is {Count: > 0 } ? values[0] : default;
+        }
+        
+        await ValuesChanged.InvokeAsync(Values);
+
+        ignoreJsSignals = false;
+        await RunValidations(ValidationEvents.OnChange);
+        await AfterUpdate();
+    }
+
+    async Task InitValueInternal(List<TValue?>? preselected = null)
+    {
+        Values ??= [];
+        Values.Clear();
+
+        switch (FetchedOptions)
+        {
+            case IEnumerable<ISelectOptionGroup> selectedOptionGroups:
+            {
+                foreach (ISelectOptionGroup grp in selectedOptionGroups)
+                {
+                    if (grp is {Selected: true, Options: null})
+                    {
+                        Values.Add(grp.Value);
+                    }
+                    else if (grp.Options is IEnumerable<ISelectOption> options)
+                    {
+                        foreach (ISelectOption option in options)
+                        {
+                            if (option.Selected)
+                            {
+                                Values.Add(option.Value);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case IEnumerable<ISelectOption> selectedOptions:
+            {
+                foreach (ISelectOption option in selectedOptions)
+                {
+                    if (option.Selected)
+                    {
+                        try
+                        {
+                            if (valuesAreEnum)
+                            {
+                                Values.Add((TValue)option.Value!);   
+                            }
+                            else
+                            {
+                                Values.Add(option.Value);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                        
+                        }
+                    }
+                }
+                break;
+            }
+        } 
+        
+        if (preselected is not null)
+        {
+            foreach (TValue? tval in preselected.Where(tval => !Values.Contains(tval)))
+            {
+                Values.Add(tval);
+            }
+        }
+        
+        await ValuesChanged.InvokeAsync(Values);
+        
+        if (TaskAggregator is not null)
+        {
+            await TaskAggregator.AnnouceTaskCompleted(RandomKey);
+        }
+    }
+    
+    async Task UpdateValueInternal()
+    {
+        if (FetchedOptions is IEnumerable<ISelectOption> tSelectOptions)
+        {
+            Values ??= new ConvertibleList<TValue?>();
+            Values.Clear();
+                
+            foreach (ISelectOption opt in tSelectOptions)
+            {
+                if (opt.Selected)
+                {
+                    TValue? castedVal = (TValue?) opt.Value;
+                    Values.Add(castedVal);
+                }
+            }
+
+            await ValuesChanged.InvokeAsync(Values);
+        }
+
+        await AfterUpdate();
+    }
+    
+    async Task UpdateValueInternalDropdown(ISelectOption option)
+    {
+        Values ??= new ConvertibleList<TValue?>();
+        Values.Clear();
+        
+        if (FetchedOptions is IEnumerable<ISelectOption> tSelectOptions)
+        {
+            foreach (ISelectOption opt in tSelectOptions)
+            {
+                opt.Selected = opt.Value == option.Value;
+
+                if (opt.Selected)
+                {
+                    Values.Add(opt.Value);
+                }
+            }
+            
+            await ValuesChanged.InvokeAsync(Values);
+        }
+        
+        await AfterUpdate();
+    }
+
+    async Task AfterUpdate()
+    {
+        if (OnFormUpdate is not null && TaskAggregator is null or {AllCompleted: true })
+        {
+            await OnFormUpdate.Invoke(new FormUpdateArgs(this, Multiple ? Values : Value));
+        }
+        
+        if (!Multiple)
+        {
+            Value = Values is {Count: > 0 } ? Values[0] : default;
+            await ValueChanged.InvokeAsync(Value);   
+        }
+
+        if (OnUpdate is not null)
+        {
+            await OnUpdate.Invoke(this);
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                JsObjectRef = Type switch
+                {
+                    SelectTypes.Tagify => await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/tagify.js"),
+                    SelectTypes.Virtual => await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/vselect.js"),
+                    SelectTypes.Phone => await Js.InvokeAsync<IJSObjectReference>("import", "./Scripts/Scoped/phone.js"),
+                    _ => JsObjectRef
+                    };
+
+                await InitJsModule(firstRender);
+            }
+            catch (Exception e)
+            {
+                
+            }
+        }
+    }
+    
+    object GetJsOptions(bool firstRender, bool withoutValueChange = false)
+    {
+        SelectOptionModes optionsMode = SelectOptionModes.Options;
+        
+        if (FetchedOptions is IList<NativeSelectOptionGroup> or IList<ISelectOptionGroup>)
+        {
+            optionsMode = SelectOptionModes.Groups;
+        }
+        
+        return new 
+        {
+            options = FetchedOptions,
+            id = Id,
+            placeholder = Placeholder,
+            multiple = Multiple,
+            net = JsRef,
+            optionsMode = (int)optionsMode,
+            announce = OnReady?.Method.Name,
+            enableClear = EnableClear,
+            optionDescription = OptionDescription,
+            extraSearchIndicies = ExtraSearchIndicies,
+            firstRender = firstRender,
+            destroyOld = forceRerender,
+            enableSearch = EnableSearch,
+            modalRef = ModalRef is not null && ScrollbarRef is not null ? ScrollbarRef.ContainerId : null,
+            onlySetOptions = withoutValueChange,
+            smartSearch = false, // [todo] broken after rework
+            allowNewOption = EnableNewOption,
+            defaultCustomOption = DefaultCustomOption,
+            newOptionTitle = NewOptionTitle,
+            design = (int)Design,
+            searchPlaceholder = SearchPlaceholder
+        };
+    }
+    
+    async Task InitJsModule(bool firstRender)
+    {
+        if (JsObjectRef is null)
+        {
+            return;
+        }
+
+        renderedWithoutOptions = FetchedOptions is not {Count: > 0 };
+        
+        switch (Type)
+        {
+            case SelectTypes.Tagify:
+            {
+                await JsObjectRef.InvokeVoidAsync("Init", new
+                {
+                    options = FetchedOptions,
+                    id = Id,
+                    net = JsRef,
+                    announce = OnReady?.Method.Name,
+                    headerText = HeaderText,
+                    firstRender = firstRender,
+                    enableAutocomplete = EnableAutocomplete
+                });
+                break;
+            }
+            case SelectTypes.Virtual:
+            {
+                await JsObjectRef.InvokeVoidAsync("Init", GetJsOptions(firstRender));
+                break;
+            }
+            case SelectTypes.Phone:
+            {
+                await JsObjectRef.InvokeVoidAsync("Init", new
+                {
+                    id = Id,
+                    net = JsRef,
+                    url = string.Empty
+                });
+                break;
+            }
+        }
+
+        forceRerender = false;
+    }
+    
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        
+        try
+        {
+            if (JsObjectRef is not null)
+            {
+                switch (Type)
+                {
+                    case SelectTypes.Virtual:
+                        await JsObjectRef.InvokeVoidAsync("Destroy", new
+                        {
+                            id = Id
+                        });
+                        break;
+                    case SelectTypes.Tagify:
+                        await JsObjectRef.InvokeVoidAsync("Dispose", new
+                        {
+                            id = Id
+                        });
+                        break;
+                }
+            }
+
+            JsRef?.Dispose();
+        }
+        catch (JSDisconnectedException e)
+        {
+
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }
+    
+    private async Task OnPhoneChanged()
+    {
+        if (JsObjectRef is not null)
+        {
+            await JsObjectRef.InvokeVoidAsync("Update", new { id = Id });
+        }
+    }
+    
+    public override void OnValueSet(TValue? _)
+    {
+        if (false)
+        {
+            if (!ignoreJsSignals)
+            {
+                SyncValue();   
+            }   
+        }
+    }
+    
+    public void OnValuesSet()
+    {
+        if (false)
+        {
+            SyncValue();
+        }
+    }
+    
+    [JSInvokable]
+    public async Task AddOptionJs(string value)
+    {
+        try
+        {
+            await OnOptionAdded.InvokeAsync(value);
+        }
+        catch (Exception e)
+        {
+            
+        }
+    }
+    
+    private async Task OnInputUpdate(ChangeEventArgs args, ValidationEvents evt = ValidationEvents.OnChange)
+    {
+        Value = (TValue?)args.Value.ChangeType(typeof(TValue));
+        await ValueChanged.InvokeAsync(Value);
+
+        Values ??= [];
+        Values.Clear();
+        Values.Add(Value);
+        await ValuesChanged.InvokeAsync(Values);
+
+        await RunValidations(evt);
+        await AfterUpdate();
+    }
+
+    private async Task OnInputChange(ChangeEventArgs args)
+    {
+        if (!Multiple)
+        {
+            if (typeof(TValue) == typeof(string))
+            {
+                Value = (TValue)(args.Value ?? string.Empty);
+            }
+            else if (typeof(TValue).IsEnum)
+            {
+                Value = (TValue?)args.Value.ChangeType(typeof(TValue));
+            }
+            else
+            {
+                Value = (TValue?)Convert.ChangeType(args.Value ?? string.Empty, typeof(TValue));
+            }
+
+            await ValueChanged.InvokeAsync(Value);
+
+            Values ??= [];
+            Values.Clear();
+            Values.Add(Value);
+        }
+        else
+        {
+            Values = (ConvertibleList<TValue?>)(args.Value ?? "");
+            await ValuesChanged.InvokeAsync(Values);
+        }
+
+        DefaultOptionSelected = false;
+        await RunValidations(ValidationEvents.OnChange);
+        await AfterUpdate();
+    }
+
+    public TValue GetScalarValue()
+    {
+        return Multiple ? Values.FirstOrDefault() : Value;
+    }
+
+    public List<TValue> GetValues()
+    {
+        if (Multiple)
+        {
+            List<TValue?> nativeList = [];
+
+            if (Values is not null)
+            {
+                nativeList.AddRange(Values);
+            }
+
+            return nativeList;
+        }
+        
+        return [ Value ];
+    }
+    
+    private async Task OnInput<T>(T? value)
+    {
+        if (typeof(TValue) == typeof(string))
+        {
+            Value = (TValue?)(dynamic?)value;
+        }
+        
+        isDirty = true;
+        rawVal = Value?.ToString() ?? string.Empty;
+        
+        await OnInputUpdate(new ChangeEventArgs { Value = Value }, ValidationEvents.OnInput);
+    }
+}
+
+<InternalEdRowFrame Owner="this" ForceShape="Shape" Style="" Class="@Class">
+    <div class="@SerializeRow() @SerializeValidators() @ColumnClass">
+        <InternalEdInputFrame LabelPosition="ComputedLabelPosition">
+        @if (true)
+        {
+            <InternalEdInputLabel DecorateLabel="DecorateLabel" Style="@LabelStyle" Render="RenderLabel" TValue="TValue" For="@Id" ForceRender="ForceRenderLabel" Label="@Label" LabelPosition="ComputedLabelPosition" LabelSize="ComputedLabelSize"/>
+
+            if (!Disabled)
+            {
+                switch (Type)
+                {
+                    case SelectTypes.Native:
+                        <select @bind="@Value" @oninput="OnInputChange" id="@Id" class="@ComputedInputSize form-control @(DefaultOptionSelected ? "defaultOption" : "") @Class" style="@Style">
+                            <CascadingValue Value="@this" IsFixed="@true">
+                                @ChildContent
+                            </CascadingValue>
+                        </select>
+                        <div style="margin-top: 5px; @(RenderValidation ? "" : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        break;
+                    case SelectTypes.Virtual:
+                        <div id="@(Id)_container" style="@Style" class="smartInput @ComputedInputSize">
+                            <input id="@(Id)_backing" style="display: none" value="@defaultSelected"/>
+                            <div id="@Id"></div>
+
+                            @if (!LabelUnderline.IsNullOrWhiteSpace())
+                            {
+                                <div style="margin-top: 4px; @LabelUnderlineStyle">@((MarkupString)LabelUnderline)</div>
+                            }
+                            
+                            <div style="margin-top: 5px; @(RenderValidation ? "" : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        </div>
+                        break;
+                    case SelectTypes.Tagify:
+                        <div id="@(Id)_container" style="height: 42px; @Style" class="edTagifyContainer @ComputedInputSize @Class">
+                            <input id="@Id" style="display: none;" class="tagifyControl customLook" placeholder="@Placeholder" value=""/>
+                            <div style="margin-top: 5px; @(RenderValidation ? "" : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        </div>
+                        break;
+                    case SelectTypes.Tags:
+                        <div class="filter-tag tarTagContainer @ComputedInputSize @Class" style="display: flex; flex-flow: wrap; @Style">
+                            @if (FetchedOptions is List<TagSelectOption> tags)
+                            {
+                                foreach (TagSelectOption option in tags)
+                                {
+                                    <EdTagBadge TagOption="option" OnClick="@(async () => { await UpdateValueInternal(); })"/>
+                                }
+                            }
+                        </div>
+                        <div style="margin-top: 5px; @(RenderValidation ? "" : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        break;
+                    case SelectTypes.Pills:
+                        <div style="display: flex; flex-flow: wrap; @Style" class="@ComputedInputSize @Class">
+                            @if (FetchedOptions is List<PillSelectOption> pills)
+                            {
+                                int i = 0;
+                                foreach (PillSelectOption option in pills)
+                                {
+                                    int i1 = i;
+                                    int resultsCount = 0;
+
+                                    if (ResultsCount?.Count > i1)
+                                    {
+                                        resultsCount = ResultsCount[i];
+                                    }
+
+                                    <EdPillBadge ResultCount="@resultsCount" PillOption="option" OnClick="@(async () => { await UpdateValueInternal(); })"/>
+                                    i++;
+                                }
+                            }
+                        </div>
+                        <div style="margin-top: 5px; @(RenderValidation ? string.Empty : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        break;
+                    case SelectTypes.Dropdown:
+                        <div class="dropdown dropdown-evaluation">
+                            <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle='dropdown'>@Text</button>
+                            <div class="dropdown-menu">
+                                @{
+                                    if (FetchedOptions is not null)
+                                    {
+                                        foreach (ISelectOption option in FetchedOptions)
+                                        {
+                                            <a class="dropdown-item dMenu" onclick="@(async () => { await UpdateValueInternalDropdown(option); })">@option.Name</a>
+                                        }
+                                    }
+                                }
+                            </div>
+                        </div>
+                        <div style="margin-top: 5px; @(RenderValidation ? string.Empty : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        break;
+                    case SelectTypes.Radioboxes:
+                        <div>
+                            @{
+                                if (FetchedOptions is not null)
+                                {
+                                    foreach (ISelectOption option in FetchedOptions)
+                                    {
+                                        <div class="row">
+                                            <div class="col-md-12 form-group">
+                                                <div class="custom-control custom-checkbox" style="user-select: none;">
+                                                    <input id="@($"{Id}_{option.Value}")" name="@Id" value="@option.Value" type="radio" class="custom-control-input stateBoxCls" checked="@option.Selected" @oninput="@(async (args) => await OnInputUpdate(args))"/>
+                                                    <label for="@($"{Id}_{option.Value}")" style="cursor: pointer; user-select: none;" class="custom-control-label customRadiobox">
+                                                        <span>@option.Name</span>
+                                                        
+                                                        @if (option is IDescriptionOption descOption && !descOption.Description.IsNullOrWhiteSpace())
+                                                        {
+                                                            <span style="color: #9896A4; font-size: 12px; margin-left: 5px; position: relative; top: -1px;">- @descOption.Description.FirstLetterToLower()</span>
+                                                        }
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            }
+
+                            <div style="margin-top: 5px; @(RenderValidation ? string.Empty : "display: none")" class="text-danger field-validation-error">@ValidationMsg</div>
+                        </div>
+                        break;
+                    case SelectTypes.Phone:
+                        <div id="@(Id)_container" style="margin-bottom: @(RenderContainerMargin ? 10 : 0)px; @Style" class="@ComputedInputSize">
+                            <input data-ed-id="@Id" placeholder="@Placeholder" id="phone_@Id" type="tel" class="form-control" @onblur="OnPhoneChanged" @bind:set="OnInput" @bind:get="rawVal" @bind:event="oninput" />
+                            <div style="margin-top: 5px; @(RenderValidation ? "" : "display: none")" class="text-danger field-validation-error">@((MarkupString)(ValidationMsg ?? string.Empty))</div>
+                        </div>
+                        break;
+                    default:
+                        <div style="color: red;">Hodnota @Type nemá implementovaný render (EdSelect)</div>
+                        break;
+                }
+            }
+            else
+            {
+                <CascadingValue Value="this">
+                    @ChildContent
+                </CascadingValue>
+            }
+        }
+        </InternalEdInputFrame>
+    </div>
+</InternalEdRowFrame>

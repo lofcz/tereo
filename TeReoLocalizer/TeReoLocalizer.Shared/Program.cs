@@ -1,6 +1,7 @@
 using System.Text;
 using BlazingModal;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.Caching.Memory;
 using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components;
@@ -10,10 +11,13 @@ namespace TeReoLocalizer.Shared;
 public class Program
 {
     public static InvertedIndex Index;
-
+    public static IMemoryCache Cache;
+    public static IWebHostEnvironment Env;
+    
     public static void AddSharedServices(IServiceCollection services)
     {
         services.AddBlazingModal();
+        services.AddMemoryCache();
     }
     
     public static async Task Main(string[] args)
@@ -34,16 +38,8 @@ public class Program
                 appType = arg.Substring("--appType=".Length);
             }
         }
-
-        // Použití appType pro podmíněnou logiku
-        if (appType == "MAUI")
-        {
-            SharedProxy.IsMaui = true;
-        }
-        else
-        {
-            SharedProxy.IsMaui = false;
-        }
+        
+        SharedProxy.IsMaui = appType is "MAUI";
         
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorComponents()
@@ -56,6 +52,10 @@ public class Program
 
         WebApplication app = builder.Build();
         IHostApplicationLifetime lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        IMemoryCache cache = app.Services.GetRequiredService<IMemoryCache>();
+        IWebHostEnvironment env = app.Services.GetRequiredService<IWebHostEnvironment>();
+        Cache = cache;
+        Env = env;
 
         lifetime.ApplicationStopping.Register(() =>
         {

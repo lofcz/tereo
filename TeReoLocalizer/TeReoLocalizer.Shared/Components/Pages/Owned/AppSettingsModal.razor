@@ -1,3 +1,4 @@
+@using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
 @inject IJSRuntime Js
 @code {
@@ -11,6 +12,7 @@
     UserSettings settings = new UserSettings();
     ProjectSettings projectSettings = new ProjectSettings();
     bool showTips;
+    List<NativeSelectOption> languageOptions = [];
     
     protected override void OnInitialized()
     {
@@ -19,6 +21,19 @@
         showTips = !settings.DisableTips;
 
         projectSettings = Owner.Project.Settings.DeepClone();
+  
+        foreach (KeyValuePair<Languages, LangData> lang in Owner.LangsData.Langs.OrderBy(x => x.Key.ToString(), StringComparer.Ordinal))
+        {
+            languageOptions.Add(new ImageSelectOptionExtended
+            {
+                Name = lang.Key.ToString(),
+                Value = lang.Key,
+                Image = $"/Images/Flags/{LanguagesCls.GetCountryCodeIso3166Alpha2(lang.Key)}.svg",
+                ImageWidth = 24,
+                ImageHeight = 18,
+                Selected = projectSettings.PrimaryLanguage == lang.Key
+            });
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -74,6 +89,7 @@
             <div class="tab-pane" id="v-pills-settings" role="tabpanel">
                 <EdForm OnSubmit="SubmitProject">
                     <EdInput Label="Jmenný prostor" @bind-Value="projectSettings.Codegen.Namespace" />
+                    <EdSelect Type="SelectTypes.Virtual" Label="Primární jazyk" Fetch="languageOptions" @bind-Value="projectSettings.PrimaryLanguage" />
                     <EdTextarea Type="TextareaTypes.NativeLargeText" @bind-Value="projectSettings.TranslationProviders.DeepL.Context" Label="Kontext DeepL"/>
                     <EdButtonsContainer>
                         <EdButton Type="ButtonTypes.Submit">Uložit</EdButton>

@@ -1,6 +1,8 @@
 using System.Collections;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -10,7 +12,12 @@ using BlazingModal.Services;
 using EnumsNET;
 using Mapster;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components.Shared;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace TeReoLocalizer.Shared.Code;
 
@@ -161,6 +168,11 @@ public static class Extensions
         {
             return default;
         }
+    }
+    
+    public static T? JsonDecode<T>(this JsonElement el)
+    {
+        return el.GetRawText().JsonDecode<T>();
     }
     
     public static bool Implements<T>(this Type source)
@@ -349,5 +361,222 @@ public static class Extensions
     public static IDictionary<string, object?>? ToDictionary(this object? obj)
     {
         return obj is null ? null : HtmlHelper.ObjectToDictionary(obj);
+    }
+    
+    public static List<int> FromCsv(this string? str, string separator = ",")
+    {
+        return str == null ? [] : str.Split(separator).Where(m => int.TryParse(m, out int _)).Select(int.Parse).ToList();
+    }
+    
+    public static IList InstantiateList(this Type t)
+    {
+        Type genericListType = typeof(List<>).MakeGenericType(t);
+        return (IList)Activator.CreateInstance(genericListType)!;
+    }
+    
+    static void AddJsonElementStringIfValid<T>(this IList<T> values, JsonElement value)
+    {
+        string stringVal = value.GetString() ?? "";
+
+        if (typeof(T).IsEnum || typeof(T) == typeof(int) || typeof(T) == typeof(int?))
+        {
+            if (int.TryParse(stringVal, out int tvalInt))
+            {
+                values.Add((T)(dynamic)tvalInt);
+            }
+        }
+    }
+
+    static void AddJsonElementNumberIfValid<T>(this IList<T> values, JsonElement value)
+    {
+        bool isInt = value.TryGetInt32(out int tintVal);
+
+        if (isInt)
+        {
+            if (typeof(T).IsEnum || typeof(T) == typeof(int) || typeof(T) == typeof(int?))
+            {
+                values.Add((T)(dynamic)tintVal);
+            }
+
+            return;
+        }
+
+        bool isDouble = value.TryGetDouble(out double tdoubleVal);
+
+        if (isDouble)
+        {
+            if (typeof(T) == typeof(double))
+            {
+                values.Add((T)(dynamic)tdoubleVal);
+            }
+            else if (typeof(T) == typeof(float))
+            {
+                values.Add((T)(dynamic)(float)tdoubleVal);
+            }
+        }
+    }
+    
+    static void AddJsonElementStringIfValid<T>(this IList<T> values, JsonElement value, bool allowDuplicates = true)
+    {
+        string stringVal = value.GetString() ?? "";
+
+        if (typeof(T).IsEnum || typeof(T) == typeof(int) || typeof(T) == typeof(int?) || typeof(T) == typeof(object))
+        {
+            if (int.TryParse(stringVal, out int tvalInt))
+            {
+                T tval = (T)(dynamic)tvalInt;
+
+                if (allowDuplicates)
+                {
+                    values.Add(tval);   
+                }
+                else
+                {
+                    if (!values.Contains(tval))
+                    {
+                        values.Add(tval);
+                    }
+                }
+            }
+        }
+        else if (typeof(T) == typeof(string))
+        {
+            string strVal = value.GetString() ?? string.Empty;
+            T tval = (T)(dynamic)strVal;
+            
+            if (allowDuplicates)
+            {
+                values.Add(tval);   
+            }
+            else
+            {
+                if (!values.Contains(tval))
+                {
+                    values.Add(tval);
+                }
+            }
+        }
+    }
+    
+    static void AddJsonElementNumberIfValid<T>(this IList<T> values, JsonElement value, bool allowDuplicates = true)
+    {
+        bool isInt = value.TryGetInt32(out int tintVal);
+
+        if (isInt)
+        {
+            if (typeof(T).IsEnum || typeof(T) == typeof(int) || typeof(T) == typeof(int?) || typeof(T) == typeof(object))
+            {
+                T tInt = (T)(dynamic)tintVal;
+
+                if (allowDuplicates)
+                {
+                    values.Add(tInt);   
+                }
+                else
+                {
+                    if (!values.Contains(tInt))
+                    {
+                        values.Add(tInt);
+                    }
+                }
+            }
+
+            return;
+        }
+
+        bool isDouble = value.TryGetDouble(out double tdoubleVal);
+
+        if (isDouble)
+        {
+            if (typeof(T) == typeof(double))
+            {
+                values.Add((T)(dynamic)tdoubleVal);
+            }
+            else if (typeof(T) == typeof(float))
+            {
+                values.Add((T)(dynamic)(float)tdoubleVal);
+            }
+        }
+    }
+
+    public static void AddJsonElement<T>(this IList<T> values, JsonElement value, bool allowDuplicates = true)
+    {
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.String:
+            {
+                AddJsonElementStringIfValid(values, value, allowDuplicates);
+                break;
+            }
+            case JsonValueKind.Number:
+            {
+                AddJsonElementNumberIfValid(values, value, allowDuplicates);
+                break;
+            }
+            case JsonValueKind.Array:
+            {
+                foreach (JsonElement el in value.EnumerateArray())
+                {
+                    AddJsonElement(values, el, allowDuplicates);
+                }
+
+                break;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Creates options usable by <see cref="EdSelect{TValue}"/>.
+    /// </summary>
+    /// <param name="ignoreFirst">Whether to ignore the first value in the enum</param>
+    /// <param name="selected">Which options are preselected</param>
+    /// <param name="subset">Limits options to a given subset of source enum options</param>
+    /// <param name="includeDescription">Whether to include <see cref="DescriptionAttribute"/> in the options</param>
+    /// <param name="ignoreLast">Whether to ignore the last value in the enum</param>
+    /// <param name="orderBy">Orders on source enum level</param>
+    /// <param name="optionsOrderBy">Orders materialized options</param>
+    /// <typeparam name="T">Enum from which the options are sourced</typeparam>
+    /// <returns></returns>
+    public static List<ISelectOption> EnumerateAsSelectOptions<T>(bool ignoreFirst = false, Func<T, bool>? selected = null, List<T>? subset = null, bool includeDescription = false, bool ignoreLast = false, Func<T, int>? orderBy = null, Expression<Func<ISelectOption, object>>? optionsOrderBy = null) where T : struct, IConvertible
+    {
+        bool isLocalized = ClrService.EnumGetAttribute<T, LocalizedAttribute>() is not null;
+        
+        List<ISelectOption> options = Enum.GetValues(typeof(T)).Cast<T>()
+            .Where(x => (subset == null || subset.Contains(x)) && (!ignoreFirst || x.ToInt32(null) > 0) && (!ignoreLast || x.ToInt32(null) < Enum.GetValues(typeof(T)).Length - 1))
+            .OrderBy(x => orderBy?.Invoke(x) ?? (ClrService.EnumValueHasAttribute<T, OrderIndexAttribute>(x) ? ClrService.EnumValueGetAttribute<T, OrderIndexAttribute>(x)?.Index : x.ToInt32(null)))
+            .Select(x => 
+            {
+                string? stringValue = (x as Enum).GetStringValue();
+                string name = stringValue is null ? string.Empty : isLocalized ? "Reo.GetString(stringValue)" : stringValue;
+                
+                return includeDescription
+                    ? new DescriptionSelectOption 
+                    { 
+                        Selected = selected?.Invoke(x) ?? false, 
+                        Name = name, 
+                        Value = x.ToInt32(null), 
+                        Description = ClrService.EnumValueHasAttribute<T, DescriptionAttribute>(x) ? ClrService.EnumValueGetAttribute<T, DescriptionAttribute>(x)?.Description : null 
+                    }
+                    : new NativeSelectOption 
+                    { 
+                        Selected = selected?.Invoke(x) ?? false, 
+                        Name = name, 
+                        Value = x.ToInt32(null) 
+                    };
+            })
+            .Cast<ISelectOption>().ToList();
+
+        if (optionsOrderBy is not null)
+        {
+            Func<ISelectOption, object> orderByFunc = optionsOrderBy.Compile();
+            return options.OrderBy(orderByFunc).ToList();
+        }
+        
+        return options;
+    }
+    
+    public static void Forever(this IMemoryCache cache, string key, object? value)
+    {
+        cache.Set(key, value, DateTime.MaxValue);
     }
 }

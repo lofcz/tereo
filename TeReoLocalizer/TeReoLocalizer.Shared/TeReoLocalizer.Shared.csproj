@@ -55,6 +55,7 @@
       <EmbeddedResource Include="wwwroot\Scripts\reoMgrProto.ts">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </EmbeddedResource>
+      <TypeScriptCompile Include="wwwroot\Scripts\Scoped\vselect.ts" />
     </ItemGroup>
 
     <ItemGroup>
@@ -86,5 +87,6 @@
 
     <ItemGroup>
       <Folder Include="Code\ThirdParty\" />
+      <Folder Include="wwwroot\Images\Flags\" />
     </ItemGroup>
 </Project>
