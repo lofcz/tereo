@@ -1,3 +1,5 @@
+using TeReoLocalizer.Annotations;
+
 namespace TeReoLocalizer.Shared.Code.Commands;
 
 /// <summary>
@@ -7,6 +9,7 @@ public class CmdDeleteGroup : BaseCommand
 {
     private string? SelectedDeclId { get; set; }
     private Decl? DeletedDecl { get; set; }
+    private Dictionary<Languages, Dictionary<string, (string? Data, string? FocusData, string? PersistedData)>>? BackupData { get; set; }
 
     public CmdDeleteGroup(Decl decl)
     {
@@ -24,7 +27,30 @@ public class CmdDeleteGroup : BaseCommand
         {
             SelectedDeclId = Project.SelectedDecl.Id;
             DeletedDecl = Decl;
+            BackupData = [];
         }
+
+        foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
+        {
+            if (firstTime)
+            {
+                BackupData![x.Key] = new Dictionary<string, (string?, string?, string?)>();
+            }
+            
+            foreach (KeyValuePair<string, Key> key in Decl.Keys)
+            {
+                x.Value.Data.TryRemove(key.Key, out string? removedData);
+                x.Value.FocusData.TryRemove(key.Key, out string? removedFocusData);
+                x.Value.PersistedData.TryRemove(key.Key, out string? removedPersistedData);
+
+                if (firstTime)
+                {
+                    BackupData![x.Key][key.Key] = (removedData, removedFocusData, removedPersistedData);
+                }
+            }
+        }
+
+        await Owner.SaveLanguages();
         
         Project.Decls.Remove(Decl);
         Project.SelectedDecl = Project.Decls.FirstOrDefault() ?? new Decl();
@@ -43,6 +69,37 @@ public class CmdDeleteGroup : BaseCommand
         {
             return;
         }
+
+        if (BackupData is not null)
+        {
+            foreach (KeyValuePair<Languages, Dictionary<string, (string? Data, string? FocusData, string? PersistedData)>> lang in BackupData)
+            {
+                if (!LangsData.Langs.TryGetValue(lang.Key, out LangData? langData))
+                {
+                    continue;
+                }
+                
+                foreach (KeyValuePair<string, (string? Data, string? FocusData, string? PersistedData)> keyData in lang.Value)
+                {
+                    if (!string.IsNullOrEmpty(keyData.Value.Data))
+                    {
+                        langData.Data[keyData.Key] = keyData.Value.Data;
+                    }
+
+                    if (!string.IsNullOrEmpty(keyData.Value.FocusData))
+                    {
+                        langData.FocusData[keyData.Key] = keyData.Value.FocusData;
+                    }
+
+                    if (!string.IsNullOrEmpty(keyData.Value.PersistedData))
+                    {
+                        langData.PersistedData[keyData.Key] = keyData.Value.PersistedData;
+                    }
+                }
+            }   
+        }
+        
+        await Owner.SaveLanguages();
         
         Project.Decls.Add(DeletedDecl);
         

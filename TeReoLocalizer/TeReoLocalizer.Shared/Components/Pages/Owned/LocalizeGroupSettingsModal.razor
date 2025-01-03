@@ -17,6 +17,11 @@
 
     async Task<FormResult> Submit()
     {
+        if (settings.Codegen.FrontendStandaloneName?.Trim().ToLowerInvariant() is "reo")
+        {
+            return new FormResult("Vlastní název modulu nemůže být vyhrazený identifikátor <code>reo</code>.");
+        }
+        
         await Owner.Execute(new CmdUpdateGroupSettings(settings));
         await Cancel();
         return new FormResult(true);
@@ -32,6 +37,17 @@
     <EdForm OnSubmit="Submit">
         <EdCheckbox Label="Generovat kód C#" @bind-Value="settings.Codegen.Backend" />
         <EdCheckbox Label="Generovat kód JS" @bind-Value="settings.Codegen.Frontend" />
+        
+        @if (settings.Codegen.Frontend)
+        {
+            <EdCheckbox Label="Exportovat jako samostatný modul" @bind-Value="settings.Codegen.FrontendStandalone" />
+
+            if (settings.Codegen.FrontendStandalone)
+            {
+                <EdInput Placeholder="@($"Název modulu (výchozí = {Owner.Decl.Name?.ToBaseLatin()})")" @bind-Value="settings.Codegen.FrontendStandaloneName" />
+            }
+        }
+        
         <EdButtonsContainer>
             <EdButton Size="ButtonSizes.Medium" Type="ButtonTypes.Submit">Uložit</EdButton>
             <EdButton Size="ButtonSizes.Medium" Design="@ButtonDesigns.Cancel" Fill="ButtonFillModes.Outline" OnClick="Cancel">Zrušit</EdButton>

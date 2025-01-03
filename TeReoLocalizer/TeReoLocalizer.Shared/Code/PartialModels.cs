@@ -67,7 +67,7 @@ public class TranslationProviderDeeplL
 public class Project
 {
     public static readonly int LatestVersionMajor = 1;
-    public static readonly int LatestVersionMinor = 1;
+    public static readonly int LatestVersionMinor = 2;
     public static readonly int LatestVersionPatch = 0;
     
     public static string LatestVersion => $"{LatestVersionMajor}.{LatestVersionMinor}.{LatestVersionPatch}";
@@ -279,6 +279,8 @@ public class DeclSettingsCodegen
 {
     public bool Frontend { get; set; }
     public bool Backend { get; set; } = true;
+    public bool FrontendStandalone { get; set; }
+    public string? FrontendStandaloneName { get; set; }
 }
 
 public class LangsData
@@ -620,4 +622,28 @@ public enum KeyRenameReasons
     Unknown,
     Manual,
     Regenerate
+}
+
+public class CodegenResult
+{
+    public string? Backend { get; set; }
+    public CodegenFrontendResult Frontend { get; set; } = new CodegenFrontendResult();
+}
+
+public class CodegenFrontendResult
+{
+    public string? Declarations { get; set; }
+    public string? AmbientDeclarations { get; set; }
+    public CodegenTsTranspiledFile? Mgr { get; set; }
+    public string? Tsconfig { get; set; }
+    public string? Map { get; set; }
+    public ConcurrentDictionary<Languages, string> Decls { get; set; } = [];
+    public ConcurrentDictionary<(Languages language, string decl), string> StandaloneDecls { get; set; } = [];
+}
+
+public class CodegenTsTranspiledFile
+{
+    public string Ts { get; set; }
+    public string Js { get; set; }
+    public string Map { get; set; }
 }

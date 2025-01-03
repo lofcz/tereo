@@ -14,14 +14,6 @@
     "module": "esnext",
     "strict": false,
     "useDefineForClassFields": false
-  },
-  "exclude": [
-    "ElectronHostHook",
-    "ElectronHostHook/node_modules",
-    "./ElectronHostHook/node_modules",
-    "obj",
-    "obj/Host",
-    "obj/Host/node_modules",
-    "obj/Host/ElectronHostHook"
-  ]
+  }
 }
+  

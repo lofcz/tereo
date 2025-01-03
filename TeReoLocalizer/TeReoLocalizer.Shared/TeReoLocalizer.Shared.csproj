@@ -40,12 +40,21 @@
 
     <ItemGroup>
       <TypeScriptCompile Include="wwwroot\Scripts\nanoMcf.ts" />
+      <EmbeddedResource Include="wwwroot\Scripts\reoMgrProto.d.ts">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </EmbeddedResource>
+      <EmbeddedResource Include="wwwroot\Scripts\reoAmbient.d.ts">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </EmbeddedResource>
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\input.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\native.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\rte.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\Scrollbar.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\tabulator.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\textarea.ts" />
+      <EmbeddedResource Include="wwwroot\Scripts\reoMgrProto.ts">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -64,10 +73,18 @@
       <Content Update="Components\Blocks\Internal\InternalEdInputLabel.razor.scss">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
+      <Content Update="wwwroot\Scripts\tsconfigProto.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\Scripts\reoMgrProto.js">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\Scripts\reoMgrProto.js.map">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="Code\ThirdParty\" />
     </ItemGroup>
-
 </Project>
