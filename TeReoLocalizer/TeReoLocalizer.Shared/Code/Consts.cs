@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Json5Core;
+using TeReoLocalizer.Shared.Components;
 
 namespace TeReoLocalizer.Shared.Code;
 
@@ -13,10 +14,18 @@ public class Config
     public bool Experimental { get; set; }
 }
 
-public class Consts
+public static class Consts
 {
     private static Config? cfg;
     public static string Entropy { get; set; } = General.IIID();
+
+    public static void UpdateConfigFromShared()
+    {
+        if (SharedProxy.Repository is not null)
+        {
+            Cfg.Repository = SharedProxy.Repository;
+        }
+    }
     
     public static Config Cfg
     {
@@ -41,7 +50,7 @@ public class Consts
                     cfg.ConfigReadOk = true;
                 }
 
-                return cfg ?? new Config();   
+                return cfg ?? new Config();
             }
             
             cfgSource = Linker.LinkFileContent("appCfg.json5");

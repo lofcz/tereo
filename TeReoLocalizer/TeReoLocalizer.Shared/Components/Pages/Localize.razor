@@ -173,7 +173,7 @@
             string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/project.json");
             Project = JsonSerializer.Deserialize<Project>(currentData) ?? new Project();
         }
-        else
+        else if (File.Exists($"{basePath}/TeReo/decl.json"))
         {
             // old structure
             string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
@@ -365,6 +365,11 @@
         if (showLanguages)
         {
             showLangs = true;
+        }
+
+        if (!Directory.Exists($"{basePath}/TeReo"))
+        {
+            return;
         }
 
         existingFiles = Directory.GetFiles($"{basePath}/TeReo").ToList();
@@ -1399,50 +1404,45 @@
 
 <SectionContent SectionName="menuBar">
     <div style="display: flex; gap: 100px; width: 100%; justify-content: space-between; flex-flow: wrap; row-gap: 0; padding-top: 1rem; padding-bottom: 0.5rem;">
-    
-        @if (LangsData.Langs.Count is 0)
-        {
-            <div>Lokalizace se načítá..</div>
-        }
-        else
-        {
+        
+        @{
             List<KeyValuePair<Languages, LangData>> visible = LangsData.Langs.Where(x => x.Value.Visible).ToList();
-            
-            <div>
-                <div style="display: flex; gap: 15px;">
+        }
+        
+        <div>
+            <div style="display: flex; gap: 15px;">
 
-                    <div>
-                        <button @onclick="ToggleLangsSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == LangsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
+                <div>
+                    <button @onclick="ToggleLangsSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == LangsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
 
-                        @if (showLangsSelection)
-                        {
-                            <div style="display: flex; gap: 15px; margin-bottom: 10px; margin-top: 10px;">
-                                @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
-                                {
-                                    <div class="form-check" @onclick="@(async () => { local.Value.Visible = !local.Value.Visible; await AfterLanguageToggle(local, local.Value.Visible); })">
-                                        <input style="cursor: pointer;" @onclick:stopPropagation="true" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
-                                        <label style="cursor: pointer; user-select: none;" class="form-check-label" for="@($"langShow_{local.Key}")">@local.Key</label>
-                                    </div>
-                                }
-                            </div>
-                            
-                            <div style="margin-bottom: 10px;">
-                                <div style="white-space: nowrap;" class="link-light" @onclick="ToggleLangsAdd">Nastavení jazyků</div>
-                            </div>
-                            
-                            if (showAddLangs)
+                    @if (showLangsSelection)
+                    {
+                        <div style="display: flex; gap: 15px; margin-bottom: 10px; margin-top: 10px;">
+                            @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
                             {
-                                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                                    <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
-                                    <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
-                                    <button style="white-space: nowrap;" class="btn btn-danger btn-sm" @onclick="DeleteLanguage">Odebrat jazyk</button>
-                                </div>   
+                                <div class="form-check" @onclick="@(async () => { local.Value.Visible = !local.Value.Visible; await AfterLanguageToggle(local, local.Value.Visible); })">
+                                    <input style="cursor: pointer;" @onclick:stopPropagation="true" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
+                                    <label style="cursor: pointer; user-select: none;" class="form-check-label" for="@($"langShow_{local.Key}")">@local.Key</label>
+                                </div>
                             }
+                        </div>
+                        
+                        <div style="margin-bottom: 10px;">
+                            <div style="white-space: nowrap;" class="link-light" @onclick="ToggleLangsAdd">Nastavení jazyků</div>
+                        </div>
+                        
+                        if (showAddLangs)
+                        {
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
+                                <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
+                                <button style="white-space: nowrap;" class="btn btn-danger btn-sm" @onclick="DeleteLanguage">Odebrat jazyk</button>
+                            </div>   
                         }
-                    </div>
+                    }
                 </div>
             </div>
-        }
+        </div>
         
         <div>
             <div style="display: flex; gap: 10px; align-items: flex-start;">

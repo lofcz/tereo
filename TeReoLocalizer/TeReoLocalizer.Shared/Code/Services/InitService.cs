@@ -1,8 +1,5 @@
 using System.Text;
 using Microsoft.Build.Locator;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.MSBuild;
-using Microsoft.CodeAnalysis.Text;
 
 namespace TeReoLocalizer.Shared.Code.Services;
 

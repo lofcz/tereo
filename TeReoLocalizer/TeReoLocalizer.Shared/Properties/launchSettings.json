@@ -34,6 +34,18 @@
           "DOTNET_WATCH_RESTART_ON_RUDE_EDIT": "true",
           "APP_TYPE": "WEB"
         }
+      },
+      "https reo project": {
+        "commandName": "Project",
+        "dotnetRunMessages": true,
+        "launchBrowser": true,
+        "applicationUrl": "https://localhost:44309;http://localhost:44308",
+        "commandLineArgs": "watch run --appType=WEB --repository=\"C:\\Users\\lordo\\Documents\\GitHub\\tereo\\TeReoLocalizer\\TeReoLocalizer.Shared\"",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "ELECTRON": "false",
+          "APP_TYPE": "WEB"
+        }
       }
     }
   }

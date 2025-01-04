@@ -1,3 +1,4 @@
+using System.CommandLine;
 using System.Text;
 using BlazingModal;
 using Microsoft.AspNetCore.Diagnostics;
@@ -28,18 +29,45 @@ public class Program
         {
             Index = new InvertedIndex($"{Consts.Cfg.Repository}/.reoindex");   
         }
+        
+        Option<string> appTypeOption = new Option<string>(
+            name: "--appType",
+            description: "Shell to use, supported values are: WEB,MAUI",
+            getDefaultValue: () => "WEB");
 
-        string appType = "WEB";
-        
-        foreach (string? arg in args)
+        Option<FileInfo?> repositoryOption = new Option<FileInfo?>(
+            name: "--repository",
+            description: "Repository path",
+            getDefaultValue: () => null);
+
+        Option<FileInfo?> slnOption = new Option<FileInfo?>(
+            name: "--sln",
+            description: "Solution file path",
+            getDefaultValue: () => null);
+
+        RootCommand rootCommand = new RootCommand("TeReo Localizer")
         {
-            if (arg.StartsWith("--appType="))
-            {
-                appType = arg.Substring("--appType=".Length);
-            }
-        }
+            TreatUnmatchedTokensAsErrors = false
+        };
         
-        SharedProxy.IsMaui = appType is "MAUI";
+        rootCommand.AddOption(appTypeOption);
+        rootCommand.AddOption(repositoryOption);
+        rootCommand.AddOption(slnOption);
+
+        rootCommand.SetHandler(ctx =>
+        {
+            string? appType = ctx.ParseResult.GetValueForOption(appTypeOption);
+            FileInfo? repository = ctx.ParseResult.GetValueForOption(repositoryOption);
+            FileInfo? sln = ctx.ParseResult.GetValueForOption(slnOption);
+            
+            SharedProxy.IsMaui = appType is "MAUI";
+            SharedProxy.Repository = repository?.FullName;
+            SharedProxy.Sln = sln?.FullName;
+
+            Consts.UpdateConfigFromShared();
+        });
+
+        await rootCommand.InvokeAsync(args);
         
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorComponents()
