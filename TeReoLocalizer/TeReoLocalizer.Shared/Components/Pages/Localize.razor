@@ -268,6 +268,14 @@
             });
         }
 
+        foreach (Decl x in Project.Decls)
+        {
+            foreach (KeyValuePair<string, Key> key in x.Keys)
+            {
+                key.Value.Owner = x;
+            }
+        }
+
         if (!Settings.SelectedDecl.IsNullOrWhiteSpace())
         {
             Decl? matchingDecl = Project.Decls.FirstOrDefault(x => x.Id == Settings.SelectedDecl);
@@ -278,7 +286,7 @@
             }
         }
 
-        RecomputeVisibleKeys();
+        ApplySearch(true, false);
         ready = true;
     }
 
@@ -549,9 +557,11 @@
             keyPages = 0;
         }
 
+        IOrderedEnumerable<KeyValuePair<string, Key>> source = (Settings.KeySearchAllGroups ? Project.Decls.SelectMany(x => x.Keys) : Decl.Keys).OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.Ordinal);
+
         if (Settings.LimitRender <= 0)
         {
-            foreach (KeyValuePair<string, Key> x in Decl.Keys.OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.Ordinal))
+            foreach (KeyValuePair<string, Key> x in source)
             {
                 if (x.Value.IsVisible)
                 {
@@ -561,7 +571,7 @@
         }
         else
         {
-            List<KeyValuePair<string, Key>> keys = Decl.Keys.OrderByDescending(x => x.Value.SearchPriority).ThenBy(x => x.Key, StringComparer.Ordinal).Where(x => x.Value.IsVisible).ToList();
+            List<KeyValuePair<string, Key>> keys = source.Where(x => x.Value.IsVisible).ToList();
             keyPages = (int)Math.Ceiling(keys.Count / (double)Settings.LimitRender);
             int take = Settings.LimitRender;
 
@@ -644,30 +654,30 @@
         });
     }
 
-    async Task MoveKey(string key)
+    async Task MoveKey(Key key)
     {
         Md.ShowModal<LocalizeMoveKeyModal>(new
         {
-            Name = key,
+            Key = key,
             Owner = this
         });
     }
 
-    async Task OpenSettingsKey(string key)
+    async Task OpenSettingsKey(Key key)
     {
         Md.ShowModal<LocalizeSettingsKeyModal>(new
         {
-            Name = key,
+            Key = key,
             Owner = this
         });
     }
 
-    Task RegenerateKey(string key)
+    Task RegenerateKey(Key key)
     {
         Md.ShowModal<LocalizeRegenerateKeyModal>(new
         {
             Owner = this,
-            Name = key
+            Key = key
         });
 
         return Task.CompletedTask;
@@ -703,12 +713,12 @@
         InputToFocus = inputToFocus;
     }
 
-    async Task RenameKey(string key)
+    async Task RenameKey(Key key)
     {
         Md.ShowModal<LocalizeRenameKeyModal>(new
         {
             Owner = this,
-            Name = key
+            Key = key
         });
     }
 
@@ -731,11 +741,11 @@
         }
     }
 
-    async Task Delete(string key)
+    async Task Delete(Key key)
     {
-        Md.ShowConfirmActionModal($"Potvrďte odstranění klíče <code>{key}</code>", async () =>
+        Md.ShowConfirmActionModal($"Potvrďte odstranění klíče <code>{key.Name}</code>", async () =>
         {
-            await Execute(new CmdDeleteKey(key));
+            await Execute(new CmdDeleteKey(key.Name));
         });
     }
 
@@ -872,7 +882,7 @@
         await UpdateSearchResults();
     }
 
-    async Task UpdateSearchResults()
+    Task UpdateSearchResults()
     {
         if (Consts.Cfg.Experimental)
         {
@@ -882,11 +892,12 @@
             }
 
             List<SearchResult> results = Index.Search(KeySearch.ToBaseLatin());
-            return;
+            return Task.CompletedTask;
         }
 
-        ApplySearch();
+        ApplySearch(true);
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     async Task CycleTranslationMode()
@@ -1061,9 +1072,9 @@
         });
     }
 
-    async Task HandleKeySearchValueChange(ChangeEventArgs args)
+    async Task HandleKeySearchValueChange(ChangeEventArgs? args)
     {
-        if (args.Value is string str)
+        if (args?.Value is string str)
         {
             if (str is "null")
             {
@@ -1073,10 +1084,10 @@
             {
                 Settings.KeySearchLang = parsed;
             }
-
-            await UpdateSearchResults();
-            await SaveUserSettings();
         }
+        
+        await UpdateSearchResults();
+        await SaveUserSettings();
     }
 
     async Task HandleActiveDeclChange(ChangeEventArgs args)
@@ -1091,19 +1102,7 @@
                 Settings.SelectedDecl = str;
                 await SaveUserSettings();
 
-                if (KeySearch.IsNullOrWhiteSpace())
-                {
-                    foreach (KeyValuePair<string, Key> x in Decl.Keys)
-                    {
-                        x.Value.IsVisible = true;
-                    }
-                }
-                else
-                {
-                    ApplySearch();
-                }
-
-                RecomputeVisibleKeys(true);
+                ApplySearch(true);
                 StateHasChanged();
             }
         }
@@ -1175,12 +1174,12 @@
         MaxDegreeOfParallelism = Environment.ProcessorCount
     };
 
-    void ApplySearch()
+    public void ApplySearch(bool recomputeKeysAfter = false, bool resetPagingOnRecompute = true)
     {
         string searchTerm = Settings.KeySearchLang is null ? KeySearch.ToBaseLatin() : KeySearch;
         searchTerm = searchTerm.TrimStart();
-
-        Parallel.ForEach(Decl.Keys, FullDop, item =>
+        
+        Parallel.ForEach(Settings.KeySearchAllGroups ? Project.Decls.SelectMany(x => x.Keys) : Decl.Keys, FullDop, item =>
         {
             item.Value.IsVisible = false;
             item.Value.SearchPriority = 0;
@@ -1193,14 +1192,34 @@
             }
             else
             {
-                if (LangsData.Langs[Settings.KeySearchLang.Value].Data.TryGetValue(item.Key, out string? translatedKey))
+                if (LangsData.Langs.TryGetValue(Settings.KeySearchLang.Value, out LangData? data))
                 {
-                    keyToCompare = translatedKey;
+                    if (data.Data.TryGetValue(item.Key, out string? translatedKey))
+                    {
+                        keyToCompare = translatedKey;
+                    }
                 }
             }
 
             if (keyToCompare is null)
             {
+                return;
+            }
+
+            if (searchTerm.Length is 0)
+            {
+                item.Value.IsVisible = true;
+                item.Value.SearchPriority = 0;
+                
+                // when search is empty but "search in all groups" is enabled, consider as matches only keys from the active decl
+                if (Settings.KeySearchAllGroups)
+                {
+                    if (item.Value.Owner != Decl)
+                    {
+                        item.Value.IsVisible = false;
+                    }
+                }
+                
                 return;
             }
 
@@ -1220,12 +1239,15 @@
             }
         });
 
-        RecomputeVisibleKeys(true);
+        if (recomputeKeysAfter)
+        {
+            RecomputeVisibleKeys(resetPagingOnRecompute);   
+        }
     }
 
-    public async Task TransferKey(string keyName, Decl newOwner)
+    public async Task TransferKey(Key key, Decl newOwner)
     {
-        await Execute(new CmdMoveKey(keyName, newOwner));
+        await Execute(new CmdMoveKey(key.Name, key.Owner, newOwner));
     }
 
     async Task KeySearchModeSelected(KeySearchModes mode)
@@ -1430,16 +1452,20 @@
 
             @if (renderSearchModeSelection)
             {
-                <div style="display: flex; gap: 10px; align-items: flex-start; flex-flow: column;">
-                    <div>
-                        <select @onchange="HandleKeySearchValueChange" class="form-select">
-                            <option value="null" id="lang_search_key_name" selected="@(Settings.KeySearchLang is null)">Název klíče</option>
+                <div style="display: flex; gap: 10px; align-items: flex-start; flex-flow: column; margin-top: 10px;">
+                    <div style="width: 100%;">
+                        <div style="display: flex; gap: 10px; flex-flow: wrap;">
+                            <select style="width: 160px;" @onchange="HandleKeySearchValueChange" class="form-select">
+                                <option value="null" id="lang_search_key_name" selected="@(Settings.KeySearchLang is null)">Název klíče</option>
 
-                            @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
-                            {
-                                <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(Settings.KeySearchLang == local.Key)">Překlad @local.Key</option>
-                            }
-                        </select>
+                                @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key))
+                                {
+                                    <option value="@local.Key" id="lang_search_value_@local.Key" selected="@(Settings.KeySearchLang == local.Key)">Překlad @local.Key</option>
+                                }
+                            </select>
+
+                            <EdCheckbox OnUpdate="@(async (sender) => await HandleKeySearchValueChange(null))" @bind-Value="Settings.KeySearchAllGroups" Label="Všechny skupiny" />
+                        </div>
 
                         <div style="height: 6px;"></div>
 
@@ -1531,21 +1557,21 @@
                                 <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" data-bs-boundary="window">Zobrazit akce</button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await RenameKey(x.Key))">Přejmenovat</span>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await RenameKey(x.Value))">Přejmenovat</span>
                                     </li>
 
                                     <li>
-                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await RegenerateKey(x.Key))">Přegenerovat název klíče</span>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await RegenerateKey(x.Value))">Přegenerovat název klíče</span>
                                     </li>
 
                                     <li>
-                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await OpenSettingsKey(x.Key))">Nastavení</span>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await OpenSettingsKey(x.Value))">Nastavení</span>
                                     </li>
 
                                     @if (Project.Decls.Count > 1)
                                     {
                                         <li>
-                                            <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await MoveKey(x.Key))">Přesunout</span>
+                                            <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await MoveKey(x.Value))">Přesunout</span>
                                         </li>
                                     }
 
@@ -1553,7 +1579,7 @@
                                         <hr class="dropdown-divider">
                                     </li>
                                     <li>
-                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await Delete(x.Key))">Odstranit</span>
+                                        <span style="cursor: pointer; user-select: none;" class="dropdown-item" @onclick="@(async () => await Delete(x.Value))">Odstranit</span>
                                     </li>
                                 </ul>
                             </div>
@@ -1567,6 +1593,13 @@
                             {
                                 <div>
                                     <code style="font-size: 12px;">[Manuální překlad]</code>
+                                </div>
+                            }
+                            
+                            @if (Settings.KeySearchAllGroups)
+                            {
+                                <div>
+                                    <code style="font-size: 12px; color: #FF851B;">[Skupina: @x.Value.Owner.Name]</code>
                                 </div>
                             }
                         </div>

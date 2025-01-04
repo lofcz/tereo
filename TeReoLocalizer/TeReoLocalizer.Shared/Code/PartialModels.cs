@@ -10,14 +10,28 @@ using TeReoLocalizer.Shared.Components.Shared;
 
 namespace TeReoLocalizer.Shared.Code;
 
+[AttributeUsage(validOn: AttributeTargets.Property | AttributeTargets.Field)]
+public class MapsterIgnoreAttribute : Attribute
+{
+    
+}
+
 public class Key
 {
     public string Name { get; set; }
     public string Id { get; set; }
     public bool AutoTranslatable { get; set; } = true;
     public DateTime DateCreated { get; set; } = DateTime.Now;
+
+    public Key()
+    {
+        
+    }
     
     // dynamic
+    [JsonIgnore]
+    [MapsterIgnore]
+    public Decl Owner { get; set; }
     [JsonIgnore]
     public bool DefaultLangContainsHtml { get; set; }
     [JsonIgnore] 
@@ -261,14 +275,59 @@ public interface IGenericModalRef
     public GenericModal? GenericModalRef { get; set; }
 }
 
-public class Decl
+public class Decl : IEquatable<Decl>
 {
-    public string Id { get; set; } = General.IIID();
+    public string Id { get; init; } = General.IIID();
     public string? Name { get; set; }
     [JsonConverter(typeof(SortedDictionaryConverter<string, Key>))]
     public ConcurrentDictionary<string, Key> Keys { get; set; } = [];
 
     public DeclSettings Settings { get; set; } = new DeclSettings();
+
+    public Decl()
+    {
+        
+    }
+
+    public Decl(string id)
+    {
+        Id = id;
+    }
+    
+    public bool Equals(Decl? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        return Id == other.Id;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+        
+        return obj.GetType() == GetType() && Equals((Decl)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Id);
+    }
 }
 
 public class DeclSettings
@@ -361,6 +420,7 @@ public class UserSettings
     public Languages? KeySearchLang { get; set; }
     public bool AutoSave { get; set; } = true;
     public bool DisableTips { get; set; }
+    public bool KeySearchAllGroups { get; set; }
         
     // dynamic
     [JsonIgnore]

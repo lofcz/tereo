@@ -3,7 +3,7 @@
 @inject IJSRuntime Js
 @code {
     [Parameter]
-    public string Name { get; set; }
+    public Key Key { get; set; }
     [Parameter]
     public Localize Owner { get; set; }
     [CascadingParameter] 
@@ -29,7 +29,7 @@
         submitting = true;
         StateHasChanged();
 
-        DataOrException<bool> result = await Owner.DoRegenerateKey(Name, new Progress<CommandProgress>((progress) =>
+        DataOrException<bool> result = await Owner.DoRegenerateKey(Key.Name, new Progress<CommandProgress>((progress) =>
         {
             percentCompleted = progress.Percentage;
             StateHasChanged();
@@ -47,9 +47,9 @@
     }
 }
 
-<EdModal Title="@($"Přegenerovat klíč {Name}")">
+<EdModal Title="@($"Přegenerovat klíč {Key.Name}")">
 
-    <p>Název klíče bude přegenerován konvenčně podle překladu v primárním jazyce <code>CS</code>.</p>
+    <p>Název klíče bude přegenerován konvenčně podle překladu v primárním jazyce <code>@Owner.Project.Settings.PrimaryLanguage</code>.</p>
     
     @if (submitting || validation is not null)
     {

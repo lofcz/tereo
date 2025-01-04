@@ -253,7 +253,7 @@ public static class Extensions
     
     public static T DeepClone<T>(this T t)
     {
-        return t.Adapt<T>();
+        return t.Adapt<T>(ClrService.GetTypeConfig<T>());
     }
     
     public static bool ContainsOnlyWhitelistChars(this string s, HashSet<char> chars)

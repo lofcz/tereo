@@ -47,7 +47,8 @@ public class CmdAddKey : BaseCommand
         Key localKey = new Key
         {
             Name = newKeyCopy,
-            Id = General.IIID()
+            Id = General.IIID(),
+            Owner = Decl
         };
 
         if (firstTime)
@@ -118,6 +119,8 @@ public class CmdAddKey : BaseCommand
         {
             return;
         }
+
+        localKey.Owner = match;
         
         if (match.Keys.TryRemove(localKey.Name, out Key? key))
         {

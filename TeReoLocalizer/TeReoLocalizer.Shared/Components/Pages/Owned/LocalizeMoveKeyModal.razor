@@ -2,7 +2,7 @@
 @using TeReoLocalizer.Shared.Code
 @code {
     [Parameter]
-    public string Name { get; set; }
+    public Key Key { get; set; }
     [Parameter]
     public Localize Owner { get; set; }
     [CascadingParameter] 
@@ -10,6 +10,11 @@
 
     Decl selectedDecl;
     bool transferring;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -34,7 +39,7 @@
         
         transferring = true;
 
-        await Owner.TransferKey(Name, selectedDecl);
+        await Owner.TransferKey(Key, selectedDecl);
         
         transferring = false;
         await BlazoredModal.CloseAsync();
@@ -46,13 +51,13 @@
     }
 }
 
-<EdModal Title="@($"Přesunout klíč <code>{Name}</code>")">
+<EdModal Title="@($"Přesunout klíč <code>{Key.Name}</code>")">
 
     <div style="margin-bottom: 1rem;">
         <select @onchange="HandleActiveDeclChange" class="form-select">
             @foreach (Decl x in Owner.Project.Decls)
             {
-                if (x == Owner.Decl)
+                if (x == Key.Owner)
                 {
                     continue;
                 }

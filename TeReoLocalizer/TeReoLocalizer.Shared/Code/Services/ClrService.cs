@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
+using Mapster;
 using Microsoft.Extensions.Caching.Memory;
 using MemberInfo = System.Reflection.MemberInfo;
 
@@ -8,6 +10,44 @@ public static class ClrService
 {
     private static IMemoryCache Cache => GlobalServices.Cache;
     private static readonly ConcurrentDictionary<MemberInfo, bool> JsExposedMembers = [];
+    private static readonly ConcurrentDictionary<Type, HashSet<string>> MapsterIgnoreCache = [];
+    private static readonly ConcurrentDictionary<Type, TypeAdapterConfig> MapsterConfigCache = [];
+
+    public static HashSet<string> GetIgnoredProperties(Type type)
+    {
+        return MapsterIgnoreCache.GetOrAdd(type, t =>
+        {
+            return t.GetProperties()
+                .Where(p => p.GetCustomAttributes(typeof(MapsterIgnoreAttribute), true).Length is not 0)
+                .Select(p => p.Name)
+                .ToHashSet();
+        });
+    }
+
+    public static TypeAdapterConfig GetTypeConfig<T>()
+    {
+        return MapsterConfigCache.GetOrAdd(typeof(T), t =>
+        {
+            TypeAdapterConfig config = new TypeAdapterConfig();
+            HashSet<string> ignoredProperties = GetIgnoredProperties(t);
+
+            if (ignoredProperties.Count > 0)
+            {
+                TypeAdapterSetter<T, T> typeConfig = config.ForType<T, T>();
+                
+                foreach (string propertyName in ignoredProperties)
+                {
+                    ParameterExpression parameter = Expression.Parameter(typeof(T), "dest");
+                    MemberExpression propertyAccess = Expression.Property(parameter, propertyName);
+                    UnaryExpression convertedAccess = Expression.Convert(propertyAccess, typeof(object));
+                    Expression<Func<T, object>> lambda = Expression.Lambda<Func<T, object>>(convertedAccess, parameter);
+                    typeConfig.Ignore(lambda);
+                }
+            }
+
+            return config;
+        });
+    }
     
     public static bool TypeImplementsInterface(Type type, Type interfaceType)
     {

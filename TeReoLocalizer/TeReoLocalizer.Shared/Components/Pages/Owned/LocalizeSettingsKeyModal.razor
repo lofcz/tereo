@@ -3,7 +3,7 @@
 @using TeReoLocalizer.Shared.Code.Commands
 @code {
     [Parameter]
-    public string Name { get; set; }
+    public Key Key { get; set; }
     [Parameter]
     public Localize Owner { get; set; }
     [CascadingParameter] 
@@ -17,12 +17,10 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
-        if (Owner.Project.SelectedDecl.Keys.TryGetValue(Name, out Key? existingKey))
-        {
-            masterKey = existingKey;
-            key = existingKey.DeepClone();
-        }
+        
+        masterKey = Key;
+        key = Key.DeepClone();
+        key.Owner = Key.Owner;
 
         ready = true;
     }
@@ -54,7 +52,7 @@
     }
 }
 
-<EdModal Title="@($"Nastavení klíče <code>{Name}</code>")">
+<EdModal Title="@($"Nastavení klíče <code>{Key.Name}</code>")">
 
     @if (ready)
     {
