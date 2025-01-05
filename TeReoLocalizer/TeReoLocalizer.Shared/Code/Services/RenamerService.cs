@@ -59,20 +59,20 @@ public static partial class SymbolRenamer
 {
     private static readonly Regex ReoSymbolRegex = ReoRegexSrc();
 
-    public static async Task<RenameResult> RenameSymbol(string solutionPath, string oldSymbol, string newSymbol, IProgress<CommandProgress>? progress = null)
+    public static async Task<RenameResult> RenameSymbol(string projectDirectory, string oldSymbol, string newSymbol, IProgress<CommandProgress>? progress = null)
     {
         ConcurrentBag<string> files = [];
 
         List<string> skip =
         [
-            Path.Combine(solutionPath, "wwwroot"),
-            Path.Combine(solutionPath, "obj"),
-            Path.Combine(solutionPath, "bin")
+            Path.Combine(projectDirectory, "wwwroot"),
+            Path.Combine(projectDirectory, "obj"),
+            Path.Combine(projectDirectory, "bin")
         ];
 
         string[] patterns = ["*.cs", "*.razor", "*.cshtml", "*.razor.cs"];
 
-        foreach (string file in solutionPath.GetFiles(patterns, SearchOption.AllDirectories, x => !skip.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase))))
+        foreach (string file in projectDirectory.GetFiles(patterns, SearchOption.AllDirectories, x => !skip.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase))))
         {
             files.Add(file);
         }

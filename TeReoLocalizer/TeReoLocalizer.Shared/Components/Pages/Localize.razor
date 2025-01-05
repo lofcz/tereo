@@ -2,10 +2,6 @@
 @page "/"
 @using System.Collections.Concurrent
 @using System.Runtime.CompilerServices
-@using System.Text.RegularExpressions
-@using DeepL
-@using DeepL.Model
-@using Mapster
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Code.Commands
@@ -15,6 +11,7 @@
 @using Microsoft.AspNetCore.Components.Sections
 @inject IJSRuntime Js
 @inject IModalService Md
+@inject NavigationManager Nm
 @implements IAsyncDisposable
 @inherits ComponentBaseEx
 
@@ -57,6 +54,7 @@
     ElementReference? jumpToPageInput;
     bool renderSearchModeSelection;
     List<ProjectError>? loadErrors;
+    bool showLoadErrors = true;
     bool projectLoadingFinished;
     bool contentRendered;
 
@@ -98,12 +96,14 @@
         return ready && EnableRendering;
     }
 
-    void Panic(string message)
+    void Panic(string message, bool render = true)
     {
+        showLoadErrors = render;
         projectLoadingFinished = true;
-        ready = true;
         loadErrors ??= [];
         loadErrors.Add(new ProjectError(message));
+        ready = true;
+        StateHasChanged();
     }
 
     bool Panicked => loadErrors?.Count > 0;
@@ -179,6 +179,12 @@
             string currentData = await File.ReadAllTextAsync($"{basePath}/TeReo/decl.json");
             Decl oldDecl = JsonSerializer.Deserialize<Decl>(currentData) ?? new Decl();
             Project.Decls.Add(oldDecl);
+        }
+        else
+        {
+            Nm.NavigateTo("/setup");
+            Panic("Projekt nenalezen", false);
+            return;
         }
 
         if (Project.SchemaVersion != Project.LatestVersion)
@@ -1391,6 +1397,11 @@
 
 @if (Panicked)
 {
+    if (!showLoadErrors)
+    {
+        return;
+    }
+    
     <div>Projekt není možné načíst kvůli následujícím chybám:</div>
     <ul>
         @foreach (ProjectError x in loadErrors ?? [])
