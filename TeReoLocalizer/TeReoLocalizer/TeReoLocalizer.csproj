@@ -150,9 +150,59 @@
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+
+        <Content Remove="wwwroot\indexBuilt.html" />
+
+        <Content Remove="wwwroot\index.g.html" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\TeReoLocalizer.Shared\TeReoLocalizer.Shared.csproj" />
     </ItemGroup>
+
+    <PropertyGroup>
+        <HostPageTemplatePath>wwwroot/index.html</HostPageTemplatePath>
+        <HostPagePath>wwwroot/index.g.html</HostPagePath>
+        <BuildEntropy>$([System.Guid]::NewGuid().ToString().Replace("-",""))</BuildEntropy>
+    </PropertyGroup>
+    
+    <Target Name="GenerateConstants" BeforeTargets="CoreCompile">
+        <PropertyGroup>
+            <ConstantsFileContent><![CDATA[namespace TeReoLocalizer
+{
+    public static class BuildConstants
+    {
+        public const string HostPage = "wwwroot/index.g.html"%3B
+    }
+}]]></ConstantsFileContent>
+        </PropertyGroup>
+
+        <WriteLinesToFile
+                File="$(IntermediateOutputPath)BuildConstants.g.cs"
+                Lines="$(ConstantsFileContent)"
+                Overwrite="true" />
+
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)BuildConstants.g.cs" />
+        </ItemGroup>
+    </Target>
+
+    <UsingTask TaskName="GenerateHostPage"
+               TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <Task>
+            <Reference Include="netstandard" />
+            <Using Namespace="System"/>
+            <Using Namespace="System.IO"/>
+            <Code Source="$(MSBuildProjectDirectory)\build\GenerateHostPage.cs" />
+        </Task>
+    </UsingTask>
+
+    <Target Name="GenerateHostPage" BeforeTargets="PrepareForBuild">
+        <GenerateHostPage
+                OutputPath="$(ProjectDir)$(HostPagePath)"
+                ProjectDir="$(MSBuildProjectDirectory)"
+                Entropy="$(BuildEntropy)" />
+    </Target>
+
 </Project>
