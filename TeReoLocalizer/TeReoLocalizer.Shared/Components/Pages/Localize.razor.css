@@ -1,0 +1,12 @@
+::deep .topMenuBarContainer {
+  display: flex;
+  gap: 100px;
+  width: 100%;
+  justify-content: space-between;
+  flex-flow: wrap;
+  padding-top: 1rem;
+  padding-bottom: 0.5rem;
+  row-gap: 5px;
+}
+
+/*# sourceMappingURL=Localize.razor.css.map */

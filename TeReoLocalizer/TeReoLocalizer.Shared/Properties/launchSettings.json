@@ -35,6 +35,20 @@
           "APP_TYPE": "WEB"
         }
       },
+      "Watch reo project": {
+        "commandName": "Executable",
+        "hotReloadEnabled": true,
+        "hotReloadProfile": "aspnetcore",
+        "executablePath": "dotnet.exe",
+        "workingDirectory": "$(ProjectDir)",
+        "commandLineArgs": "watch run --appType=WEB --repository=\"C:\\Users\\lordo\\Documents\\GitHub\\tereo\\TeReoLocalizer\\TeReoLocalizer.Shared\"",
+        "applicationUrl": "https://localhost:44309",
+        "environmentVariables": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "DOTNET_WATCH_RESTART_ON_RUDE_EDIT": "true",
+          "APP_TYPE": "WEB"
+        }
+      },
       "https reo project": {
         "commandName": "Project",
         "dotnetRunMessages": true,

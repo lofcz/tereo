@@ -1,0 +1,33 @@
+﻿@using Microsoft.AspNetCore.Components.Sections
+@inherits LayoutComponentBase
+<div class="page">
+    
+    @if (false)
+    {
+        <div class="sidebar">
+            <NavMenu/>
+        </div>   
+    }
+
+    <main>
+        <div class="top-row px-4 topMenuBar">
+            <SectionOutlet SectionName="menuBar" />
+        </div>
+
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="main-content">
+                        @Body
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div style="display: none;" id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>

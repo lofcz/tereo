@@ -1,8 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Windows.Win32;
+using Windows.Win32.Foundation;
+using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
-using Microsoft.Web.WebView2.Core;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using TeReoLocalizer.Shared;
 using TeReoLocalizer.Shared.Code.Services;
+
 
 namespace TeReoLocalizer;
 
@@ -33,6 +37,27 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 
+		builder.ConfigureLifecycleEvents(events =>  
+		{  
+			events.AddWindows(wndLifeCycleBuilder =>  
+			{  
+				wndLifeCycleBuilder.OnWindowCreated(window =>  
+				{  
+					#if WINDOWS
+					window.ExtendsContentIntoTitleBar = false;  
+					IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);  
+					WindowId myWndId = Win32Interop.GetWindowIdFromWindow(hWnd);  
+					AppWindow? appWindow = AppWindow.GetFromWindowId(myWndId);
+					appWindow?.SetPresenter(AppWindowPresenterKind.Overlapped);
+
+					HWND hwnd = new HWND(hWnd);
+					PInvoke.ShowWindow(hwnd, Windows.Win32.UI.WindowsAndMessaging.SHOW_WINDOW_CMD.SW_MAXIMIZE);
+					
+					#endif
+				});
+			});  
+		});  
+		
 		return builder.Build();
 	}
 }

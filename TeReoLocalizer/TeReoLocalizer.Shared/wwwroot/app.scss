@@ -194,3 +194,20 @@ ins {
 .row {
     margin-bottom: 1rem;
 }
+
+.topMenuBarContainer {
+    display: flex;
+    gap: 100px;
+    width: 100%;
+    justify-content: space-between;
+    flex-flow: wrap;
+    padding-top: 1rem;
+    padding-bottom: 0.5rem;
+    row-gap: 5px;
+}
+
+@media (min-width: 1500px) and (max-width: 1900px) {
+    .topMenuBarContainer {
+        gap: 30px;
+    }
+}

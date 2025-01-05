@@ -10,6 +10,11 @@ public partial class App : Application
 	
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		return new Window(new MainPage());
+		Window window = new Window(new MainPage())
+		{
+			Title = "Te Reo .NET"
+		};
+		
+		return window;
 	}
 }

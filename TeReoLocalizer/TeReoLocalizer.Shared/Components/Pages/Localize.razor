@@ -1414,7 +1414,7 @@
 }
 
 <SectionContent SectionName="menuBar">
-    <div style="display: flex; gap: 100px; width: 100%; justify-content: space-between; flex-flow: wrap; row-gap: 0; padding-top: 1rem; padding-bottom: 0.5rem;">
+    <div class="topMenuBarContainer">
         
         @{
             List<KeyValuePair<Languages, LangData>> visible = LangsData.Langs.Where(x => x.Value.Visible).ToList();

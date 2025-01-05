@@ -1240,7 +1240,8 @@ public enum InputTypes
     Email,
     Password,
     Search,
-    Date
+    Date,
+    File
 }
 
 public enum HintFetchUrls

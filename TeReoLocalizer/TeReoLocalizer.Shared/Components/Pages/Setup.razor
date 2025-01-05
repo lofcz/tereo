@@ -1,5 +1,30 @@
 @page "/setup"
+@using TeReoLocalizer.Shared.Code
+@layout LayoutBlog
 @code {
 
+    string projPath;
+    
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
 }
 
+@if (true || !Consts.Cfg.ConfigReadOk)
+{
+    <h1>Te Reo .NET - první spuštění</h1>          
+    <p>Zdá se, že jste Reo otevřel/a poprvé, vítejte! ⭐️<br/><br/>Reo je lokalizační aplikace pro .NET projekty. Pro fungování aplikace je potřeba nastavit cestu k projektu, který chcete lokalizovat.</p>
+    
+    <EdForm>
+        @if (Consts.AppType is AppType.Native)
+        {
+            <EdInput Type="InputTypes.File" @bind-Value="projPath"/>   
+        }
+        else
+        {
+            <EdInput @bind-Value="projPath" />
+        }
+    </EdForm>
+    <p>test</p>
+}

@@ -21,6 +21,7 @@
         <Nullable>enable</Nullable>
         <RunAOTCompilation>false</RunAOTCompilation>
         <UseInterpreter>true</UseInterpreter>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         
         <!-- Display name -->
         <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
@@ -44,7 +45,7 @@
 
     <ItemGroup>
         <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4"/>
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" />
 
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128"/>
@@ -66,7 +67,13 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.100" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
         <PackageReference Include="Microsoft.Maui.Core" Version="8.0.100" />
+        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Nanoid" Version="3.1.0" />
+        <PackageReference Include="System.Memory" Version="4.6.0" />
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -78,39 +85,69 @@
         <Content Remove="Components\RoutesWeb.razor"/>
         <Content Remove="Pages\_Host.cshtml"/>
 
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\favicon.svg">
+            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.css">
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.scss">
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.map">
             <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.js">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.ts">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
 
         <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.map">
             <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Images\**\*.*">
+            <Link>wwwroot\Images\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.scss">
+            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.css">
+            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.css.map">
+            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

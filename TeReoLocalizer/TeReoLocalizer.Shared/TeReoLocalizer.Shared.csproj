@@ -84,6 +84,9 @@
       <Content Update="wwwroot\Scripts\reoMgrProto.js.map">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+      <Content Update="Components\Pages\Localize.razor.scss">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </Content>
     </ItemGroup>
 
     <ItemGroup>
