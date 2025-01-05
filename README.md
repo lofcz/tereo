@@ -18,3 +18,5 @@ An opinionated localization system replacing <code>resx</code> files. Reo is an 
 - WYSIWYG editor for keys with markup.
 - Smart codegen supporting `MarkupString` for projects using Blazor.
 - Standalone application for managing translations, usable as a web app or a native MAUI executable.
+- Infinite undo/redo with full history jumping.
+- First-class support for keys that should be excluded from the auto-translation process, such as image paths.
