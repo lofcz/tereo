@@ -158,7 +158,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             Languages.DA => LanguageCode.Danish,
             Languages.DE => LanguageCode.German,
             Languages.EL => LanguageCode.Greek,
-            Languages.EN => LanguageCode.English,
+            Languages.EN => LanguageCode.EnglishAmerican,
             Languages.ES => LanguageCode.Spanish,
             Languages.ET => LanguageCode.Estonian,
             Languages.FI => LanguageCode.Finnish,
@@ -182,7 +182,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             Languages.TR => LanguageCode.Turkish,
             Languages.UK => LanguageCode.Ukrainian,
             Languages.ZH => LanguageCode.Chinese,
-            _ => LanguageCode.English
+            _ => LanguageCode.EnglishAmerican
         };
     }
 }
