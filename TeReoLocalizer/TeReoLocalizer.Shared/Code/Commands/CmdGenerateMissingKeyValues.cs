@@ -34,6 +34,11 @@ public class CmdGenerateMissingKeyValues : BaseCommand
 
             foreach (KeyValuePair<string, Key> keys in Ctx.Decl.Keys.Where(x => x.Value.AutoTranslatable))
             {
+                if (keys.Key is "NovyKlic")
+                {
+                    int z = 0;
+                }
+                
                 foreach (KeyValuePair<Languages, LangData> x in Ctx.LangsData.Langs)
                 {
                     if (x.Key == Owner.Project.Settings.PrimaryLanguage)
@@ -158,7 +163,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             Languages.DA => LanguageCode.Danish,
             Languages.DE => LanguageCode.German,
             Languages.EL => LanguageCode.Greek,
-            Languages.EN => LanguageCode.English,
+            Languages.EN => LanguageCode.EnglishAmerican,
             Languages.ES => LanguageCode.Spanish,
             Languages.ET => LanguageCode.Estonian,
             Languages.FI => LanguageCode.Finnish,
@@ -182,7 +187,7 @@ public class CmdGenerateMissingKeyValues : BaseCommand
             Languages.TR => LanguageCode.Turkish,
             Languages.UK => LanguageCode.Ukrainian,
             Languages.ZH => LanguageCode.Chinese,
-            _ => LanguageCode.English
+            _ => LanguageCode.EnglishAmerican
         };
     }
 }
