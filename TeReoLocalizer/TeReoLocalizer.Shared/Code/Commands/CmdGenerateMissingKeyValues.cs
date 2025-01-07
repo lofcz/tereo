@@ -34,11 +34,6 @@ public class CmdGenerateMissingKeyValues : BaseCommand
 
             foreach (KeyValuePair<string, Key> keys in Ctx.Decl.Keys.Where(x => x.Value.AutoTranslatable))
             {
-                if (keys.Key is "NovyKlic")
-                {
-                    int z = 0;
-                }
-                
                 foreach (KeyValuePair<Languages, LangData> x in Ctx.LangsData.Langs)
                 {
                     if (x.Key == Owner.Project.Settings.PrimaryLanguage)
