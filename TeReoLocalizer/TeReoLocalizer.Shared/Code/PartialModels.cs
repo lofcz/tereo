@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using FastCloner.Code;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using TeReoLocalizer.Annotations;
@@ -9,12 +10,6 @@ using TeReoLocalizer.Shared.Components.Pages;
 using TeReoLocalizer.Shared.Components.Shared;
 
 namespace TeReoLocalizer.Shared.Code;
-
-[AttributeUsage(validOn: AttributeTargets.Property | AttributeTargets.Field)]
-public class MapsterIgnoreAttribute : Attribute
-{
-    
-}
 
 public class Key
 {
@@ -30,7 +25,7 @@ public class Key
     
     // dynamic
     [JsonIgnore]
-    [MapsterIgnore]
+    [FastClonerIgnore]
     public Decl Owner { get; set; }
     [JsonIgnore]
     public bool DefaultLangContainsHtml { get; set; }

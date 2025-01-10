@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using BlazingModal;
 using BlazingModal.Services;
 using EnumsNET;
-using Mapster;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -251,9 +250,10 @@ public static class Extensions
         AnimationType = ModalAnimationType.None
     };
     
-    public static T DeepClone<T>(this T t)
+    [return: NotNullIfNotNull(nameof(t))]
+    public static T? DeepClone<T>(this T? t)
     {
-        return t.Adapt<T>(ClrService.GetTypeConfig<T>());
+        return FastCloner.FastCloner.DeepClone(t);
     }
     
     public static bool ContainsOnlyWhitelistChars(this string s, HashSet<char> chars)
