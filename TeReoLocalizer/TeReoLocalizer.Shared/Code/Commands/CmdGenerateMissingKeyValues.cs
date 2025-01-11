@@ -9,11 +9,16 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// <summary>
 /// Generates missing translations for all keys using selected translations provider.
 /// </summary>
-public class CmdGenerateMissingKeyValues : BaseCommand
+public partial class CmdGenerateMissingKeyValues : BaseCommand
 {
-    private static readonly Regex DeeplRegex = new Regex("\\{([^}]+)\\}", RegexOptions.Compiled);
-    private static readonly Regex UndeeplRegex = new Regex("</?ignore>", RegexOptions.Compiled);
+    private static readonly Regex DeeplRegex = DeeplRegexImpl();
+    private static readonly Regex UndeeplRegex = UndeeplRegexImpl();
 
+    [GeneratedRegex("\\{([^}]+)\\}", RegexOptions.Compiled)]
+    private static partial Regex DeeplRegexImpl();
+    [GeneratedRegex("\\(!\\d+\\)", RegexOptions.Compiled)]
+    private static partial Regex UndeeplRegexImpl();
+    
     private readonly Dictionary<(Languages Lang, string Key), string> originalValues = [];
     private readonly ConcurrentDictionary<(Languages Lang, string Key), string> newValues = [];
 
@@ -74,15 +79,15 @@ public class CmdGenerateMissingKeyValues : BaseCommand
                 TagHandling = "xml"
             };
             opts.IgnoreTags.Add("ignore");
+            opts.IgnoreTags.Add("x");
 
             await Parallel.ForEachAsync(Owner.ToTranslate, async (input, token) =>
             {
                 try
                 {
-                    string finalVal = DeeplifyText(input.PrimaryValue);
-                    TextResult result = await translator.TranslateTextAsync(finalVal, DeeplCode(Owner.Project.Settings.PrimaryLanguage), DeeplCode(input.Source.Key), opts, token);
-
-                    string translatedText = UndeeplifyText(result.Text);
+                    DeeplifiedText deeplifyResult = DeeplifyText(input.PrimaryValue);
+                    TextResult result = await translator.TranslateTextAsync(deeplifyResult.Text, DeeplCode(Owner.Project.Settings.PrimaryLanguage), DeeplCode(input.Source.Key), opts, token);
+                    string translatedText = UndeeplifyText(result.Text, deeplifyResult.Placeholders);
                     newValues.TryAdd((input.Source.Key, input.Key.Key), translatedText);
                     Ctx.LangsData.Langs[input.Source.Key].Data[input.Key.Key] = translatedText;
                 }
@@ -138,14 +143,31 @@ public class CmdGenerateMissingKeyValues : BaseCommand
         return $"Doplnění chybějících překladů ({newValues.Count} položek)";
     }
     
-    private static string DeeplifyText(string text)
+    private static DeeplifiedText DeeplifyText(string text)
     {
-        return DeeplRegex.Replace(text, "<ignore>{$1}</ignore>");
+        Dictionary<string, string> placeholders = [];
+        int counter = 0;
+    
+        string result = DeeplRegex.Replace(text, x =>
+        {
+            string placeholder = x.Groups[1].Value;
+            string tag = $"(!{counter})";
+            placeholders[tag] = $"{{{placeholder}}}";
+            counter++;
+            return tag;
+        });
+
+        return new DeeplifiedText
+        {
+            Text = result,
+            Placeholders = placeholders
+        };
     }
 
-    private static string UndeeplifyText(string text)
+
+    private static string UndeeplifyText(string text, Dictionary<string, string> placeholders)
     {
-        return UndeeplRegex.Replace(text, string.Empty);
+        return placeholders.Aggregate(text, (current, placeholder) => current.Replace(placeholder.Key, placeholder.Value));
     }
 
     private static string DeeplCode(Languages lang)

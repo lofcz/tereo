@@ -31,8 +31,8 @@ public partial class App : MauiWinUIApplication
 
 		if (args.Arguments != null)
 		{
-			var arguments = args.Arguments.Split(' ');
-			foreach (var arg in arguments)
+			string[]? arguments = args.Arguments.Split(' ');
+			foreach (string? arg in arguments)
 			{
 				if (arg.StartsWith("--appType="))
 				{

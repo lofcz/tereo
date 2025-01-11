@@ -703,3 +703,9 @@ public class CodegenTsTranspiledFile
     public string Js { get; set; }
     public string Map { get; set; }
 }
+
+public class DeeplifiedText
+{
+    public string Text { get; set; }
+    public Dictionary<string, string> Placeholders { get; set; }
+}
