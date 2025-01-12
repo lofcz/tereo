@@ -1016,7 +1016,7 @@ public class ValidationComponent<T> : InputComponent<T>, IValidationComponent, I
 
     public string SerializeValidators()
     {
-        return Validate is { Validators: not null } && Validate.Validators.Any(x => x == Validator.Required || x == Validator.RequiredId) ? "required" : string.Empty;
+        return Validate is { Validators: not null } && Validate.Validators.Any(static x => x == Validator.Required || x == Validator.RequiredId) ? "required" : string.Empty;
     }
 
     public virtual async Task<bool> RunValidations(ValidationEvents evt)

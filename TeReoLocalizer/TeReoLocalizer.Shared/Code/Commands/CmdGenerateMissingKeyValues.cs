@@ -37,7 +37,7 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
         {
             Translator translator = new Translator(Consts.Cfg.DeepL);
 
-            foreach (KeyValuePair<string, Key> keys in Ctx.Decl.Keys.Where(x => x.Value.AutoTranslatable))
+            foreach (KeyValuePair<string, Key> keys in Ctx.Decl.Keys.Where(static x => x.Value.AutoTranslatable))
             {
                 foreach (KeyValuePair<Languages, LangData> x in Ctx.LangsData.Langs)
                 {

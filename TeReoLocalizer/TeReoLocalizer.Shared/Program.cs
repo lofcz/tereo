@@ -71,7 +71,7 @@ public class Program
         
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         builder.Services.AddRazorComponents()
-            .AddInteractiveServerComponents(x =>
+            .AddInteractiveServerComponents(static x =>
             {
                 x.DetailedErrors = true;
             });

@@ -30,7 +30,7 @@ public static class AsyncService
 
     public static async Task WhenAll(params Task?[] tasks)
     {
-        await Task.WhenAll(tasks.Where(x => x is not null)!);
+        await Task.WhenAll(tasks.Where(static x => x is not null)!);
     }
     
     public static async Task WhenAll(List<Task?> tasks)
@@ -40,7 +40,7 @@ public static class AsyncService
             return;
         }
         
-        await Task.WhenAll(tasks.Where(x => x is not null)!);
+        await Task.WhenAll(tasks.Where(static x => x is not null)!);
     }
     
     public static async Task WhenAll<T>(List<Task<T>> tasks)
