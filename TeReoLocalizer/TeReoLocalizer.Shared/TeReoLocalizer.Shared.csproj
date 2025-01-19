@@ -26,6 +26,7 @@
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.12.0" />
       <PackageReference Include="Nanoid" Version="3.1.0" />
+      <PackageReference Include="NativeFileDialogCore" Version="1.0.3" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     </ItemGroup>
 
@@ -47,6 +48,7 @@
       <EmbeddedResource Include="wwwroot\Scripts\reoAmbient.d.ts">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </EmbeddedResource>
+      <TypeScriptCompile Include="wwwroot\Scripts\Scoped\form.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\input.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\native.ts" />
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\rte.ts" />

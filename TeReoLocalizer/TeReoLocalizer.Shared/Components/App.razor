@@ -1,13 +1,4 @@
-﻿@using TeReoLocalizer.Shared.Code
-@using TeReoLocalizer.Shared.Code.Services
-@inject IJSRuntime Js
-@code {
-    
-    protected override void OnInitialized()
-    {
-        Js.SetAppVersion(Consts.Entropy);
-        base.OnInitialized();
-    }
+﻿@code {
     
     private static string GetBlazorScript()
     {

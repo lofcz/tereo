@@ -1,7 +1,12 @@
-﻿<div id="commonCss"></div>
+﻿@using TeReoLocalizer.Shared.Code
+@code {
+    string afterMcfLoaded = General.IIID();
+}
+<div id="commonCss"></div>
 <div id="modalUniversal" class="modal fade2" style="overflow-y: hidden;" tabindex="-1" role="dialog"></div>
+@((MarkupString)$"<script>function {afterMcfLoaded}() {{ mcf.setAppVersion(\"{Consts.Entropy}\"); }}</script>")
 <script src="/Scripts/jquery.js" onload="if (window['module']) {window.$ = window.jQuery = module.exports;}"></script>
-<script src="/Scripts/nanoMcf.js"></script>
+<script src="/Scripts/nanoMcf.js" onload="@(afterMcfLoaded)()"></script>
 <script>
     function loadBootstrap() {
         return new Promise((resolve, reject) => {
@@ -34,7 +39,6 @@
     }).catch((error) => {
         console.error('Chyba při načítání Bootstrapu:', error);
     });
-
 </script>
 
 <div id="mcfRoot">

@@ -1,4 +1,5 @@
 @page "/setup"
+@using NativeFileDialogCore
 @using TeReoLocalizer.Shared.Code
 @layout LayoutBlog
 @code {
@@ -9,12 +10,19 @@
     {
         base.OnInitialized();
     }
+
+    async Task PickFile()
+    {
+        DialogResult result = Dialog.FileOpen("csproj");
+    }
 }
 
 @if (true || !Consts.Cfg.ConfigReadOk)
 {
     <h1>Te Reo .NET - první spuštění</h1>          
     <p>Zdá se, že jste Reo otevřel/a poprvé, vítejte! ⭐️<br/><br/>Reo je lokalizační aplikace pro .NET projekty. Pro fungování aplikace je potřeba nastavit cestu k projektu, který chcete lokalizovat.</p>
+    
+    <EdButton OnClick="PickFile">TEST NATIVE</EdButton>
     
     <EdForm>
         @if (Consts.AppType is AppType.Native)

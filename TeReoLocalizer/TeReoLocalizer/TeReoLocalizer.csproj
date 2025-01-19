@@ -67,7 +67,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.100" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
         <PackageReference Include="Microsoft.Maui.Core" Version="8.0.100" />
-        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.162">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
