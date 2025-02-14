@@ -709,3 +709,25 @@ public class DeeplifiedText
     public string Text { get; set; }
     public Dictionary<string, string> Placeholders { get; set; }
 }
+
+public class ProjectError
+{
+    public string Message { get; set; }
+
+    public ProjectError(string error)
+    {
+        Message = error;
+    }
+}
+
+public class NativeCommand
+{
+    public NativeCommands Type { get; set; }
+    public object? Data { get; set; }
+}
+
+public enum NativeCommands
+{
+    Unknown,
+    SetTextareaHeight
+}
