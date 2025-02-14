@@ -7,7 +7,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>preview</LangVersion>
     </PropertyGroup>
-
+    
     <ItemGroup>
       <PackageReference Include="BlazingModal" Version="1.0.7" />
       <PackageReference Include="DeepL.net" Version="1.13.0" />

@@ -7,11 +7,26 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.FileProviders;
 using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components;
 
 namespace TeReoLocalizer.Shared;
+
+public class MauiHostingEnvironment : IWebHostEnvironment
+{
+    public MauiHostingEnvironment()
+    {
+    }
+
+    public string EnvironmentName { get; set; } = string.Empty;
+    public string ApplicationName { get; set; } = string.Empty;
+    public string WebRootPath { get; set; } = string.Empty;
+    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+    public string ContentRootPath { get; set; } = string.Empty;
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+}
 
 public class Program
 {
@@ -21,6 +36,8 @@ public class Program
     
     public static void AddSharedServices(IServiceCollection services)
     {
+        services.AddScoped<ILoginService, LoginService>();
+        
         services.AddMemoryCache();
         services.AddMvc(x => x.EnableEndpointRouting = false);
         services.AddRazorPages();

@@ -1,0 +1,17 @@
+@page "/login/login"
+@using TeReoLocalizer.Shared.Code
+@inject ILoginService LoginService
+@inject NavigationManager NavigationManager
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string ProjectId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(ProjectId))
+        {
+            await LoginService.LoginAsync(ProjectId);
+        }
+    }
+}

@@ -1,25 +1,15 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer.Shared.Controllers;
 
 public class LoginController : Controller
 {
-    public async Task<IActionResult> Login(string projectId)
+    public async Task<IActionResult> LoginAction(string projectId)
     {
-        string id = General.IIID();
-        
-        List<Claim> claimsList =
-        [
-            new Claim("id", id),
-            new Claim("type", "ephemeral")
-        ];
-
-        ObserverService.SetUserData(id, new ObservedUser(projectId));
-        
+        List<Claim> claimsList = LoginService.BuildClaims(projectId);
         ClaimsIdentity identity = new ClaimsIdentity(claimsList, "Identity", "auth", string.Empty);
         ClaimsPrincipal userPrincipal = new ClaimsPrincipal([identity]);
         

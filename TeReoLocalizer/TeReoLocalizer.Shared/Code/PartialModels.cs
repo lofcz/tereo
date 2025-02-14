@@ -781,3 +781,8 @@ public class ObservedUser
         ProjectId = projectId;
     }
 }
+
+public interface ILoginService
+{
+    Task<bool> LoginAsync(string projectId);
+}

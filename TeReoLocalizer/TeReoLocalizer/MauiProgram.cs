@@ -1,12 +1,16 @@
-﻿using Windows.Win32;
+﻿using System.Security.Claims;
+using Windows.Win32;
 using Windows.Win32.Foundation;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using TeReoLocalizer.Shared;
+using TeReoLocalizer.Shared.Code;
 using TeReoLocalizer.Shared.Code.Services;
-
 
 namespace TeReoLocalizer;
 
@@ -28,15 +32,26 @@ public static class MauiProgram
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 			});
-
+		
+		        
+		builder.Services.AddSingleton<IWebHostEnvironment>(x =>
+		{
+			return new MauiHostingEnvironment
+			{
+               
+			};
+		});
+		
 		builder.Services.AddMauiBlazorWebView();
+		builder.Services.AddScoped<AuthenticationStateProvider, MauiAuthenticationStateProvider>();
+		
 		Program.AddSharedServices(builder.Services);
 		
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
 #endif
-
+		
 		builder.ConfigureLifecycleEvents(events =>  
 		{  
 			events.AddWindows(wndLifeCycleBuilder =>  
@@ -58,6 +73,7 @@ public static class MauiProgram
 			});  
 		});  
 		
-		return builder.Build();
+		MauiApp app = builder.Build();
+		return app;
 	}
 }
