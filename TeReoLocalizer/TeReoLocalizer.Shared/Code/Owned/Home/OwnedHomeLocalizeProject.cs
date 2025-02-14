@@ -55,9 +55,21 @@ public partial class Localize
     
     async Task LoadProject()
     {
+        ObservedUser data = User.Data();
+        
         if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
         {
             basePath = Consts.Cfg.Repository;
+        }
+
+        if (!data.ProjectId.IsNullOrWhiteSpace())
+        {
+            openProject = await BootService.GetProject(data.ProjectId);
+            
+            if (openProject is not null)
+            {
+                basePath = openProject.Path;
+            }
         }
 
         if (Id is not null)
@@ -66,7 +78,7 @@ public partial class Localize
 
             if (openProject is not null)
             {
-                basePath = openProject.Sln;
+                basePath = openProject.Path;
             }
         }
 
@@ -116,9 +128,11 @@ public partial class Localize
         
         await ShowLanguages(false);
 
-        if (!Directory.Exists($"{basePath}/TeReo"))
+        if (!Directory.Exists(Path.Join(basePath, "TeReo")))
         {
-            Directory.CreateDirectory($"{basePath}/TeReo");
+            Nm.NavigateTo("/setup");
+            Panic("Projekt nenalezen", false);
+            return;
         }
 
         if (File.Exists($"{basePath}/TeReo/project.json"))

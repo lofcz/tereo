@@ -42,12 +42,14 @@
 </script>
 
 <div id="mcfRoot">
-    <CascadingBlazingModal>
-        <Router AppAssembly="typeof(Program).Assembly">
-            <Found Context="routeData">
-                <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
-                <FocusOnNavigate RouteData="routeData" Selector="h1"/>
-            </Found>
-        </Router>
-    </CascadingBlazingModal>
+    <CascadingAuthenticationState>
+        <CascadingBlazingModal>
+            <Router AppAssembly="typeof(Program).Assembly">
+                <Found Context="routeData">
+                    <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
+                    <FocusOnNavigate RouteData="routeData" Selector="h1"/>
+                </Found>
+            </Router>
+        </CascadingBlazingModal>
+    </CascadingAuthenticationState>
 </div>

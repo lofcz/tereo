@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -31,6 +32,17 @@ public static class Extensions
     {
         byte[] tempBytes = Encoding.GetEncoding("ISO-8859-8").GetBytes(toLower ? str.ToLowerInvariant().Trim() : str);
         return Encoding.UTF8.GetString(tempBytes);
+    }
+
+    public static string Id(this ClaimsPrincipal? claimsPrincipal)
+    {
+        Claim? idClaim = claimsPrincipal?.Claims.FirstOrDefault(x => x.Type is "id");
+        return idClaim?.Value ?? string.Empty;
+    }
+
+    public static ObservedUser Data(this ClaimsPrincipal? claimsPrincipal)
+    {
+        return ObserverService.GetUserData(claimsPrincipal?.Id() ?? string.Empty);
     }
 
     static readonly JsonSerializerOptions defaultOptionsPretty = new JsonSerializerOptions

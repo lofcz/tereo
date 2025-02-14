@@ -245,3 +245,37 @@ ins {
     font-size: 13px;
     transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.gradient-text {
+    font-size: 20px;
+    background: linear-gradient(
+                    to right,
+                    #4a1d96,
+                    #7e22ce,
+                    #6b21a8,
+                    #4a1d96
+    );
+    background-size: 300% auto;
+    color: white;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: gradient 8s ease infinite;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.projects-container {
+    display: flex;
+    flex-flow: column;
+    gap: 1rem;
+}

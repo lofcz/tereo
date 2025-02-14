@@ -1,6 +1,10 @@
 using System.CommandLine;
 using System.Text;
 using BlazingModal;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using TeReoLocalizer.Shared.Code;
@@ -17,8 +21,60 @@ public class Program
     
     public static void AddSharedServices(IServiceCollection services)
     {
-        services.AddBlazingModal();
         services.AddMemoryCache();
+        services.AddMvc(x => x.EnableEndpointRouting = false);
+        services.AddRazorPages();
+        services.AddHttpContextAccessor();
+        services.AddBlazingModal();
+
+        services.AddAuthentication(x =>
+        {
+            x.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        }).AddCookie(x =>
+        {
+            x.Cookie.Name = "reoSession";
+            x.SlidingExpiration = true;
+            x.ExpireTimeSpan = TimeSpan.FromDays(365);
+            x.LoginPath = "/home/index";
+            x.LogoutPath = "/home/index";
+            x.Cookie.SameSite = SameSiteMode.None;
+            x.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            x.Cookie.MaxAge = TimeSpan.FromDays(365);
+            x.Events = new CookieAuthenticationEvents
+            {
+                OnValidatePrincipal = async (CookieValidatePrincipalContext ctx) =>
+                {
+
+                }
+            };
+        });
+        
+        DirectoryInfo path = new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys"));
+
+        if (!path.Exists)
+        {
+            path.Create();
+        }
+            
+        services.AddDataProtection()
+            .PersistKeysToFileSystem(path)
+            .AddKeyManagementOptions(options =>
+            {
+                options.NewKeyLifetime = new TimeSpan(360, 0, 0, 0);
+                options.AutoGenerateKeys = true;
+            })
+            .SetApplicationName("Reo")
+            .UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration { EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC, ValidationAlgorithm = ValidationAlgorithm.HMACSHA256 });
+        
+        services.AddOptions();
+        services.AddAuthorizationCore();
+        
+        services.ConfigureExternalCookie(options =>
+        {
+            options.Cookie.SameSite = SameSiteMode.None;
+        });
+
+        services.AddAntiforgery();
     }
     
     public static async Task Main(string[] args)
@@ -124,6 +180,12 @@ public class Program
         app.UseStaticFiles();
         app.UseAntiforgery();
 
+        app.UseRouting();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.UseAntiforgery();
+        app.UseMvcWithDefaultRoute();
+        
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
 

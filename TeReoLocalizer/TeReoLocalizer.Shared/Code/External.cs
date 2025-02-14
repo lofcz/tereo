@@ -384,7 +384,8 @@ public class LabelTool
 
 public class AuthComponent : ComponentBaseEx
 {
-    [CascadingParameter] Task<AuthenticationState>? authenticationStateTask { get; set; }
+    [CascadingParameter] 
+    Task<AuthenticationState>? authenticationStateTask { get; set; }
     public ClaimsPrincipal? User { get; set; }
     
     protected override async Task OnInitializedAsync()
@@ -395,7 +396,7 @@ public class AuthComponent : ComponentBaseEx
 
     protected async Task GetAuthState()
     {
-        if (authenticationStateTask != null)
+        if (authenticationStateTask is not null)
         {
             User = (await authenticationStateTask).User;
         }

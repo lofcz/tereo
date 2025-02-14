@@ -12,6 +12,7 @@
     bool ready;
     string search = string.Empty;
     List<BootDataProject> visibleProjects = [];
+    bool renderRecent => bootData.Projects.Count > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -44,7 +45,7 @@
         }
 
         BootDataProject project = await BootService.LogProjectOpened(slnPath);
-        Nm.NavigateTo($"/localize?id={project.Id}");
+        Nm.NavigateTo($"/login/login?projectId={project.Id}", true);
     }
 
     async Task OpenKnownProject(BootDataProject prj)
@@ -56,7 +57,7 @@
         }
         
         BootDataProject project = await BootService.LogProjectOpened(prj.Sln);
-        Nm.NavigateTo($"/localize?id={project.Id}");
+        Nm.NavigateTo($"/login/login?projectId={project.Id}", true);
     }
 
     void ApplySearch()
@@ -100,23 +101,43 @@
     }
 }
 
-<div style="max-width: 600px; margin-left: auto; margin-right: auto;">
-    
-    <div style="display: flex; gap: 50px; align-items: flex-start; margin-bottom: 30px;">
-        <input class="form-control form-control-sm" @bind="search" @bind:after="ApplySearch" @bind:event="oninput" placeholder="Hledejte podle názvu projektu"/>
-        <div style="display: flex;">
-            <button @onclick="OpenProject" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Otevřít projekt</button>
-        </div>
-    </div>
-
-</div>
-
 @if (!ready)
 {
     return;
 }
 
-@if (bootData.Projects.Count > 0)
+<div style="max-width: 600px; margin-left: auto; margin-right: auto;">
+    
+    <div style="display: flex; margin-bottom: 1rem; gap: 10px; @(!renderRecent ? "justify-content: center" : string.Empty)" ondragstart="return false;">
+        <img style="margin-top: auto; margin-bottom: auto; user-select: none;" ondragstart="return false;" width="64" src="favicon.svg" />
+        <div style="margin-top: auto; margin-bottom: auto; user-select: none;">
+            <div class="gradient-text">Te Reo Localizer</div>
+            <div class="form-text">@Project.LatestVersion / oficiální verze</div>
+        </div>
+    </div>
+    
+    @if (!renderRecent)
+    {
+        <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+            <button @onclick="OpenProject" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Otevřít projekt</button>
+        </div>
+        <div style="display: flex; justify-content: center;">
+            <div class="form-text">Vyberte <code>.sln</code> projekt, který chcete otevřít.</div>
+        </div>
+    }
+    else
+    {
+        <div style="display: flex; gap: 50px; align-items: flex-start; margin-bottom: 30px;">
+            <input class="form-control form-control-sm" @bind="search" @bind:after="ApplySearch" @bind:event="oninput" placeholder="Hledejte podle názvu projektu"/>
+            <div style="display: flex;">
+                <button @onclick="OpenProject" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Otevřít projekt</button>
+            </div>
+        </div>   
+    }
+
+</div>
+
+@if (renderRecent)
 {
     <div style="max-width: 600px; margin-left: auto; margin-right: auto;">
         <div class="projects-container">

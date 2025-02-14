@@ -76,6 +76,24 @@ public class TranslationProviderDeeplL
 
 public class Project
 {
+    public static Project Create(Languages primaryLanguage)
+    {
+        return new Project
+        {
+            Settings = new ProjectSettings
+            {
+                PrimaryLanguage = primaryLanguage
+            },
+            Decls = [
+                new Decl(General.IIID())
+                {
+                    Id = General.IIID(),
+                    Name = "Výchozí"
+                }
+            ]
+        };
+    }
+    
     public static readonly int LatestVersionMajor = 1;
     public static readonly int LatestVersionMinor = 3;
     public static readonly int LatestVersionPatch = 0;
@@ -752,4 +770,14 @@ public class BootDataProject
 public class BootData
 {
     public List<BootDataProject> Projects { get; set; } = [];
+}
+
+public class ObservedUser
+{
+    public string ProjectId { get; set; }
+    
+    public ObservedUser(string projectId)
+    {
+        ProjectId = projectId;
+    }
 }

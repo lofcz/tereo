@@ -1,38 +1,62 @@
 @page "/setup"
 @using NativeFileDialogCore
+@using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
 @layout LayoutBlog
+@inherits AuthComponent
+@inject NavigationManager Nm
 @code {
 
     string projPath;
+    BootDataProject? project;
+    bool ready;
     
     protected override void OnInitialized()
     {
         base.OnInitialized();
     }
 
-    async Task PickFile()
+    protected override async Task OnInitializedAsync()
     {
-        DialogResult result = Dialog.FileOpen("csproj");
+        await base.OnInitializedAsync();
+        project = await BootService.GetProject(User.Data().ProjectId);
+        ready = true;
+    }
+
+    async Task Confirm()
+    {
+        if (project is null)
+        {
+            return;
+        }
+        
+        Project reoProject = Project.Create(Languages.CS);
+        Directory.CreateDirectory(Path.Join(project.Path, "TeReo"));
+        await File.WriteAllTextAsync(Path.Join(project.Path, "TeReo", "project.json"), reoProject.ToJson(true));
+        await File.WriteAllTextAsync(Path.Join(project.Path, "TeReo", "lang_CS.json"), "{}");
+        Nm.NavigateTo("/localize");
+    }
+
+    async Task Cancel()
+    {
+        Nm.NavigateTo("/");
     }
 }
 
-@if (true || !Consts.Cfg.ConfigReadOk)
+@if (!ready)
 {
-    <h1>Te Reo .NET - první spuštění</h1>          
-    <p>Zdá se, že jste Reo otevřel/a poprvé, vítejte! ⭐️<br/><br/>Reo je lokalizační aplikace pro .NET projekty. Pro fungování aplikace je potřeba nastavit cestu k projektu, který chcete lokalizovat.</p>
-    
-    <EdButton OnClick="PickFile">TEST NATIVE</EdButton>
-    
-    <EdForm>
-        @if (Consts.AppType is AppType.Native)
-        {
-            <EdInput Type="InputTypes.File" @bind-Value="projPath"/>   
-        }
-        else
-        {
-            <EdInput @bind-Value="projPath" />
-        }
-    </EdForm>
-    <p>test</p>
+    return;
 }
+
+@if (project is null)
+{
+    <div>Projekt neexistuje.</div>
+    return;
+}
+
+<h3>Instalace do existujícího projektu</h3>          
+<p>Reo do projektu <code>@(project.Name)</code> vloží několik souborů pro nastavení lokalizace. Potvrďte operaci.</p>
+
+<EdButton OnClick="Confirm">Potvrdit</EdButton>
+<EdButton Design="ButtonDesigns.Danger" OnClick="Cancel">Zpět</EdButton>
