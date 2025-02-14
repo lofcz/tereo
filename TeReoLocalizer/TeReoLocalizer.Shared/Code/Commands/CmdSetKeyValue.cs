@@ -12,14 +12,14 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdSetKeyValue : BaseCommand
 {
-    private Languages Language { get; set; }
-    private string Key { get; set; }
-    private string Value { get; set; }
-    private DiffResult? Diff { get; set; }
-    private string? OldValue { get; set; }
+    Languages Language { get; set; }
+    string Key { get; set; }
+    string Value { get; set; }
+    DiffResult? Diff { get; set; }
+    string? OldValue { get; set; }
 
-    private readonly Dictionary<Languages, string?> originalValues = [];
-    private TranslationModes translationMode = TranslationModes.Default;
+    readonly Dictionary<Languages, string?> originalValues = [];
+    TranslationModes translationMode = TranslationModes.Default;
 
     public CmdSetKeyValue(Languages language, string key, string value)
     {

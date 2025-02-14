@@ -60,6 +60,16 @@ public partial class Localize
             basePath = Consts.Cfg.Repository;
         }
 
+        if (Id is not null)
+        {
+            openProject = await BootService.GetProject(Id);
+
+            if (openProject is not null)
+            {
+                basePath = openProject.Sln;
+            }
+        }
+
         CommandManager.OnBeforeJump = () =>
         {
             JumpingInHistory = true;

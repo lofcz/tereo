@@ -8,10 +8,10 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdRenameKey : BaseCommand
 {
-    private string OldKeyName { get; set; }
-    private string NewKeyName { get; set; }
-    private IProgress<CommandProgress>? RenameProgress { get; set; }
-    private KeyRenameReasons Reason { get; set; }
+    string OldKeyName { get; set; }
+    string NewKeyName { get; set; }
+    IProgress<CommandProgress>? RenameProgress { get; set; }
+    KeyRenameReasons Reason { get; set; }
 
     public override IProgress<CommandProgress>? Progress
     {

@@ -8,6 +8,9 @@ namespace TeReoLocalizer.Shared.Components.Pages;
 
 public partial class Localize
 {
+    [Parameter]
+    public string? Id { get; set; }
+    
     public Project Project = new Project();
     public Decl Decl => Project.SelectedDecl;
     public UserSettings Settings = new UserSettings();
@@ -48,5 +51,6 @@ public partial class Localize
     bool showLoadErrors = true;
     bool projectLoadingFinished;
     bool contentRendered;
+    BootDataProject? openProject;
     bool Panicked => loadErrors?.Count > 0;
 }

@@ -7,8 +7,8 @@ namespace TeReoLocalizer.Shared.Code.Services;
 
 public static class ClrService
 {
-    private static IMemoryCache Cache => GlobalServices.Cache;
-    private static readonly ConcurrentDictionary<MemberInfo, bool> JsExposedMembers = [];
+    static IMemoryCache Cache => GlobalServices.Cache;
+    static readonly ConcurrentDictionary<MemberInfo, bool> JsExposedMembers = [];
 
     public static bool TypeImplementsInterface(Type type, Type interfaceType)
     {

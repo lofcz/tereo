@@ -7,7 +7,7 @@ namespace TeReoLocalizer.Shared.Code;
 
 public static partial class General
 {
-    private const string IiidAlphabet = "_0123456789abcdefghijklmnopqrstuvwxzyABCDEFGHCIJKLMNOPQRSTUVWXYZ";
+    const string IiidAlphabet = "_0123456789abcdefghijklmnopqrstuvwxzyABCDEFGHCIJKLMNOPQRSTUVWXYZ";
     
     public static bool Disable(string reason)
     {
@@ -49,7 +49,7 @@ public static partial class General
         return (MarkupString)html.Replace("\n", "<br/>");
     }
 
-    private static Dictionary<char, string> ConvertMap = new Dictionary<char, string>()
+    static Dictionary<char, string> ConvertMap = new Dictionary<char, string>()
     {
         {' ', "-"},
         {'+', ""},

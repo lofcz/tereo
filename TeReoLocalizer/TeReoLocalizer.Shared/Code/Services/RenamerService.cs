@@ -1,10 +1,6 @@
 using System.Collections.Concurrent;
-using System.IO.MemoryMappedFiles;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.FindSymbols;
-
 namespace TeReoLocalizer.Shared.Code.Services;
 
 public class RenameResult
@@ -57,7 +53,7 @@ public class RenameProgress
 
 public static partial class SymbolRenamer
 {
-    private static readonly Regex ReoSymbolRegex = ReoRegexSrc();
+    static readonly Regex ReoSymbolRegex = ReoRegexSrc();
 
     public static async Task<RenameResult> RenameSymbol(string projectDirectory, string oldSymbol, string newSymbol, IProgress<CommandProgress>? progress = null)
     {
@@ -116,7 +112,7 @@ public static partial class SymbolRenamer
         return new RenameResult { Success = true, TotalReplacements = totalReplacements };
     }
 
-    private static (int replacements, int newSize) ReplaceInSpan(Span<byte> span, string oldSymbol, string newSymbol)
+    static (int replacements, int newSize) ReplaceInSpan(Span<byte> span, string oldSymbol, string newSymbol)
     {
         int replacements = 0;
         string content = Encoding.UTF8.GetString(span);

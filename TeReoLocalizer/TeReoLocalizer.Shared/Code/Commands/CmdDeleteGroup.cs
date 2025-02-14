@@ -7,9 +7,9 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdDeleteGroup : BaseCommand
 {
-    private string? SelectedDeclId { get; set; }
-    private Decl? DeletedDecl { get; set; }
-    private Dictionary<Languages, Dictionary<string, (string? Data, string? FocusData, string? PersistedData)>>? BackupData { get; set; }
+    string? SelectedDeclId { get; set; }
+    Decl? DeletedDecl { get; set; }
+    Dictionary<Languages, Dictionary<string, (string? Data, string? FocusData, string? PersistedData)>>? BackupData { get; set; }
 
     public CmdDeleteGroup(Decl decl)
     {

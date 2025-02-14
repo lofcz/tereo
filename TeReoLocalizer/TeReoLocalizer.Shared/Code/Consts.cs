@@ -22,7 +22,7 @@ public enum AppType
 
 public static class Consts
 {
-    private static Config? cfg;
+    static Config? cfg;
     public static string Entropy { get; set; } = General.IIID();
     public static AppType AppType { get; set; } = AppType.Web;
 

@@ -4,7 +4,7 @@ namespace TeReoLocalizer.Shared.Tests;
 
 public class Tests
 {
-    private static InvertedIndex SharedIndex;
+    static InvertedIndex SharedIndex;
     
     [SetUp]
     public void Setup()
@@ -18,7 +18,7 @@ public class Tests
         SharedIndex.Dispose();
     }
 
-    private static InvertedIndex SetupIndex(string str)
+    static InvertedIndex SetupIndex(string str)
     {
         InvertedIndex index = new InvertedIndex($".reoindex_{str}");
         

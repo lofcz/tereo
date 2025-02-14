@@ -7,9 +7,9 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdDeleteKey : BaseCommand
 {
-    private string Key { get; set; }
-    private Dictionary<Languages, string> OriginalLangValues { get; set; } = [];
-    private Key? OriginalKeyDeclaration { get; set; }
+    string Key { get; set; }
+    Dictionary<Languages, string> OriginalLangValues { get; set; } = [];
+    Key? OriginalKeyDeclaration { get; set; }
     
     public CmdDeleteKey(string key)
     {

@@ -9,11 +9,11 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdAddKey : BaseCommand
 {
-    private string NewKey { get; set; }
-    private string? Search { get; set; }
-    private string? ToFocus { get; set; }
-    private string? KeyToFocus { get; set; }
-    private string? DeclId { get; set; }
+    string NewKey { get; set; }
+    string? Search { get; set; }
+    string? ToFocus { get; set; }
+    string? KeyToFocus { get; set; }
+    string? DeclId { get; set; }
     
     public CmdAddKey(string newKey)
     {

@@ -5,9 +5,9 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdAddGroup : BaseCommand
 {
-    private string GroupName { get; set; }
-    private string? GroupId { get; set; }
-    private string? SelectedDeclId { get; set; }
+    string GroupName { get; set; }
+    string? GroupId { get; set; }
+    string? SelectedDeclId { get; set; }
 
     public CmdAddGroup(string name)
     {

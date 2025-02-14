@@ -11,16 +11,16 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public partial class CmdGenerateMissingKeyValues : BaseCommand
 {
-    private static readonly Regex DeeplRegex = DeeplRegexImpl();
-    private static readonly Regex UndeeplRegex = UndeeplRegexImpl();
+    static readonly Regex DeeplRegex = DeeplRegexImpl();
+    static readonly Regex UndeeplRegex = UndeeplRegexImpl();
 
     [GeneratedRegex("\\{([^}]+)\\}", RegexOptions.Compiled)]
     private static partial Regex DeeplRegexImpl();
     [GeneratedRegex("\\(!\\d+\\)", RegexOptions.Compiled)]
     private static partial Regex UndeeplRegexImpl();
-    
-    private readonly Dictionary<(Languages Lang, string Key), string> originalValues = [];
-    private readonly ConcurrentDictionary<(Languages Lang, string Key), string> newValues = [];
+
+    readonly Dictionary<(Languages Lang, string Key), string> originalValues = [];
+    readonly ConcurrentDictionary<(Languages Lang, string Key), string> newValues = [];
 
     public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
@@ -142,8 +142,8 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
     {
         return $"Doplnění chybějících překladů ({newValues.Count} položek)";
     }
-    
-    private static DeeplifiedText DeeplifyText(string text)
+
+    static DeeplifiedText DeeplifyText(string text)
     {
         Dictionary<string, string> placeholders = [];
         int counter = 0;
@@ -165,12 +165,12 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
     }
 
 
-    private static string UndeeplifyText(string text, Dictionary<string, string> placeholders)
+    static string UndeeplifyText(string text, Dictionary<string, string> placeholders)
     {
         return placeholders.Aggregate(text, (current, placeholder) => current.Replace(placeholder.Key, placeholder.Value));
     }
 
-    private static string DeeplCode(Languages lang)
+    static string DeeplCode(Languages lang)
     {
         return lang switch
         {

@@ -10,14 +10,14 @@ public class CommandManager : IDisposable
     public Func<RewindActions, ICommand, Task>? OnBeforeRewindProgressCommand { get; set; }
     public Func<RewindActions, ICommand, Task>? OnAfterRewindProgressCommand { get; set; }
 
-    private readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-    private readonly CircularBuffer<ICommand> undoBuffer;
-    private readonly CircularBuffer<ICommand> redoBuffer;
-    
-    private class CircularBuffer<T>
+    readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+    readonly CircularBuffer<ICommand> undoBuffer;
+    readonly CircularBuffer<ICommand> redoBuffer;
+
+    class CircularBuffer<T>
     {
-        private readonly T[] buffer;
-        private int head;
+        readonly T[] buffer;
+        int head;
 
         public CircularBuffer(int capacity)
         {
@@ -122,7 +122,7 @@ public class CommandManager : IDisposable
         }
     }
 
-    private async Task UndoInternal()
+    async Task UndoInternal()
     {
         if (undoBuffer.Count is 0)
         {
@@ -169,7 +169,7 @@ public class CommandManager : IDisposable
         }
     }
 
-    private async Task RedoInternal()
+    async Task RedoInternal()
     {
         if (redoBuffer.Count is 0)
         {

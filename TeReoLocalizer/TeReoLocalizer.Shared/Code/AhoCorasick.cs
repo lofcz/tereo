@@ -2,7 +2,7 @@ namespace TeReoLocalizer.Shared;
 
 public class AhoCorasick
 {
-    private class TrieNode
+    class TrieNode
     {
         public Dictionary<char, TrieNode> Children { get; } = new Dictionary<char, TrieNode>();
         public TrieNode? Failure { get; set; }
@@ -11,7 +11,7 @@ public class AhoCorasick
         public string? Word { get; set; }
     }
 
-    private readonly TrieNode root = new TrieNode();
+    readonly TrieNode root = new TrieNode();
 
     public void AddPattern(string pattern)
     {

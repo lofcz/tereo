@@ -1,5 +1,4 @@
 @page "/localize"
-@page "/"
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
 @using TeReoLocalizer.Shared.Code.Services
@@ -430,7 +429,7 @@
                     <select @onchange="HandleActiveDeclChange" class="form-select">
                         @foreach (Decl x in Project.Decls)
                         {
-                            <option value="@x.Id" selected="@(x == Decl)">@(x.Name.IsNullOrWhiteSpace() ? "Skupina bez názvu" : $"{x.Name} (klíčů: {x.Keys.Count})")</option>
+                            <option value="@x.Id" selected="@(x.Id == Decl.Id)">@(x.Name.IsNullOrWhiteSpace() ? "Skupina bez názvu" : $"{x.Name} (klíčů: {x.Keys.Count})")</option>
                         }
                     </select>
                 </div>

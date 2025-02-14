@@ -33,13 +33,13 @@ public static class Extensions
         return Encoding.UTF8.GetString(tempBytes);
     }
 
-    private static readonly JsonSerializerOptions defaultOptionsPretty = new JsonSerializerOptions
+    static readonly JsonSerializerOptions defaultOptionsPretty = new JsonSerializerOptions
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-    
-    private static readonly JsonSerializerOptions defaultOptions = new JsonSerializerOptions
+
+    static readonly JsonSerializerOptions defaultOptions = new JsonSerializerOptions
     {
         WriteIndented = false,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
@@ -84,14 +84,14 @@ public static class Extensions
     {
         return searchPatterns.AsParallel().SelectMany(searchPattern => Directory.EnumerateFiles(path, searchPattern, searchOption).Where(x => filter is not null && filter(x)));
     }
-    
-    private static JsonSerializerOptions IndendedSerializer = new JsonSerializerOptions
+
+    static JsonSerializerOptions IndendedSerializer = new JsonSerializerOptions
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-        
-    private static JsonSerializerOptions UnindendedSerializer = new JsonSerializerOptions
+
+    static JsonSerializerOptions UnindendedSerializer = new JsonSerializerOptions
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
@@ -116,8 +116,8 @@ public static class Extensions
 
         return str.ToLower();
     }
-    
-    private static readonly Regex HtmlHeuristicRegex = new Regex("<\\s*([a-z][a-z0-9]*)\\b[^>]*>(.*?<\\s*\\/\\s*\\1\\s*>)?", RegexOptions.Compiled);
+
+    static readonly Regex HtmlHeuristicRegex = new Regex("<\\s*([a-z][a-z0-9]*)\\b[^>]*>(.*?<\\s*\\/\\s*\\1\\s*>)?", RegexOptions.Compiled);
 
     public static bool ProbablyContainsHtml(this string? str)
     {
@@ -243,8 +243,8 @@ public static class Extensions
     {
         return value.ToString(Math.Abs(value - Math.Floor(value)) < 0.0001d ? "0" : "0.##", CultureInfo.InvariantCulture);
     }
-    
-    private static readonly ModalOptions CustomLayoutOpts = new ModalOptions
+
+    static readonly ModalOptions CustomLayoutOpts = new ModalOptions
     {
         UseCustomLayout = true,
         AnimationType = ModalAnimationType.None

@@ -5,10 +5,10 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdMoveKey : BaseCommand
 {
-    private string Key { get; set; }
-    private Decl NewDecl { get; set; }
-    private Decl OldDecl { get; set; }
-    private string? OldDeclName { get; set; }
+    string Key { get; set; }
+    Decl NewDecl { get; set; }
+    Decl OldDecl { get; set; }
+    string? OldDeclName { get; set; }
     
     public CmdMoveKey(string key, Decl oldDecl, Decl newDecl)
     {

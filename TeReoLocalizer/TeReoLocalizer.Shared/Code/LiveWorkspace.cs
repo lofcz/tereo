@@ -33,7 +33,7 @@ public class LiveSyncMSBuildWorkspace : IDisposable
         return success;
     }
 
-    private void OnWorkspaceChanged(object? sender, WorkspaceChangeEventArgs e)
+    void OnWorkspaceChanged(object? sender, WorkspaceChangeEventArgs e)
     {
         Console.WriteLine("aktualizována otevřená solution");
         CurrentSolution = e.NewSolution;

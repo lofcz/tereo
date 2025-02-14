@@ -5,9 +5,9 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdUpdateGroupSettings : BaseCommand
 {
-    private DeclSettings newSettings;
-    private DeclSettings oldSettings;
-    private string declId, declName;
+    DeclSettings newSettings;
+    DeclSettings oldSettings;
+    string declId, declName;
     
     public CmdUpdateGroupSettings(DeclSettings settings)
     {

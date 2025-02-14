@@ -12,17 +12,17 @@ namespace TeReoLocalizer.Shared.Code;
 
 public class InvertedIndex : IDisposable
 {
-    private const string IndexVersion = "1.0.8";
-    private const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
-    private const int MinNGramLength = 3;
-    private const int MaxNGramLength = 3;
-    
-    private static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r', '\v', '\f'];
-    
-    private readonly FSDirectory directory;
-    private readonly Analyzer analyzer;
-    private readonly IndexWriter writer;
-    private readonly ConcurrentDictionary<string, string> indexedStrings;
+    const string IndexVersion = "1.0.8";
+    const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
+    const int MinNGramLength = 3;
+    const int MaxNGramLength = 3;
+
+    static readonly char[] WordDelimiters = [' ', '\t', '\n', '\r', '\v', '\f'];
+
+    readonly FSDirectory directory;
+    readonly Analyzer analyzer;
+    readonly IndexWriter writer;
+    readonly ConcurrentDictionary<string, string> indexedStrings;
 
     public InvertedIndex(string indexPath)
     {
@@ -49,7 +49,7 @@ public class InvertedIndex : IDisposable
         }
     }
 
-    private bool IsIndexValid()
+    bool IsIndexValid()
     {
         using DirectoryReader? reader = writer.GetReader(true);
         IndexSearcher searcher = new IndexSearcher(reader);
@@ -92,7 +92,7 @@ public class InvertedIndex : IDisposable
         return documentExists;
     }
 
-    private bool HasDuplicateIds()
+    bool HasDuplicateIds()
     {
         using DirectoryReader? reader = writer.GetReader(true);
         IndexSearcher searcher = new IndexSearcher(reader);
@@ -130,7 +130,7 @@ public class InvertedIndex : IDisposable
         writer.Commit();
     }
 
-    private void LoadExistingStrings()
+    void LoadExistingStrings()
     {
         using DirectoryReader? reader = writer.GetReader(true);
         IndexSearcher searcher = new IndexSearcher(reader);
@@ -179,8 +179,8 @@ public class InvertedIndex : IDisposable
         writer.UpdateDocument(new Term("id", id), doc);
         indexedStrings[content] = id;
     }
-    
-    private static void IndexVariableLengthNGrams(Document doc, string text)
+
+    static void IndexVariableLengthNGrams(Document doc, string text)
     {
         for (int length = Math.Max(2, MinNGramLength - 1); length <= Math.Min(MaxNGramLength, text.Length); length++)
         {
@@ -311,8 +311,8 @@ public class InvertedIndex : IDisposable
 
         return hits.Length <= 5 ? PruneContains(searcher, hits, substring, caseSensitive, wholeWords, start, pageSize) : PruneAhoCorasick(searcher, hits, substring, caseSensitive, wholeWords, start, pageSize);
     }
-   
-    private static List<SearchResult> PruneContains(IndexSearcher searcher, ScoreDoc[] hits, string substring, bool caseSensitive, bool wholeWords, int start, int pageSize)
+
+    static List<SearchResult> PruneContains(IndexSearcher searcher, ScoreDoc[] hits, string substring, bool caseSensitive, bool wholeWords, int start, int pageSize)
     {
         List<SearchResult> results = [];
 
@@ -339,7 +339,7 @@ public class InvertedIndex : IDisposable
         return results;
     }
 
-    private static List<SearchResult> PruneAhoCorasick(IndexSearcher searcher, ScoreDoc[] hits, string substring, bool caseSensitive, bool wholeWords, int start, int pageSize)
+    static List<SearchResult> PruneAhoCorasick(IndexSearcher searcher, ScoreDoc[] hits, string substring, bool caseSensitive, bool wholeWords, int start, int pageSize)
     {
         List<SearchResult> results = [];
 
@@ -382,7 +382,7 @@ public class InvertedIndex : IDisposable
         return results;
     }
 
-    private static int FindWholeWordMatchIndex(string content, string searchString, bool caseSensitive)
+    static int FindWholeWordMatchIndex(string content, string searchString, bool caseSensitive)
     {
         StringComparison comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         string[] contentWords = content.Split(WordDelimiters, StringSplitOptions.RemoveEmptyEntries);
@@ -417,8 +417,8 @@ public class InvertedIndex : IDisposable
         analyzer.Dispose();
         GC.SuppressFinalize(this);
     }
-    
-    private class NGramAnalyzer(LuceneVersion matchVersion) : Analyzer
+
+    class NGramAnalyzer(LuceneVersion matchVersion) : Analyzer
     {
         protected override TokenStreamComponents CreateComponents(string fieldName, TextReader reader)
         {

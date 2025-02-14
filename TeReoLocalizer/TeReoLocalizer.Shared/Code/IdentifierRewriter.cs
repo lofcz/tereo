@@ -84,11 +84,11 @@ public static class CsWorkspace
 
         Console.WriteLine("Proces nahrazování dokončen.");
     }
-    
-    private class IdentifierRewriter : CSharpSyntaxRewriter
+
+    class IdentifierRewriter : CSharpSyntaxRewriter
     {
-        private readonly string _oldSuffix;
-        private readonly string _newSuffix;
+        readonly string _oldSuffix;
+        readonly string _newSuffix;
 
         public IdentifierRewriter(string oldSuffix, string newSuffix)
         {

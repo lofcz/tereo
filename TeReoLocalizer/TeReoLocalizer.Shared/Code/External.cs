@@ -255,10 +255,10 @@ public interface IDataFetchComponent
 
 public class TaskAggregator
 {
-    private Dictionary<string, bool> Tasks = new Dictionary<string, bool>();
-    private Action? TasksReadySync { get; set; }
-    private Func<Task>? TasksReadyAsync { get; set; }
-    private bool CallbackCalled { get; set; }
+    Dictionary<string, bool> Tasks = new Dictionary<string, bool>();
+    Action? TasksReadySync { get; set; }
+    Func<Task>? TasksReadyAsync { get; set; }
+    bool CallbackCalled { get; set; }
 
     public TaskAggregator(Action tasksReady)
     {
@@ -384,8 +384,7 @@ public class LabelTool
 
 public class AuthComponent : ComponentBaseEx
 {
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+    [CascadingParameter] Task<AuthenticationState>? authenticationStateTask { get; set; }
     public ClaimsPrincipal? User { get; set; }
     
     protected override async Task OnInitializedAsync()
@@ -443,7 +442,7 @@ public class InputComponent<T> : RowChildComponent, IInputComponent, IDataFetchC
     [CascadingParameter]
     public EdForm? Context { get; set; }
 
-    private T? _value;
+    T? _value;
     protected bool ignoreJsSignals = false;
 
     public virtual void OnValueSet(T? newVal)
@@ -525,7 +524,7 @@ public class InputComponent<T> : RowChildComponent, IInputComponent, IDataFetchC
     [CascadingParameter(Name = "FormLabelPosition")]
     public LabelPositions? FormLabelPosition { get; set; }
 
-    private bool announcedReady;
+    bool announcedReady;
     public LabelPositions ComputedLabelPosition => LabelPosition ?? FormLabelPosition ?? LabelPositions.Above;
     public FlexColumns ComputedLabelSize => FlexColumns.Desktop3;
     public string ComputedInputSize => ComputedLabelPosition is LabelPositions.After or LabelPositions.Before ? FlexColumns.Desktop9.Serialize() : "";
@@ -619,8 +618,8 @@ public class InputComponent<T> : RowChildComponent, IInputComponent, IDataFetchC
             StateHasChanged();
         }
     }
-    
-    private void EnlistTask()
+
+    void EnlistTask()
     {
         TaskAggregator?.Enlist(RandomKey);
     }
@@ -866,12 +865,12 @@ public class ValidationResult
 
 public class Validator
 {
-    private static readonly Regex PhoneRegex = new Regex("^\\+((?:9[679]|8[035789]|6[789]|5[90]|42|3[578]|2[1-689])|9[0-58]|8[1246]|6[0-6]|5[1-8]|4[013-9]|3[0-469]|2[70]|7|1)(?:\\W*\\d){0,13}\\d$", RegexOptions.Compiled);
-    private static readonly Regex BirthNumberRegexCz = new Regex("\\d{2}(0[1-9]|1[0-2]|5[1-9]|6[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])\\/?\\d{3,4}", RegexOptions.Compiled);
-    private static readonly Regex BirthNumberRegexPl = new Regex("^[0-9]{2}([02468]1|[13579][012])(0[1-9]|1[0-9]|2[0-9]|3[01])[0-9]{5}$", RegexOptions.Compiled);
+    static readonly Regex PhoneRegex = new Regex("^\\+((?:9[679]|8[035789]|6[789]|5[90]|42|3[578]|2[1-689])|9[0-58]|8[1246]|6[0-6]|5[1-8]|4[013-9]|3[0-469]|2[70]|7|1)(?:\\W*\\d){0,13}\\d$", RegexOptions.Compiled);
+    static readonly Regex BirthNumberRegexCz = new Regex("\\d{2}(0[1-9]|1[0-2]|5[1-9]|6[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])\\/?\\d{3,4}", RegexOptions.Compiled);
+    static readonly Regex BirthNumberRegexPl = new Regex("^[0-9]{2}([02468]1|[13579][012])(0[1-9]|1[0-9]|2[0-9]|3[01])[0-9]{5}$", RegexOptions.Compiled);
     internal const string FIELD_NAME = "{FIELD_NAME}";
 
-    private static string Verb(IValidationComponent cmp)
+    static string Verb(IValidationComponent cmp)
     {
         return cmp is ISelectInput ? "Vyberte" : "Vyplňte";
     }
@@ -910,8 +909,8 @@ public class Validator
         
         return new ValidationResult(true);
     }, ValidationEvents.OnChange);
-    
-    private static readonly HashSet<char> BirthNumberHashSet = [' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '/', '\\'];
+
+    static readonly HashSet<char> BirthNumberHashSet = [' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '/', '\\'];
     
     public static readonly Validator BirthNumber = new Validator((s, evt, sender) =>
     {
@@ -931,8 +930,8 @@ public class Validator
     public static readonly Validator Email = new Validator((s, evt, sender) => s.IsValidEmail() ? new ValidationResult(true) : new ValidationResult(false, "FIX"), ValidationEvents.OnChange);
     public static readonly Validator Password = new Validator((s, evt, sender) => !s.IsNullOrWhiteSpace() && s.Length >= 6 ? new ValidationResult(true) : s.Length == 0 ? new ValidationResult(false, $"{Verb(sender)} {FIELD_NAME}", true) : new ValidationResult(false, "FIX"), ValidationEvents.Any);
     public ValidationEvents RunOn { get; set; }
-    private Func<string, ValidationEvents, IValidationComponent, Task<ValidationResult>>? ValidateAsync { get; set; }
-    private Func<string, ValidationEvents, IValidationComponent, ValidationResult>? ValidateSync { get; set; }
+    Func<string, ValidationEvents, IValidationComponent, Task<ValidationResult>>? ValidateAsync { get; set; }
+    Func<string, ValidationEvents, IValidationComponent, ValidationResult>? ValidateSync { get; set; }
 
     public Validator()
     {

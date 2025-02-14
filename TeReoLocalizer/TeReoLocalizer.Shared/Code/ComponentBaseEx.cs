@@ -18,13 +18,13 @@ namespace TeReoLocalizer.Shared.Code;
 /// </summary>
 public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleAfterRender
 {
-    private readonly RenderFragment _renderFragment;
-    private RenderHandle _renderHandle;
-    private bool _initialized;
-    private bool _hasNeverRendered = true;
-    private bool _hasPendingQueuedRender;
-    private bool _hasCalledOnAfterRender;
-    private bool _initalizedBlocking;
+    readonly RenderFragment _renderFragment;
+    RenderHandle _renderHandle;
+    bool _initialized;
+    bool _hasNeverRendered = true;
+    bool _hasPendingQueuedRender;
+    bool _hasCalledOnAfterRender;
+    bool _initalizedBlocking;
 
     /// <summary>
     /// Constructs an instance of <see cref="ComponentBaseInternal"/>.
@@ -110,7 +110,7 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
         StateHasChangedInternal();
     }
 
-    private void StateHasChangedInternal()
+    void StateHasChangedInternal()
     {
         if (_hasPendingQueuedRender)
         {
@@ -263,7 +263,7 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
     
     protected virtual Task OnInitializedAsyncBlocking() => Task.CompletedTask;
 
-    private async Task RunInitAndSetParametersAsync()
+    async Task RunInitAndSetParametersAsync()
     {
         OnInitialized();
         
@@ -319,7 +319,7 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
         await CallOnParametersSetAsync();
     }
 
-    private Task CallOnParametersSetAsync()
+    Task CallOnParametersSetAsync()
     {
         OnParametersSet();
         Task task = OnParametersSetAsync();
@@ -338,7 +338,7 @@ public abstract class ComponentBaseInternal : IComponent, IHandleEvent, IHandleA
             Task.CompletedTask;
     }
 
-    private async Task CallStateHasChangedOnAsyncCompletion(Task task)
+    async Task CallStateHasChangedOnAsyncCompletion(Task task)
     {
         try
         {

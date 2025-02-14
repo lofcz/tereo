@@ -5,8 +5,8 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdRenameGroup : BaseCommand
 {
-    private string OldName { get; set; }
-    private string NewName { get; set; }
+    string OldName { get; set; }
+    string NewName { get; set; }
     
     public CmdRenameGroup(string newName)
     {

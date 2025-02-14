@@ -5,8 +5,8 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 /// </summary>
 public class CmdSetKeySettings : BaseCommand
 {
-    private Key OldKey { get; set; }
-    private Key NewKey { get; set; }
+    Key OldKey { get; set; }
+    Key NewKey { get; set; }
     
     public CmdSetKeySettings(Key oldKey, Key newKey)
     {

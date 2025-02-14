@@ -1,0 +1,143 @@
+@page "/boot"
+@page "/"
+@using NativeFileDialogCore
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Services
+@inject IJSRuntime Js
+@inject IModalService Md
+@inject NavigationManager Nm
+@code {
+
+    BootData bootData = new BootData();
+    bool ready;
+    string search = string.Empty;
+    List<BootDataProject> visibleProjects = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadData();
+        ready = true;
+    }
+
+    async Task LoadData()
+    {
+        bootData = await BootService.GetBootData();
+        ApplySearch();
+    }
+
+    async Task OpenProject()
+    {
+        DialogResult result = Dialog.FileOpenEx("sln", dialogTitle: "Te Reo");
+
+        if (!result.IsOk || result.Path is null)
+        {
+            return;
+        }
+
+        string slnPath = result.Path;
+
+        if (Path.GetExtension(slnPath) is not ".sln")
+        {
+            await Js.Toast(ToastTypes.Error, "Zvolený soubor musí mít koncovku .sln");
+            return;
+        }
+
+        BootDataProject project = await BootService.LogProjectOpened(slnPath);
+        Nm.NavigateTo($"/localize?id={project.Id}");
+    }
+
+    async Task OpenKnownProject(BootDataProject prj)
+    {
+        if (!File.Exists(prj.Sln))
+        {
+            await Js.Toast(ToastTypes.Error, "Projekt neexsituje na disku");
+            return;
+        }
+        
+        BootDataProject project = await BootService.LogProjectOpened(prj.Sln);
+        Nm.NavigateTo($"/localize?id={project.Id}");
+    }
+
+    void ApplySearch()
+    {
+        visibleProjects.Clear();
+        
+        if (search.Length is 0)
+        {
+            foreach (BootDataProject x in bootData.Projects)
+            {
+                visibleProjects.Add(x);
+                x.IsVisible = true;
+            }
+
+            visibleProjects = visibleProjects.OrderByDescending(x => x.LastRan).Take(50).ToList();
+            StateHasChanged();
+            return;
+        }
+        
+        Parallel.ForEach(bootData.Projects, x =>
+        {
+            x.IsVisible = x.Name.ToLowerInvariant().Contains(search.ToLowerInvariant().Trim());
+
+            if (x.IsVisible)
+            {
+                visibleProjects.Add(x);
+            }
+        });
+        
+        visibleProjects = visibleProjects.OrderByDescending(x => x.LastRan).Take(50).ToList();
+        StateHasChanged();
+    }
+
+    void DeleteProject(BootDataProject prj)
+    {
+        Md.ShowConfirmActionModal("Odstranit projekt", "Potvrďte odstranění projektu.", async () =>
+        {
+            await BootService.RemoveProject(prj.Id);
+            await InvokeAsync(LoadData);
+        });
+    }
+}
+
+<div style="max-width: 600px; margin-left: auto; margin-right: auto;">
+    
+    <div style="display: flex; gap: 50px; align-items: flex-start; margin-bottom: 30px;">
+        <input class="form-control form-control-sm" @bind="search" @bind:after="ApplySearch" @bind:event="oninput" placeholder="Hledejte podle názvu projektu"/>
+        <div style="display: flex;">
+            <button @onclick="OpenProject" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Otevřít projekt</button>
+        </div>
+    </div>
+
+</div>
+
+@if (!ready)
+{
+    return;
+}
+
+@if (bootData.Projects.Count > 0)
+{
+    <div style="max-width: 600px; margin-left: auto; margin-right: auto;">
+        <div class="projects-container">
+            
+            @if (visibleProjects.Count is 0)
+            {
+                <div class="form-text">Nenalezeny žádné projekty.</div>
+            }
+            else
+            {
+                foreach (BootDataProject prj in visibleProjects)
+                {
+                    <div @onclick="@(() => OpenKnownProject(prj))" class="project-card card">
+                        <div class="card-body">
+                            <button @onclick="(() => DeleteProject(prj))" @onclick:stopPropagation="true" style="position: absolute; right: 12px; top: 10px;" class="btn-close"></button>
+                            <div class="project-name">@prj.Name</div>
+                            <div class="project-path">@prj.Sln</div>
+                        </div>
+                    </div>
+                }   
+            }
+        </div>
+    </div>
+}

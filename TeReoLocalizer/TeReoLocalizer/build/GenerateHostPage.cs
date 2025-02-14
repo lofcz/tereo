@@ -19,8 +19,8 @@ public class GenerateHostPage : Microsoft.Build.Utilities.Task
         File.WriteAllText(OutputPath, content);
         return true;
     }
-    
-    private string GenerateHtmlContent()
+
+    string GenerateHtmlContent()
     {
         string templatePath = Path.Combine(ProjectDir, "wwwroot", "index.html");
         

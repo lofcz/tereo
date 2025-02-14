@@ -453,7 +453,7 @@ public interface ICommand
 
 public class ReverseCommand : ICommand
 {
-    private readonly ICommand originalCommand;
+    readonly ICommand originalCommand;
 
     public ReverseCommand(ICommand command)
     {
@@ -643,10 +643,10 @@ public class CreateResult<T> : ICrudResult where T : class
 public class DataOrException<T>
 {
     [MemberNotNullWhen(false, nameof(Exception))]
-    private bool DataIsNotNull => Data is not null;
+    bool DataIsNotNull => Data is not null;
 
     [MemberNotNullWhen(false, nameof(Data))]
-    private bool ExceptionIsNotNull => Exception is not null;
+    bool ExceptionIsNotNull => Exception is not null;
 
     public T? Data { get; set; }
     public Exception? Exception { get; set; }
@@ -730,4 +730,26 @@ public enum NativeCommands
 {
     Unknown,
     SetTextareaHeight
+}
+
+public class BootDataProject
+{
+    public DateTime LastRan { get; set; }
+    public string Path { get; set; }
+    public string Sln { get; set; }
+    public string Name { get; set; }
+    public string Id { get; set; }
+    
+    [JsonIgnore]
+    public bool PathExists { get; set; }
+    [JsonIgnore]
+    public bool SlnExists { get; set; }
+    [JsonIgnore] 
+    public bool IsVisible { get; set; } = true;
+    public bool IsValid => PathExists && SlnExists;
+}
+
+public class BootData
+{
+    public List<BootDataProject> Projects { get; set; } = [];
 }
