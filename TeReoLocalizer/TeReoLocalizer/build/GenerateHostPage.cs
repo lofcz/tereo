@@ -29,7 +29,7 @@ public class GenerateHostPage : Microsoft.Build.Utilities.Task
             string template = File.ReadAllText(templatePath);
             
             template = template.Replace("{ENTROPY}", $"_{Entropy}");
-            template = $"<!-- this is a generated file, do not modify manually. Changes will be lost.--!>\n{template}";
+            template = $"<!-- this is a generated file, do not modify manually. Changes will be lost.-->\n{template}";
             
             return template;
         }
