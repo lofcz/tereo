@@ -47,5 +47,8 @@ echo.
 echo Final ZIP location:
 echo [93m%cleanPath%[0m
 echo.
-echo Press any key to close this window...
-pause >nul
+
+if not defined AUTOMATION_MODE (
+    echo Press any key to close this window...
+    pause >nul
+)

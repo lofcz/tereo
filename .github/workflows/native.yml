@@ -1,0 +1,38 @@
+name: Build Native Application
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Setup Windows SDK
+      uses: microsoft/setup-msbuild@v1.3.1
+        
+    - name: Install MAUI Workload
+      run: dotnet workload install maui
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Run publish script
+      shell: cmd
+      working-directory: ./TeReoLocalizer/TeReoLocalizer
+      run: |
+        set "AUTOMATION_MODE=1"
+        call publish.bat
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: TeReoLocalizer
+        path: ./TeReoLocalizer/TeReoLocalizer/bin/Release/net8.0-windows10.0.19041.0/win10-x64/dist/TeReoLocalizer.zip
