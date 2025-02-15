@@ -34,18 +34,25 @@ REM Create shortcut
 powershell -Command "$WS = New-Object -ComObject WScript.Shell; $SC = $WS.CreateShortcut('%tempDir%\TeReoLocalizer.lnk'); $SC.TargetPath = '%tempDir%\TeReoLocalizer\TeReoLocalizer.exe'; $SC.Save()"
 
 cls
-echo Creating ZIP file...
-powershell -Command "Compress-Archive -Path '%tempDir%\*' -DestinationPath '%distPath%\TeReoLocalizer.zip' -Force"
+
+if defined AUTOMATION_MODE (
+    echo Copying files to dist...
+    xcopy "%tempDir%\*" "%distPath%\" /s /y /i
+) else (
+    echo Creating ZIP file...
+    powershell -Command "Compress-Archive -Path '%tempDir%\*' -DestinationPath '%distPath%\TeReoLocalizer.zip' -Force"
+    
+    REM Get clean path
+    for /f "delims=" %%i in ('powershell -Command "(Resolve-Path '%distPath%\TeReoLocalizer.zip').Path"') do set "cleanPath=%%i"
+    
+    echo.
+    echo Final ZIP location:
+    echo [93m%cleanPath%[0m
+)
 
 REM Clean up
 rd /s /q "%tempDir%"
 
-REM Get clean path
-for /f "delims=" %%i in ('powershell -Command "(Resolve-Path '%distPath%\TeReoLocalizer.zip').Path"') do set "cleanPath=%%i"
-
-echo.
-echo Final ZIP location:
-echo [93m%cleanPath%[0m
 echo.
 
 if not defined AUTOMATION_MODE (
