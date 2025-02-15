@@ -36,7 +36,7 @@ public partial class App : MauiWinUIApplication
 			{
 				if (arg.StartsWith("--appType="))
 				{
-					appType = arg.Substring("--appType=".Length);
+					appType = arg["--appType=".Length..];
 				}
 			}
 		}

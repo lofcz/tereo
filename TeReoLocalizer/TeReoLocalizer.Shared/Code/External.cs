@@ -341,7 +341,7 @@ public class TweakItem
 
 public class TweakConfig
 {
-    public List<TweakItem> Items { get; set; } = new List<TweakItem>();
+    public List<TweakItem> Items { get; set; } = [];
 }
 
 public class Ref<T>
@@ -763,9 +763,9 @@ public class ValidatorConfig
     public static readonly List<Validator> ValidationsEmail = [Validator.Required, Validator.Email];
     public static readonly List<Validator> ValidationsRequiredId = [Validator.RequiredId];
     public static readonly List<Validator> ValidationsPassword = [Validator.Password];
-    public static readonly List<Validator> ValidationsPhone = new List<Validator> { Validator.Phone };
-    public static readonly List<Validator> ValidationsRequiredFullName = new List<Validator> { Validator.Required, Validator.FullName };
-    public static readonly List<Validator> ValidationsRequiredBirthNumber = new List<Validator> { Validator.Required, Validator.BirthNumber };
+    public static readonly List<Validator> ValidationsPhone = [Validator.Phone];
+    public static readonly List<Validator> ValidationsRequiredFullName = [Validator.Required, Validator.FullName];
+    public static readonly List<Validator> ValidationsRequiredBirthNumber = [Validator.Required, Validator.BirthNumber];
     
     // pre-baked configs
     public static readonly ValidatorConfig None = new ValidatorConfig(ValidationsNone);

@@ -115,7 +115,7 @@ public static class CsWorkspace
         {
             string? oldText = $"Reo.{_oldSuffix}";
             string? newText = $"Reo.{_newSuffix}";
-            List<InterpolatedStringContentSyntax>? newContents = new List<InterpolatedStringContentSyntax>();
+            List<InterpolatedStringContentSyntax>? newContents = [];
             bool changed = false;
 
             foreach (InterpolatedStringContentSyntax? content in node.Contents)

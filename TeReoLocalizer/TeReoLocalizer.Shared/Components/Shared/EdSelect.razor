@@ -360,7 +360,7 @@
     {
         if (!Multiple && value is TValue tVal)
         {
-            Values ??= new ConvertibleList<TValue?>();
+            Values ??= [];
             Values.Clear();
             Values.Add(tVal);
             await ValuesChanged.InvokeAsync(Values);
@@ -374,7 +374,7 @@
         }
         else if (Multiple && value is IEnumerable<TValue> tValList)
         {
-            Values ??= new ConvertibleList<TValue?>();
+            Values ??= [];
             Values.Clear();
             Values.AddRange(tValList);
             await ValuesChanged.InvokeAsync(Values);
@@ -463,7 +463,7 @@
 
         if (values is null)
         {
-            values = new ConvertibleList<TValue?>();
+            values = [];
             values.AddJsonElement(value, false);
 
             if (EnableNewOption && values.Count is 0)
@@ -569,7 +569,7 @@
     {
         if (FetchedOptions is IEnumerable<ISelectOption> tSelectOptions)
         {
-            Values ??= new ConvertibleList<TValue?>();
+            Values ??= [];
             Values.Clear();
                 
             foreach (ISelectOption opt in tSelectOptions)
@@ -589,7 +589,7 @@
     
     async Task UpdateValueInternalDropdown(ISelectOption option)
     {
-        Values ??= new ConvertibleList<TValue?>();
+        Values ??= [];
         Values.Clear();
         
         if (FetchedOptions is IEnumerable<ISelectOption> tSelectOptions)

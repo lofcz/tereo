@@ -45,10 +45,10 @@ public class StringEnum
     #region Instance implementation
 
     readonly Type _enumType;
-    static readonly ConcurrentDictionary<Enum, string?> StringValues = new();
-    static readonly ConcurrentDictionary<Enum, ConcurrentDictionary<string, string?>> StringValuesWithKeys = new();
-    static readonly ConcurrentDictionary<Enum, object?> TypeValues = new();
-    static readonly ConcurrentDictionary<Enum, ConcurrentDictionary<string, object?>> TypeValuesWithKeys = new();
+    static readonly ConcurrentDictionary<Enum, string?> StringValues = new ConcurrentDictionary<Enum, string?>();
+    static readonly ConcurrentDictionary<Enum, ConcurrentDictionary<string, string?>> StringValuesWithKeys = new ConcurrentDictionary<Enum, ConcurrentDictionary<string, string?>>();
+    static readonly ConcurrentDictionary<Enum, object?> TypeValues = new ConcurrentDictionary<Enum, object?>();
+    static readonly ConcurrentDictionary<Enum, ConcurrentDictionary<string, object?>> TypeValuesWithKeys = new ConcurrentDictionary<Enum, ConcurrentDictionary<string, object?>>();
     
     public StringEnum(Type enumType)
     {

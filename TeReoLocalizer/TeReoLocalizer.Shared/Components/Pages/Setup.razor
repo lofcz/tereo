@@ -60,6 +60,27 @@
         Directory.CreateDirectory(Path.Join(project.Path, "TeReo"));
         await File.WriteAllTextAsync(Path.Join(project.Path, "TeReo", "project.json"), reoProject.ToJson(true));
         await File.WriteAllTextAsync(Path.Join(project.Path, "TeReo", "lang_CS.json"), "{}");
+
+        if (GitService.IsRepository(project.Path, out string? rootPath))
+        {
+            string relativePath = Path.GetRelativePath(rootPath, project.Path);
+            string content = $"{relativePath}/TeReo/userSettings.json";
+            
+            if (!File.Exists(Path.Join(rootPath, ".gitignore")))
+            {
+                await File.WriteAllTextAsync(Path.Join(rootPath, ".gitignore"), content);
+            }
+            else
+            {
+                string gitignoreContent = await File.ReadAllTextAsync(Path.Join(rootPath, ".gitignore"));
+
+                if (!gitignoreContent.Contains(content))
+                {
+                    await File.AppendAllTextAsync(Path.Join(rootPath, ".gitignore"), content);   
+                }
+            }
+        }
+        
         Nm.NavigateTo("/localize");
     }
 
@@ -82,6 +103,11 @@
 
 <h3>Instalace do existujícího projektu</h3>          
 <p>Reo do projektu <code>@(project.Name)</code> vloží několik souborů pro nastavení lokalizace. Potvrďte operaci.</p>
+
+@if (project.IsGitRepository)
+{
+    <p>Projekt detekován jako Git repozitář. <code>.gitignore</code> bude rozšířen.</p>    
+}
 
 <EdButton OnClick="Confirm">Potvrdit</EdButton>
 <EdButton Design="ButtonDesigns.Danger" OnClick="Cancel">Zpět</EdButton>

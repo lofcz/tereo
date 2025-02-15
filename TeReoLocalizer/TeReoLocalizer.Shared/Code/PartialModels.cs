@@ -762,6 +762,7 @@ public class BootDataProject
     public string Id { get; set; }
     public bool PathExists => File.Exists(Path);
     public bool CsprojExists => File.Exists(Csproj);
+    public bool IsGitRepository => GitService.IsRepository(Path, out string? _);
     [JsonIgnore] 
     public bool IsVisible { get; set; } = true;
     public bool IsValid => PathExists && CsprojExists;
