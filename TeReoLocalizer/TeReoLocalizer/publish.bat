@@ -43,6 +43,7 @@ if defined AUTOMATION_MODE (
     xcopy "%tempDir%\*" "%distPath%\" /s /y /i
 ) else (
     echo Creating ZIP file...
+    REM Create ZIP only for local execution
     powershell -Command "Compress-Archive -Path '%tempDir%\*' -DestinationPath '%distPath%\TeReoLocalizer.zip' -Force"
     
     REM Get clean path
