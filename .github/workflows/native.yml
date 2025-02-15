@@ -20,8 +20,13 @@ jobs:
         
     - name: Install MAUI Workload
       run: |
-        dotnet workload install maui --ignore-failed-sources --skip-manifest-update
-      
+        dotnet workload install maui-windows --ignore-failed-sources --skip-manifest-update
+    
+    - name: Restore workloads
+      working-directory: ./TeReoLocalizer
+      run: |
+        dotnet workload restore
+   
     - name: Restore dependencies
       working-directory: ./TeReoLocalizer
       run: dotnet restore TeReoLocalizer.sln
