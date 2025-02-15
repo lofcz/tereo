@@ -1,4 +1,5 @@
 @page "/setup"
+@using System.Xml
 @using NativeFileDialogCore
 @using TeReoLocalizer.Annotations
 @using TeReoLocalizer.Shared.Code
@@ -30,8 +31,32 @@
         {
             return;
         }
+
+        if (!File.Exists(project.Csproj))
+        {
+            return;
+        }
+
+        string? rootNamespace = null;
+
+        try
+        {
+            // csproj might be malformed, but we can steamroll it
+            XmlDocument doc = new XmlDocument();
+            doc.Load(project.Csproj);
+            XmlNode? node = doc.SelectSingleNode("//RootNamespace");
+            rootNamespace = node?.InnerText;
+        }
+        catch (Exception e)
+        {
+            
+        }
+        
+        rootNamespace ??= Path.GetFileNameWithoutExtension(project.Csproj);
         
         Project reoProject = Project.Create(Languages.CS);
+        reoProject.Settings.Codegen.Namespace = rootNamespace;
+        
         Directory.CreateDirectory(Path.Join(project.Path, "TeReo"));
         await File.WriteAllTextAsync(Path.Join(project.Path, "TeReo", "project.json"), reoProject.ToJson(true));
         await File.WriteAllTextAsync(Path.Join(project.Path, "TeReo", "lang_CS.json"), "{}");

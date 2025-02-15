@@ -10,7 +10,7 @@ public partial class Localize
 {
     ProjectCtx GetCtx()
     {
-        return new ProjectCtx(Project, Project.SelectedDecl, Settings, LangsData, Js, this);
+        return new ProjectCtx(Project, Project.SelectedDecl, Settings, LangsData, Js, this, openProject ?? new BootDataProject());
     }
 
     public async Task<DataOrException<bool>> Execute(ICommand cmd)

@@ -12,7 +12,11 @@ public partial class App : Application
 	{
 		Window window = new Window(new MainPage())
 		{
-			Title = "Te Reo .NET"
+			Title = "Te Reo",
+			Width = 780,
+			Height = 768,
+			MinimumWidth = 780,
+			MinimumHeight = 768
 		};
 		
 		return window;

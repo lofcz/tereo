@@ -30,7 +30,7 @@ public class MauiHostingEnvironment : IWebHostEnvironment
 
 public class Program
 {
-    public static InvertedIndex Index;
+    public static InvertedIndex? Index;
     public static IMemoryCache Cache;
     public static IWebHostEnvironment Env;
     
@@ -97,11 +97,6 @@ public class Program
     public static async Task Main(string[] args)
     {
         await InitService.Init();
-
-        if (Consts.Cfg.Experimental)
-        {
-            Index = new InvertedIndex($"{Consts.Cfg.Repository}/.reoindex");   
-        }
         
         Option<string> appTypeOption = new Option<string>(
             name: "--appType",
@@ -157,10 +152,15 @@ public class Program
         IWebHostEnvironment env = app.Services.GetRequiredService<IWebHostEnvironment>();
         Cache = cache;
         Env = env;
-
+        
+        if (Consts.Cfg.Experimental)
+        {
+            // Index = new InvertedIndex($"{Consts.Cfg.Repository}/.reoindex");   
+        }
+        
         lifetime.ApplicationStopping.Register(() =>
         {
-            Index.Dispose();
+            Index?.Dispose();
 
             if (InitService.Workspace is not null)
             {

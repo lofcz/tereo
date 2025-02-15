@@ -21,13 +21,6 @@ public static class BootService
     {
         BootData data = await GetBootData();
         BootDataProject? project = data.Projects.FirstOrDefault(x => x.Id == id);
-
-        if (project is not null)
-        {
-            project.SlnExists = File.Exists(project.Sln);
-            project.PathExists = Directory.Exists(project.Path);
-        }
-        
         return project;
     }
     
@@ -74,10 +67,10 @@ public static class BootService
         return parentPath;
     }
     
-    public static async Task<BootDataProject> LogProjectOpened(string slnPath)
+    public static async Task<BootDataProject> LogProjectOpened(string csprojPath)
     {
         BootData data = await GetBootData();
-        BootDataProject? existingProject = data.Projects.FirstOrDefault(x => x.Sln == slnPath);
+        BootDataProject? existingProject = data.Projects.FirstOrDefault(x => x.Csproj == csprojPath);
 
         if (existingProject is not null)
         {
@@ -89,12 +82,10 @@ public static class BootService
         BootDataProject newProject = new BootDataProject
         {
             LastRan = DateTime.Now,
-            Sln = slnPath,
-            Path = MoveUp(slnPath),
-            PathExists = true,
-            SlnExists = true,
+            Csproj = csprojPath,
+            Path = MoveUp(csprojPath),
             Id = General.IIID(),
-            Name = Path.GetFileName(slnPath)
+            Name = Path.GetFileName(csprojPath)
         };
         
         data.Projects.Add(newProject);

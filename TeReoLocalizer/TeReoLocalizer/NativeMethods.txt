@@ -1,1 +1,4 @@
 Windows.Win32.UI.WindowsAndMessaging.ShowWindow
+Windows.Win32.UI.WindowsAndMessaging.GetSystemMetrics
+Windows.Win32.UI.WindowsAndMessaging.GetWindowRect
+Windows.Win32.UI.WindowsAndMessaging.SetWindowPos

@@ -29,35 +29,44 @@
 
     async Task OpenProject()
     {
-        DialogResult result = Dialog.FileOpenEx("sln", dialogTitle: "Te Reo");
+        DialogResult result = Dialog.FileOpenEx("csproj", dialogTitle: "Te Reo");
 
         if (!result.IsOk || result.Path is null)
         {
             return;
         }
 
-        string slnPath = result.Path;
+        string csprojPath = result.Path;
 
-        if (Path.GetExtension(slnPath) is not ".sln")
+        if (Path.GetExtension(csprojPath) is not ".csproj")
         {
-            await Js.Toast(ToastTypes.Error, "Zvolený soubor musí mít koncovku .sln");
+            await Js.Toast(ToastTypes.Error, "Zvolený soubor musí mít koncovku .csproj");
             return;
         }
 
-        BootDataProject project = await BootService.LogProjectOpened(slnPath);
-        Nm.NavigateTo($"/login/login?projectId={project.Id}", true);
+        await NavigateToLogin(csprojPath);
     }
 
     async Task OpenKnownProject(BootDataProject prj)
     {
-        if (!File.Exists(prj.Sln))
+        if (!File.Exists(prj.Csproj))
         {
             await Js.Toast(ToastTypes.Error, "Projekt neexsituje na disku");
             return;
         }
-        
-        BootDataProject project = await BootService.LogProjectOpened(prj.Sln);
+
+        await NavigateToLogin(prj.Csproj);
+    }
+
+    async Task NavigateToLogin(string path)
+    {
+        BootDataProject project = await BootService.LogProjectOpened(path);
         Nm.NavigateTo($"/login/login?projectId={project.Id}", true);
+
+        if (SharedProxy.IsMaui && SharedProxy.Maximize is not null)
+        {
+            SharedProxy.Maximize.Invoke();
+        }
     }
 
     void ApplySearch()
@@ -122,7 +131,7 @@
             <button @onclick="OpenProject" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Otevřít projekt</button>
         </div>
         <div style="display: flex; justify-content: center;">
-            <div class="form-text">Vyberte <code>.sln</code> projekt, který chcete otevřít.</div>
+            <div class="form-text">Vyberte <code>.csproj</code> projekt, který chcete otevřít.</div>
         </div>
     }
     else
@@ -154,7 +163,7 @@
                         <div class="card-body">
                             <button @onclick="(() => DeleteProject(prj))" @onclick:stopPropagation="true" style="position: absolute; right: 12px; top: 10px;" class="btn-close"></button>
                             <div class="project-name">@prj.Name</div>
-                            <div class="project-path">@prj.Sln</div>
+                            <div class="project-path">@prj.Csproj</div>
                         </div>
                     </div>
                 }   

@@ -68,9 +68,9 @@ public class CmdRenameKey : BaseCommand
             await Owner.SaveProject();
         }
 
-        if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
+        if (BootedProject.CsprojExists)
         {
-            RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, OldKeyName, NewKeyName, RenameProgress);
+            RenameResult renameResult = await SymbolRenamer.RenameSymbol(BootedProject.Path, OldKeyName, NewKeyName, RenameProgress);
 
             if (renameResult.TotalReplacements > 0)
             {
@@ -105,9 +105,9 @@ public class CmdRenameKey : BaseCommand
             await Owner.SaveProject();
         }
         
-        if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
+        if (BootedProject.CsprojExists)
         {
-            RenameResult renameResult = await SymbolRenamer.RenameSymbol(Consts.Cfg.Repository, NewKeyName, OldKeyName, RenameProgress);
+            RenameResult renameResult = await SymbolRenamer.RenameSymbol(BootedProject.Path, NewKeyName, OldKeyName, RenameProgress);
 
             if (renameResult.TotalReplacements > 0)
             {

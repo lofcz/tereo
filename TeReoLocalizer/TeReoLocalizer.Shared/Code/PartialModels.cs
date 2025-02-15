@@ -448,8 +448,9 @@ public class ProjectCtx
     public IJSRuntime Js { get; set; }
     public Localize Owner { get; set; }
     public LangsData LangsData { get; set; }
+    public BootDataProject BootProject { get; set; }
 
-    public ProjectCtx(Project project, Decl decl, UserSettings settings, LangsData langsData, IJSRuntime js, Localize owner)
+    public ProjectCtx(Project project, Decl decl, UserSettings settings, LangsData langsData, IJSRuntime js, Localize owner, BootDataProject bootDataProject)
     {
         Project = project;
         Decl = decl;
@@ -457,6 +458,7 @@ public class ProjectCtx
         Js = js;
         Owner = owner;
         LangsData = langsData;
+        BootProject = bootDataProject;
     }
 }
 
@@ -520,6 +522,7 @@ public abstract class BaseCommand : ICommand
     public IJSRuntime Js => Ctx.Js;
     public Localize Owner => Ctx.Owner;
     public LangsData LangsData => Ctx.LangsData;
+    public BootDataProject BootedProject => Ctx.BootProject;
     
     /// <summary>
     /// Performs an action.
@@ -754,17 +757,14 @@ public class BootDataProject
 {
     public DateTime LastRan { get; set; }
     public string Path { get; set; }
-    public string Sln { get; set; }
+    public string Csproj { get; set; }
     public string Name { get; set; }
     public string Id { get; set; }
-    
-    [JsonIgnore]
-    public bool PathExists { get; set; }
-    [JsonIgnore]
-    public bool SlnExists { get; set; }
+    public bool PathExists => File.Exists(Path);
+    public bool CsprojExists => File.Exists(Csproj);
     [JsonIgnore] 
     public bool IsVisible { get; set; } = true;
-    public bool IsValid => PathExists && SlnExists;
+    public bool IsValid => PathExists && CsprojExists;
 }
 
 public class BootData

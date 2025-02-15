@@ -8,8 +8,6 @@ public class Config
 {
     [JsonIgnore]
     public bool ConfigReadOk { get; set; }
-    public string? Repository { get; set; }
-    public string? Sln { get; set; }
     public string? DeepL { get; set; }
     public bool Experimental { get; set; }
 }
@@ -28,11 +26,6 @@ public static class Consts
 
     public static void UpdateConfigFromShared()
     {
-        if (SharedProxy.Repository is not null)
-        {
-            Cfg.Repository = SharedProxy.Repository;
-        }
-
         if (SharedProxy.IsMaui)
         {
             AppType = AppType.Native;

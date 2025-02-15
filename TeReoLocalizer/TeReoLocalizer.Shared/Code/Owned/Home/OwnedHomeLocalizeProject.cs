@@ -57,25 +57,10 @@ public partial class Localize
     {
         ObservedUser data = User.Data();
         
-        if (!Consts.Cfg.Repository.IsNullOrWhiteSpace())
-        {
-            basePath = Consts.Cfg.Repository;
-        }
-
         if (!data.ProjectId.IsNullOrWhiteSpace())
         {
             openProject = await BootService.GetProject(data.ProjectId);
             
-            if (openProject is not null)
-            {
-                basePath = openProject.Path;
-            }
-        }
-
-        if (Id is not null)
-        {
-            openProject = await BootService.GetProject(Id);
-
             if (openProject is not null)
             {
                 basePath = openProject.Path;
