@@ -19,10 +19,12 @@ jobs:
       uses: microsoft/setup-msbuild@v1.3.1
         
     - name: Install MAUI Workload
-      run: dotnet workload install maui
+      run: |
+        dotnet workload install maui-windows --ignore-failed-sources --skip-manifest-update
       
     - name: Restore dependencies
-      run: dotnet restore
+      working-directory: ./TeReoLocalizer
+      run: dotnet restore TeReoLocalizer.sln
       
     - name: Run publish script
       shell: cmd
