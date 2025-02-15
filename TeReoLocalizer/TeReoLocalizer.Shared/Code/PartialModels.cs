@@ -421,6 +421,11 @@ public enum TranslationModes
     [StringValue("Zneplatnění")] 
     Invalidate
 }
+
+public class UserSettingsApiKeys
+{
+    public string DeepL { get; set; }
+}
     
 public class UserSettings
 {
@@ -434,6 +439,7 @@ public class UserSettings
     public bool AutoSave { get; set; } = true;
     public bool DisableTips { get; set; }
     public bool KeySearchAllGroups { get; set; }
+    public UserSettingsApiKeys ApiKeys { get; set; } = new UserSettingsApiKeys();
         
     // dynamic
     [JsonIgnore]

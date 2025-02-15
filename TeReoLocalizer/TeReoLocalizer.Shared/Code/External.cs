@@ -1241,7 +1241,8 @@ public enum InputTypes
     Password,
     Search,
     Date,
-    File
+    File,
+    SmartPassword
 }
 
 public enum HintFetchUrls

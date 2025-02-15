@@ -24,9 +24,9 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
 
     public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
-        if (Consts.Cfg.DeepL.IsNullOrWhiteSpace())
+        if (Settings.ApiKeys.DeepL.IsNullOrWhiteSpace())
         {
-            return new DataOrException<bool>(new Exception("DeepL API klíč není nastaven v appCfg.json5"));
+            return new DataOrException<bool>(new Exception("Pro generování překladů je potřeba nastavit DeepL API klíč v Nastavení (dolní lišta)."));
         }
         
         Owner.Translated = 0;
@@ -35,7 +35,7 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
 
         if (firstTime)
         {
-            Translator translator = new Translator(Consts.Cfg.DeepL);
+            Translator translator = new Translator(Settings.ApiKeys.DeepL);
 
             foreach (KeyValuePair<string, Key> keys in Ctx.Decl.Keys.Where(static x => x.Value.AutoTranslatable))
             {
@@ -71,6 +71,11 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
                         }
                     }
                 }
+            }
+
+            if (Owner.ToTranslate.Count is 0)
+            {
+                return new DataOrException<bool>(new Exception("Není potřeba doplnit žádné překlady."));
             }
 
             TextTranslateOptions opts = new TextTranslateOptions

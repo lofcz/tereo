@@ -133,7 +133,8 @@
         {
             id = Id,
             net = JsRef,
-            hintsEnabled = EnableHints
+            hintsEnabled = EnableHints,
+            type = (int)Type
         });
     }
     
@@ -362,6 +363,6 @@
 
 <InternalEdInputRoot Owner="this">
     <div style="position: relative;">
-        <input attr-instid="@Id" disabled="@Disabled" min="@MinValue" max="@MaxValue" autocomplete="@(Autocomplete ? "on" : AutocompleteHtmlAttrValue)" @bind:set="OnInput" @bind:get="rawVal" @bind:event="oninput" type="@Type" class="form-control @InputClass @(EnableHints ? "form-control-autocomplete hints-form-control" : string.Empty)" id="@Id" placeholder="@Placeholder" style="@InputStyle" @onblur="OnInputChange"/>
+        <input attr-instid="@Id" disabled="@Disabled" min="@MinValue" max="@MaxValue" autocomplete="@(Autocomplete ? "on" : AutocompleteHtmlAttrValue)" @bind:set="OnInput" @bind:get="rawVal" @bind:event="oninput" type="@(Type is InputTypes.SmartPassword ? "password" : Type.ToString())" class="form-control @InputClass @(EnableHints ? "form-control-autocomplete hints-form-control" : string.Empty)" id="@Id" placeholder="@Placeholder" style="@InputStyle" @onblur="OnInputChange"/>
     </div>
 </InternalEdInputRoot>

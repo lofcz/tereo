@@ -1,13 +1,26 @@
+enum InputTypes
+{
+    Text,
+    Number,
+    Email,
+    Password,
+    Search,
+    Date,
+    File,
+    SmartPassword
+}
 
 export function Init(pars = {
     id: "",
-    net: {}
+    net: {},
+    type: InputTypes.Text
 }) {
     window[`inputApi_${pars.id}`] = {
+        el: document.getElementById(pars.id),
         net: pars.net,
         abortController: new AbortController(),
         init: () => {
-           var inputEl = document.getElementById(pars.id);
+           const inputEl = window[`inputApi_${pars.id}`].el;
            
            if (inputEl) {
                inputEl.addEventListener("keydown", (evt) => {
@@ -24,6 +37,18 @@ export function Init(pars = {
         }
     }
 
+    if (pars.type === InputTypes.SmartPassword) {
+        if (window[`inputApi_${pars.id}`].el) {
+            window[`inputApi_${pars.id}`].el.addEventListener("focus", () => {
+                window[`inputApi_${pars.id}`].el.type = "text";
+            }, { signal: window[`inputApi_${pars.id}`].abortController.signal });
+
+            window[`inputApi_${pars.id}`].el.addEventListener("blur", () => {
+                window[`inputApi_${pars.id}`].el.type = "password";
+            }, { signal: window[`inputApi_${pars.id}`].abortController.signal });
+        }
+    }
+    
     window[`inputApi_${pars.id}`].init();
 }
 

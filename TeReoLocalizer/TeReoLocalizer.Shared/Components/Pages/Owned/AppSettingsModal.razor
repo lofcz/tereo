@@ -65,31 +65,59 @@
     {
         await BlazoredModal.CloseAsync();
     }
+
+    Task UpdateState(FormUpdateArgs cmp)
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
 }
 
 <EdModal Size="ModalSizes.Large" Title="Nastavení">
-    
+
     <div style="margin-bottom: 1rem; width: 100%;" class="d-flex align-items-start">
         <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-            <button class="nav-link active" id="v-pills-tab-preferences" data-bs-toggle="pill" data-bs-target="#v-pills-preferences" type="button" role="tab">Osobní</button>
-            <button class="nav-link" id="v-pills-tab-settings" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab">Projekt</button>
+            <button class="nav-link active" id="v-pills-tab-preferences" data-bs-toggle="pill"
+                    data-bs-target="#v-pills-preferences" type="button" role="tab">Osobní
+            </button>
+            <button class="nav-link" id="v-pills-tab-settings" data-bs-toggle="pill" data-bs-target="#v-pills-settings"
+                    type="button" role="tab">Projekt
+            </button>
         </div>
-        
+
         <div class="tab-content" id="v-pills-tabContent" style="width: 100%;">
             <div class="tab-pane show active" id="v-pills-preferences" role="tabpanel">
-                <EdForm OnSubmit="SubmitPreferences">
-                    <EdCheckbox Label="Zobrazit tipy vysvětlující funkce v aplikaci" @bind-Value="showTips" />
+                <EdForm OnUpdate="UpdateState" OnSubmit="SubmitPreferences">
+
+                    @if (showTips)
+                    {
+                        <div class="alert alert-info" role="alert">Osobní nastavení jsou vázána na projekt, ale nejsou sdílena se zbytkem týmu.</div>
+                    }
+
+                    <div>API klíče</div>
+                    <hr/>
+                    <EdInput Type="InputTypes.SmartPassword" Label="DeepL" @bind-Value="settings.ApiKeys.DeepL"/>
+
+                    <div>Chování aplikace</div>
+                    <hr/>
+                    <EdCheckbox Label="Zobrazit tipy vysvětlující funkce v aplikaci" @bind-Value="showTips"/>
                     <EdButtonsContainer>
                         <EdButton Type="ButtonTypes.Submit">Uložit</EdButton>
                         <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
                     </EdButtonsContainer>
-                    <EdFormFeedback />
+                    <EdFormFeedback/>
                 </EdForm>
             </div>
             <div class="tab-pane" id="v-pills-settings" role="tabpanel">
                 <EdForm OnSubmit="SubmitProject">
-                    <EdInput Label="Jmenný prostor" @bind-Value="projectSettings.Codegen.Namespace" />
-                    <EdSelect Type="SelectTypes.Virtual" Label="Primární jazyk" Fetch="languageOptions" @bind-Value="projectSettings.PrimaryLanguage" />
+                    
+                    @if (showTips)
+                    {
+                        <div class="alert alert-info" role="alert">Nastavení projektu jsou sdílena se zbytkem týmu.</div>   
+                    }
+
+                    <EdInput Label="Jmenný prostor" @bind-Value="projectSettings.Codegen.Namespace"/>
+                    <EdSelect Type="SelectTypes.Virtual" Label="Primární jazyk" Fetch="languageOptions" @bind-Value="projectSettings.PrimaryLanguage"/>
                     <EdTextarea Type="TextareaTypes.NativeLargeText" @bind-Value="projectSettings.TranslationProviders.DeepL.Context" Label="Kontext DeepL"/>
                     <EdButtonsContainer>
                         <EdButton Type="ButtonTypes.Submit">Uložit</EdButton>
