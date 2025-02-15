@@ -188,6 +188,7 @@
             <div style="display: flex; gap: 15px;">
 
                 <div>
+                    <button @onclick="BackToMenu" title="Zpět na výběr projektu" class="btn btn-secondary btn-sm">←</button>
                     <button @onclick="ToggleLangsSelection" style="white-space: nowrap;" class="btn btn-secondary btn-sm">Zobrazit: @(visible.Count is 0 ? "žádné jazyky" : visible.Count == LangsData.Langs.Count ? "všechny jazyky" : $"{visible.Select(x => x.Key.ToString()).ToCsv(", ")}")</button>
 
                     @if (showLangsSelection)
@@ -195,24 +196,28 @@
                         <div style="display: flex; gap: 15px; margin-bottom: 10px; margin-top: 10px;">
                             @foreach (KeyValuePair<Languages, LangData> local in LangsData.Langs.OrderBy(y => y.Key.ToString(), StringComparer.Ordinal))
                             {
-                                <div class="form-check" @onclick="@(async () => { local.Value.Visible = !local.Value.Visible; await AfterLanguageToggle(local, local.Value.Visible); })">
+                                <div class="form-check" @onclick="@(async () =>
+                                                                  {
+                                                                      local.Value.Visible = !local.Value.Visible;
+                                                                      await AfterLanguageToggle(local, local.Value.Visible);
+                                                                  })">
                                     <input style="cursor: pointer;" @onclick:stopPropagation="true" @bind:set="@(async (value) => await AfterLanguageToggle(local, value))" @bind:get="local.Value.Visible" class="form-check-input" type="checkbox" id="@($"langShow_{local.Key}")"/>
                                     <label style="cursor: pointer; user-select: none;" class="form-check-label" for="@($"langShow_{local.Key}")">@local.Key</label>
                                 </div>
                             }
                         </div>
-                        
+
                         <div style="margin-bottom: 10px;">
                             <div style="white-space: nowrap;" class="link-light" @onclick="ToggleLangsAdd">Nastavení jazyků</div>
                         </div>
-                        
+
                         if (showAddLangs)
                         {
                             <div style="display: flex; gap: 10px; align-items: flex-start;">
                                 <input class="form-control form-control-sm" @bind="langCode" placeholder="Kód jazyka"/>
                                 <button style="white-space: nowrap;" class="btn btn-secondary btn-sm" @onclick="AddLanguage">Přidat jazyk</button>
                                 <button style="white-space: nowrap;" class="btn btn-danger btn-sm" @onclick="DeleteLanguage">Odebrat jazyk</button>
-                            </div>   
+                            </div>
                         }
                     }
                 </div>

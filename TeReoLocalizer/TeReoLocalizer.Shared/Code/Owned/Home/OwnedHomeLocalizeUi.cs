@@ -13,6 +13,15 @@ public partial class Localize
         return new ProjectCtx(Project, Project.SelectedDecl, Settings, LangsData, Js, this, openProject ?? new BootDataProject());
     }
 
+    void BackToMenu()
+    {
+        Md.ShowConfirmActionModal("Zpět na výběr projektu", "Potvrďte návrat na výběr projektu. Historie lokálních změn bude ztracena.", () =>
+        {
+            Nm.NavigateTo("/");
+            return Task.CompletedTask;
+        });
+    }
+    
     public async Task<DataOrException<bool>> Execute(ICommand cmd)
     {
         cmd.Ctx = GetCtx();
