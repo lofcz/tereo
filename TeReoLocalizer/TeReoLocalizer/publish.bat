@@ -36,7 +36,10 @@ powershell -Command "$WS = New-Object -ComObject WScript.Shell; $SC = $WS.Create
 cls
 
 if defined AUTOMATION_MODE (
-    echo Copying files to dist...
+    echo Skipping ZIP creation for automation mode...
+    REM Copy files directly to dist folder
+    rd /s /q "%distPath%" 2>nul
+    mkdir "%distPath%"
     xcopy "%tempDir%\*" "%distPath%\" /s /y /i
 ) else (
     echo Creating ZIP file...
