@@ -19,8 +19,8 @@
     <RunAOTCompilation>false</RunAOTCompilation>
     <UseInterpreter>true</UseInterpreter>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.0.7</Version>
-    <AssemblyVersion>1.0.7</AssemblyVersion>
+    <Version>1.0.8</Version>
+    <AssemblyVersion>1.0.8</AssemblyVersion>
     <!-- Display name -->
     <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
     <!-- App Identifier -->
