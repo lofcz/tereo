@@ -19,8 +19,8 @@
     <RunAOTCompilation>false</RunAOTCompilation>
     <UseInterpreter>true</UseInterpreter>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.0.11</Version>
-    <AssemblyVersion>1.0.11</AssemblyVersion>
+    <Version>1.0.12</Version>
+    <AssemblyVersion>1.0.12</AssemblyVersion>
     <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
     <ApplicationId>com.lofcz.tereolocalizer</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
