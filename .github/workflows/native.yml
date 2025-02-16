@@ -118,15 +118,19 @@ jobs:
       id: release_notes
       shell: pwsh
       run: |
-        $previousTag = $(git describe --tags --abbrev=0 2>$null) ?? ""
-        if ($previousTag -eq "") {
-            $commits = git log --pretty=format:"- %s" --no-merges
+        $tags = $(git tag -l --sort=-v:refname)
+        
+        if ($tags) {
+            $latestTag = $tags[0]
+            Write-Host "Latest tag: $latestTag"
+            $commits = git log "$latestTag..HEAD" --pretty=format:"- %s" --no-merges
         } else {
-            $commits = git log $previousTag..HEAD --pretty=format:"- %s" --no-merges
+            Write-Host "No tags found, getting all commits"
+            $commits = git log --pretty=format:"- %s" --no-merges
         }
         
-        if (-not $commits) {
-            $commits = "No changes found."
+        if ([string]::IsNullOrWhiteSpace($commits)) {
+            $commits = "- First release"
         }
         
         $releaseNotes = "## What's Changed`n`n$commits"
