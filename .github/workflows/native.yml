@@ -36,11 +36,31 @@ jobs:
       run: |
         $projPath = "./TeReoLocalizer/TeReoLocalizer/TeReoLocalizer.csproj"
         $xml = [xml](Get-Content $projPath)
-        $currentVersion = $xml.Project.PropertyGroup.Version
         
-        if (-not $currentVersion) {
+        # Use existing version tag if available
+        $propertyGroup = $xml.Project.PropertyGroup
+        if ($propertyGroup -is [array]) {
+            $propertyGroup = $propertyGroup[0]
+        }
+        if (-not $propertyGroup) {
+            $propertyGroup = $xml.CreateElement("PropertyGroup")
+            $xml.Project.AppendChild($propertyGroup)
+        }
+        
+        # Otherwise create our own
+        $versionElement = $propertyGroup.SelectSingleNode("Version")
+        if (-not $versionElement) {
+            $versionElement = $xml.CreateElement("Version")
+            $versionElement.InnerText = "1.0.0"
+            $propertyGroup.AppendChild($versionElement)
+        }
+        
+        $currentVersion = $versionElement.InnerText
+        if ([string]::IsNullOrEmpty($currentVersion)) {
             $currentVersion = "1.0.0"
         }
+        
+        Write-Host "Current version: $currentVersion"
         
         $versionParts = $currentVersion.Split('.')
         $major = [int]$versionParts[0]
@@ -53,7 +73,9 @@ jobs:
             "patch" { $newVersion = "$major.$minor.$($patch + 1)" }
         }
         
-        $xml.Project.PropertyGroup.Version = $newVersion
+        Write-Host "New version: $newVersion"
+        
+        $versionElement.InnerText = $newVersion
         $xml.Save($projPath)
         
         echo "NEW_VERSION=$newVersion" >> $env:GITHUB_ENV
