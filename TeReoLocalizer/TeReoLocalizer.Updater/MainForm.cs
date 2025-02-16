@@ -188,19 +188,17 @@ namespace TeReoLocalizer.Updater
             try
             {
                 string logPath = Path.Combine(Path.GetTempPath(), "update_log.txt");
+                
+                string reoBootPath = Path.Combine(parentPath, "TeReoLocalizer", "reoBoot.json");
+                string reoBootContent = null;
+                if (File.Exists(reoBootPath))
+                {
+                    reoBootContent = File.ReadAllText(reoBootPath);
+                }
+                
                 using (StreamWriter log = new StreamWriter(logPath, true))
                 {
                     log.WriteLine($"\n=== Update started at {DateTime.Now} ===");
-
-                    // backup reoboot.json
-                    string reoBootPath = Path.Combine(parentPath, "reoBoot.json");
-                    string reoBootBackup = null;
-                    if (File.Exists(reoBootPath))
-                    {
-                        reoBootBackup = Path.Combine(Path.GetTempPath(), "reoBoot.json.backup");
-                        File.Copy(reoBootPath, reoBootBackup, true);
-                        log.WriteLine($"Backed up reoBoot.json to: {reoBootBackup}");
-                    }
                     
                     // Rename the running updater.exe to updater.bak
                     string currentUpdaterPath = Path.Combine(parentPath, "updater", "updater.exe");
@@ -224,6 +222,7 @@ namespace TeReoLocalizer.Updater
                     foreach (string file in Directory.GetFiles(tempPath))
                     {
                         string fileName = Path.GetFileName(file);
+                        
                         string destFile = Path.Combine(parentPath, fileName);
                         try
                         {
@@ -272,20 +271,10 @@ namespace TeReoLocalizer.Updater
                         CopyDirectoryWithLogging(dir, targetPath, true, log);
                     }
                     
-                    // restore reoboot.json
-                    if (reoBootBackup != null && File.Exists(reoBootBackup))
+                    if (reoBootContent != null)
                     {
-                        File.Copy(reoBootBackup, reoBootPath, true);
-                        log.WriteLine($"Restored reoBoot.json from backup");
-                        try
-                        {
-                            File.Delete(reoBootBackup);
-                            log.WriteLine("Deleted reoBoot.json backup");
-                        }
-                        catch (Exception ex)
-                        {
-                            log.WriteLine($"Failed to delete reoBoot.json backup: {ex.Message}");
-                        }
+                        File.WriteAllText(reoBootPath, reoBootContent);
+                        log.WriteLine("Restored reoBoot.json content");
                     }
 
                     // Create a batch file to complete the update
@@ -366,6 +355,7 @@ exit
             {
                 string fileName = Path.GetFileName(file);
                 string destFile = Path.Combine(targetDir, fileName);
+                
                 try
                 {
                     File.Copy(file, destFile, overwrite);
