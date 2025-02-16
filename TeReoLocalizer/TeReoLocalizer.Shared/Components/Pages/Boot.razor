@@ -117,7 +117,7 @@
         <img style="margin-top: auto; margin-bottom: auto; user-select: none;" ondragstart="return false;" width="64" src="favicon.svg" />
         <div style="margin-top: auto; margin-bottom: auto; user-select: none;">
             <div class="gradient-text">Te Reo Localizer</div>
-            <div class="form-text">@Project.LatestVersion / oficiální verze</div>
+            <div class="form-text">@(SharedProxy.GetAppVersion is null ? "Project.LatestVersion / oficiální verze" : SharedProxy.GetAppVersion.Invoke())</div>
         </div>
     </div>
     

@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Security.Claims;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -39,6 +40,12 @@ public static class MauiProgram
 		{
 			await InitService.Init();
 		});
+
+		SharedProxy.GetAppVersion = () =>
+		{
+			Version? version = Assembly.GetExecutingAssembly().GetName().Version;
+			return version is null ? "DEV" : $"{version.Major}.{version.Minor}.{version.Build} / oficiální verze";
+		};
 		
 		Console.WriteLine(typeof(MauiProgram).Assembly);
 		

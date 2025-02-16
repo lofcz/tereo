@@ -6,4 +6,5 @@ public static class SharedProxy
     public static string? Repository { get; set; }
     public static string? Sln { get; set; }
     public static Action? Maximize { get; set; }
+    public static Func<string>? GetAppVersion { get; set; }
 }
