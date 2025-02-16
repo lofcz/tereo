@@ -1,0 +1,107 @@
+@using System.Diagnostics
+@using Octokit
+@using TeReoLocalizer.Shared.Code
+@inherits ComponentBaseEx
+@inject IModalService Md
+@code {
+    string afterMcfLoaded = General.IIID();
+    readonly GitHubClient githubClient = new GitHubClient(new ProductHeaderValue("TeReoUpdater"));
+
+    string? versionUpdateStr;
+    bool updating;
+
+    async Task Update()
+    {
+        if (updating)
+        {
+            return;
+        }
+        
+        updating = true;
+        StateHasChanged();
+
+        if (!File.Exists("updater.exe"))
+        {
+            Md.ShowConfirmActionModal("Automatická aktualizace se nezdařila", "Aktualizační program <code>updater.exe</code> není k dispozici. Aktualizujte prosím ručně stáhnutím poslední verze zde: https://github.com/lofcz/tereo/releases", () =>
+            {
+                return Task.CompletedTask;
+            });
+
+            updating = false;
+            versionUpdateStr = null;
+            return;
+        }
+        
+        string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = "updater.exe",
+            UseShellExecute = true,
+            WorkingDirectory = baseDirectory
+        };
+
+        Process.Start(startInfo);
+        Environment.Exit(0);
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (!SharedProxy.IsMaui)
+        {
+            return;
+        }
+        
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                string? localVersionString = SharedProxy.GetAppVersion?.Invoke().Split(" ")[0];
+
+                if (localVersionString is null)
+                {
+                    return;
+                }
+
+                IReadOnlyList<Release> releases = await githubClient.Repository.Release.GetAll("lofcz", "tereo");
+                Release latestRelease = releases[0];
+
+                ReleaseAsset? asset = latestRelease.Assets.FirstOrDefault(a => a.Name.StartsWith("TeReoLocalizer-v") && a.Name.EndsWith(".zip"));
+
+                if (asset is null)
+                {
+                    return;
+                }
+                
+                string upstreamVersionStr = asset.Name.Replace("TeReoLocalizer-v", string.Empty).Replace(".zip", string.Empty);
+                
+                Version upstreamVersion = Version.Parse(upstreamVersionStr);
+                Version currentVersion = Version.Parse(localVersionString);
+
+                if (currentVersion >= upstreamVersion)
+                {
+                    return;
+                }
+
+                versionUpdateStr = $"K dispozici je aktualizace {currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}\u2192{upstreamVersion.Major}.{upstreamVersion.Minor}.{upstreamVersion.Build}. Reo se během aktualizace restartuje.";
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+                // offline or any other network-layer error, we don't care
+            }
+        });
+    }
+}
+
+@if (versionUpdateStr is not null)
+{
+    <div class="alert alert-warning" role="alert">
+        <div style="display: flex; flex-flow: wrap; justify-content: center;">
+            <div style="margin-right: 10px; margin-top: auto; margin-bottom: auto;">@((MarkupString)versionUpdateStr)</div>
+            <button style="margin-top: auto; margin-bottom: auto;" @onclick="Update" type="button" class="btn btn-warning btn-sm">Aktualizovat</button>
+        </div>
+    </div>
+}

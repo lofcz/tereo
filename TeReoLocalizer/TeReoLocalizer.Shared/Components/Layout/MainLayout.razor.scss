@@ -20,7 +20,7 @@ main {
 }
 
 [data-bs-theme="dark"] {
-    .top-row {
+    .top-row:has(.topMenuBarContainer) {
         border-bottom: 1px solid #131517;
     }
 }

@@ -42,6 +42,11 @@ public class GenerateHostPage : Microsoft.Build.Utilities.Task
     {
         string template = File.ReadAllText(templatePath);
         template = template.Replace("{ENTROPY}", $"_{Entropy}");
+        
+        #if RELEASE
+        template = template.Replace("<!--{BASE_LINK}-->", "<base href=\"/\" />");
+        #endif
+        
         template = $"<!-- this is a generated file, do not modify manually. Changes will be lost.-->\n{template}";
         return template;
     }

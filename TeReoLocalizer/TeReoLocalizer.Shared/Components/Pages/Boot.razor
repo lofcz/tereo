@@ -13,6 +13,7 @@
     string search = string.Empty;
     List<BootDataProject> visibleProjects = [];
     bool renderRecent => bootData.Projects.Count > 0;
+    bool navigatingToProject;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,6 +61,14 @@
 
     async Task NavigateToLogin(string path)
     {
+        if (navigatingToProject)
+        {
+            return;
+        }
+        
+        navigatingToProject = true;
+        StateHasChanged();
+        
         BootDataProject project = await BootService.LogProjectOpened(path);
         Nm.NavigateTo($"/login/login?projectId={project.Id}", true);
         SharedProxy.Maximize?.Invoke();
@@ -108,6 +117,12 @@
 
 @if (!ready)
 {
+    return;
+}
+
+@if (navigatingToProject)
+{
+    <div style="text-align: center; margin-top: 40px;">Projekt se načítá..</div>
     return;
 }
 
