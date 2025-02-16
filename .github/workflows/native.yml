@@ -144,23 +144,18 @@ jobs:
         if ($tags) {
             $latestTag = $tags[0]
             Write-Host "Latest tag: $latestTag"
-            $commits = (git log "$latestTag..HEAD" --pretty=format:"- %s" --no-merges) -join "`n`n"
+            $commits = git log "$latestTag..HEAD" --pretty=format:"- %s" --no-merges
         } else {
             Write-Host "No tags found, getting all commits"
-            $commits = (git log --pretty=format:"- %s" --no-merges) -join "`n`n"
+            $commits = git log --pretty=format:"- %s" --no-merges
         }
         
         if ([string]::IsNullOrWhiteSpace($commits)) {
             $commits = "- First release"
         }
         
-        $releaseNotes = "## What's Changed`n`n$commits"
-        Write-Host "Release Notes: $releaseNotes"
-        
-        # Escape special characters for GitHub Actions
-        $releaseNotes = $releaseNotes.Replace("%", "%25").Replace("`n", "%0A").Replace("`r", "%0D")
-        
-        echo "RELEASE_NOTES=$releaseNotes" >> $env:GITHUB_ENV
+        $releaseNotes = "## What's Changed`n$commits"
+        $releaseNotes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
   
     - name: Commit version update
       run: |
@@ -179,7 +174,7 @@ jobs:
       with:
         name: Release v${{ env.NEW_VERSION }}
         tag: v${{ env.NEW_VERSION }}
-        body: ${{ fromJSON(toJSON(env.RELEASE_NOTES)) }}
+        bodyFile: "RELEASE_NOTES.md"
         draft: false
         prerelease: false
         commit: "master"
