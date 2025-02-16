@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Octokit;
+using TeReoLocalizer.Updater.Services;
 using Application = System.Windows.Forms.Application;
 using Exception = System.Exception;
 using Label = System.Windows.Forms.Label;
@@ -144,8 +145,7 @@ namespace TeReoLocalizer.Updater
             {
                 try
                 {
-                    proc.Kill();
-                    proc.WaitForExit(500);
+                    WindowsService.ForceKill(proc);
                 }
                 catch (Exception)
                 {
