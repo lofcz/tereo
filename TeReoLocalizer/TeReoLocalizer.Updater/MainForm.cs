@@ -25,7 +25,7 @@ namespace TeReoLocalizer.Updater
         Label processLabel;
         Button killButton;
         Timer processTimer;
-        bool canProceed = false;
+        bool canProceed;
 
         public MainForm()
         {
@@ -133,8 +133,8 @@ namespace TeReoLocalizer.Updater
                 canProceed = true;
             }
         }
-        
-        private void KillButton_Click(object sender, EventArgs e)
+
+        void KillButton_Click(object sender, EventArgs e)
         {
             Process[] runningInstances = Process.GetProcessesByName("TeReoLocalizer");
             List<int> failedProcesses = [];
@@ -238,12 +238,12 @@ namespace TeReoLocalizer.Updater
 
                             if (totalBytes != -1)
                             {
-                                int percentage = (int)((bytesRead * 100) / totalBytes);
+                                double percentage = ((bytesRead * 100) / (double)totalBytes);
                                 double mbRead = bytesRead / (1024.0 * 1024.0);
                                 double mbTotal = totalBytes / (1024.0 * 1024.0);
 
                                 progressBar1.Maximum = 100;
-                                progressBar1.Value = percentage;
+                                progressBar1.Value = (int)percentage;
    
                                 label2.Visible = true;
                                 label2.Text = $"Staženo {mbRead:F2}/{mbTotal:F2} MB ({percentage:F2}%)";
@@ -336,93 +336,92 @@ namespace TeReoLocalizer.Updater
                 {
                     reoBootContent = File.ReadAllText(reoBootPath);
                 }
-                
-                using (StreamWriter log = new StreamWriter(logPath, true))
-                {
-                    log.WriteLine($"\n=== Update started at {DateTime.Now} ===");
+
+                using StreamWriter log = new StreamWriter(logPath, true);
+                log.WriteLine($"\n=== Update started at {DateTime.Now} ===");
                     
-                    // Rename the running updater.exe to updater.bak
-                    string currentUpdaterPath = Path.Combine(parentPath, "updater", "updater.exe");
-                    string backupUpdaterPath = Path.Combine(parentPath, "updater", "updater.bak");
+                // Rename the running updater.exe to updater.bak
+                string currentUpdaterPath = Path.Combine(parentPath, "updater", "updater.exe");
+                string backupUpdaterPath = Path.Combine(parentPath, "updater", "updater.bak");
 
-                    if (File.Exists(currentUpdaterPath))
-                    {
-                        File.Move(currentUpdaterPath, backupUpdaterPath);
-                        log.WriteLine($"Renamed current updater to backup: {backupUpdaterPath}");
-                    }
+                if (File.Exists(currentUpdaterPath))
+                {
+                    File.Move(currentUpdaterPath, backupUpdaterPath);
+                    log.WriteLine($"Renamed current updater to backup: {backupUpdaterPath}");
+                }
 
-                    // Copy the new updater.exe from the temp directory to the target directory
-                    string newUpdaterPath = Path.Combine(tempPath, "updater", "updater.exe");
-                    if (File.Exists(newUpdaterPath))
-                    {
-                        File.Copy(newUpdaterPath, currentUpdaterPath, true);
-                        log.WriteLine($"Copied new updater to target: {currentUpdaterPath}");
-                    }
+                // Copy the new updater.exe from the temp directory to the target directory
+                string newUpdaterPath = Path.Combine(tempPath, "updater", "updater.exe");
+                if (File.Exists(newUpdaterPath))
+                {
+                    File.Copy(newUpdaterPath, currentUpdaterPath, true);
+                    log.WriteLine($"Copied new updater to target: {currentUpdaterPath}");
+                }
 
-                    // Copy all other files from the temp directory to the parent directory
-                    foreach (string file in Directory.GetFiles(tempPath))
-                    {
-                        string fileName = Path.GetFileName(file);
+                // Copy all other files from the temp directory to the parent directory
+                foreach (string file in Directory.GetFiles(tempPath))
+                {
+                    string fileName = Path.GetFileName(file);
                         
-                        string destFile = Path.Combine(parentPath, fileName);
+                    string destFile = Path.Combine(parentPath, fileName);
+                    try
+                    {
+                        if (File.Exists(destFile))
+                        {
+                            File.SetAttributes(destFile, FileAttributes.Normal);
+                            File.Delete(destFile);
+                        }
+
+                        File.Copy(file, destFile);
+                        log.WriteLine($"Copied file: {fileName} -> {destFile}");
+                    }
+                    catch (Exception ex)
+                    {
+                        log.WriteLine($"Error copying {fileName}: {ex.Message}");
+                        throw;
+                    }
+                }
+
+                // Copy all subdirectories except the updater directory
+                foreach (string dir in Directory.GetDirectories(tempPath))
+                {
+                    string dirName = new DirectoryInfo(dir).Name;
+                    if (dirName.Equals("updater", StringComparison.OrdinalIgnoreCase))
+                    {
+                        log.WriteLine($"Skipping updater directory: {dir}");
+                        continue;
+                    }
+
+                    string targetPath = Path.Combine(parentPath, dirName);
+                    log.WriteLine($"Processing directory: {dirName}");
+
+                    if (Directory.Exists(targetPath))
+                    {
                         try
                         {
-                            if (File.Exists(destFile))
-                            {
-                                File.SetAttributes(destFile, FileAttributes.Normal);
-                                File.Delete(destFile);
-                            }
-
-                            File.Copy(file, destFile);
-                            log.WriteLine($"Copied file: {fileName} -> {destFile}");
+                            Directory.Delete(targetPath, true);
+                            log.WriteLine($"Deleted existing directory: {targetPath}");
                         }
-                        catch (Exception ex)
+                        catch (Exception e)
                         {
-                            log.WriteLine($"Error copying {fileName}: {ex.Message}");
-                            throw;
+                            log.WriteLine($"Deleted directory failed: {targetPath} {e.Message}");
                         }
                     }
 
-                    // Copy all subdirectories except the updater directory
-                    foreach (string dir in Directory.GetDirectories(tempPath))
-                    {
-                        string dirName = new DirectoryInfo(dir).Name;
-                        if (dirName.Equals("updater", StringComparison.OrdinalIgnoreCase))
-                        {
-                            log.WriteLine($"Skipping updater directory: {dir}");
-                            continue;
-                        }
-
-                        string targetPath = Path.Combine(parentPath, dirName);
-                        log.WriteLine($"Processing directory: {dirName}");
-
-                        if (Directory.Exists(targetPath))
-                        {
-                            try
-                            {
-                                Directory.Delete(targetPath, true);
-                                log.WriteLine($"Deleted existing directory: {targetPath}");
-                            }
-                            catch (Exception e)
-                            {
-                                log.WriteLine($"Deleted directory failed: {targetPath} {e.Message}");
-                            }
-                        }
-
-                        CopyDirectoryWithLogging(dir, targetPath, true, log);
-                    }
+                    CopyDirectoryWithLogging(dir, targetPath, true, log);
+                }
                     
-                    if (reoBootContent != null)
-                    {
-                        File.WriteAllText(reoBootPath, reoBootContent);
-                        log.WriteLine("Restored reoBoot.json content");
-                    }
+                if (reoBootContent != null)
+                {
+                    File.WriteAllText(reoBootPath, reoBootContent);
+                    log.WriteLine("Restored reoBoot.json content");
+                }
 
-                    // Create a batch file to complete the update
-                    string batchPath = Path.Combine(Path.GetTempPath(), "complete_update.bat");
-                    string reoPath = Path.Combine(parentPath, "reo.exe");
+                // Create a batch file to complete the update
+                string batchPath = Path.Combine(Path.GetTempPath(), "complete_update.bat");
+                string reoPath = Path.Combine(parentPath, "reo.exe");
 
-                    string batchContent = $@"
+                string batchContent = $@"
 @echo off
 title Te Reo - dokončení aktualizace
 
@@ -445,46 +444,44 @@ del ""%~f0""
 exit
 ";
 
-                    File.WriteAllText(batchPath, batchContent);
-                    log.WriteLine($"Created batch file: {batchPath}");
+                File.WriteAllText(batchPath, batchContent);
+                log.WriteLine($"Created batch file: {batchPath}");
 
-                    // Clean up the temp directory
-                    try
+                // Clean up the temp directory
+                try
+                {
+                    if (Directory.Exists(tempPath))
                     {
-                        if (Directory.Exists(tempPath))
+                        try
                         {
-                            try
-                            {
-                                Directory.Delete(tempPath, true);
-                                log.WriteLine("Cleaned temp directory");
-                            }
-                            catch (Exception e)
-                            {
-                                log.WriteLine($"Cleanining temp directory failed: {e.Message}");
-                            }
+                            Directory.Delete(tempPath, true);
+                            log.WriteLine("Cleaned temp directory");
+                        }
+                        catch (Exception e)
+                        {
+                            log.WriteLine($"Cleanining temp directory failed: {e.Message}");
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        log.WriteLine($"Error cleaning temp directory: {ex.Message}");
-                    }
-
-                    // Run the batch file and exit the updater
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = batchPath,
-                        UseShellExecute = true,
-                        CreateNoWindow = true
-                    });
-
-                    log.WriteLine("Update completed, exiting updater");
-                    Environment.Exit(0);
                 }
+                catch (Exception ex)
+                {
+                    log.WriteLine($"Error cleaning temp directory: {ex.Message}");
+                }
+
+                // Run the batch file and exit the updater
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = batchPath,
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                });
+
+                log.WriteLine("Update completed, exiting updater");
+                Environment.Exit(0);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Chyba při aktualizaci: {ex.Message}\nZkontrolujte log v %temp%\\update_log.txt Stacktrace: {ex.StackTrace}",
-                    "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Chyba při aktualizaci: {ex.Message}\nZkontrolujte log v %temp%\\update_log.txt Stacktrace: {ex.StackTrace}", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

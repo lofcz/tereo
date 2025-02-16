@@ -21,14 +21,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>1.0.10</Version>
     <AssemblyVersion>1.0.10</AssemblyVersion>
-    <!-- Display name -->
     <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
-    <!-- App Identifier -->
     <ApplicationId>com.lofcz.tereolocalizer</ApplicationId>
-    <!-- Versions -->
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <LangVersion>preview</LangVersion>
+    <CompressionEnabled>false</CompressionEnabled>
   </PropertyGroup>
   <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
     <RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
