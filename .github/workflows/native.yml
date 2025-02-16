@@ -166,10 +166,11 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add .
+        git add ./TeReoLocalizer/TeReoLocalizer/TeReoLocalizer.csproj
         git commit -m "Update version to v${{ env.NEW_VERSION }}"
         git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
         git push --follow-tags
+  
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
