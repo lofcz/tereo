@@ -1,208 +1,163 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
-
-    <PropertyGroup>
-        <TargetFrameworks>net8.0-windows10.0.19041.0</TargetFrameworks>
-        <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
-        <!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
-
-        <!-- Note for MacCatalyst:
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows10.0.19041.0</TargetFrameworks>
+    <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
+    <!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
+    <!-- Note for MacCatalyst:
             The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
             When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
             The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
             either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-        <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
-
-        <OutputType>Exe</OutputType>
-        <RootNamespace>TeReoLocalizer</RootNamespace>
-        <UseMaui>true</UseMaui>
-        <SingleProject>true</SingleProject>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <EnableDefaultCssItems>false</EnableDefaultCssItems>
-        <Nullable>enable</Nullable>
-        <RunAOTCompilation>false</RunAOTCompilation>
-        <UseInterpreter>true</UseInterpreter>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>1.0.0</Version>
-        
-        <!-- Display name -->
-        <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
-
-        <!-- App Identifier -->
-        <ApplicationId>com.lofcz.tereolocalizer</ApplicationId>
-
-        <!-- Versions -->
-        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-        <ApplicationVersion>1</ApplicationVersion>
-        <LangVersion>preview</LangVersion>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
-        <RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
-    </PropertyGroup>
-    
-    <PropertyGroup Condition="'$(APP_TYPE)' == 'WEB'">
-        <DefineConstants>$(DefineConstants);APP_TYPE_WEB</DefineConstants>
-    </PropertyGroup>
-
-
-    <ItemGroup>
-        <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" />
-
-        <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128"/>
-
-        <!-- Images -->
-        <MauiImage Include="Resources\Images\*"/>
-        <MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208"/>
-
-        <!-- Custom Fonts -->
-        <MauiFont Include="Resources\Fonts\*"/>
-
-        <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
-        <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
-        <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.100" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Maui.Core" Version="8.0.100" />
-        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Nanoid" Version="3.1.0" />
-        <PackageReference Include="System.Memory" Version="4.6.0" />
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="Program.cs" />
-      <Compile Remove="WebConfig.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Remove="Components\RoutesWeb.razor"/>
-        <Content Remove="Pages\_Host.cshtml"/>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\favicon.svg">
-            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.css">
-            <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.scss">
-            <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.map">
-            <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.js">
-            <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.ts">
-            <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.map">
-            <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\Images\**\*.*">
-            <Link>wwwroot\Images\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.scss">
-            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.css">
-            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.css.map">
-            <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-        <Content Remove="wwwroot\indexBuilt.html" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\TeReoLocalizer.Shared\TeReoLocalizer.Shared.csproj" />
-    </ItemGroup>
-
+    <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TeReoLocalizer</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCssItems>false</EnableDefaultCssItems>
+    <Nullable>enable</Nullable>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <UseInterpreter>true</UseInterpreter>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>1.0.1</Version>
+    <!-- Display name -->
+    <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
+    <!-- App Identifier -->
+    <ApplicationId>com.lofcz.tereolocalizer</ApplicationId>
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' and '$(RuntimeIdentifierOverride)' != ''">
+    <RuntimeIdentifier>$(RuntimeIdentifierOverride)</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(APP_TYPE)' == 'WEB'">
+    <DefineConstants>$(DefineConstants);APP_TYPE_WEB</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- App Icon -->
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" />
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+    <!-- Images -->
+    <MauiImage Include="Resources\Images\*" />
+    <MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
+    <!-- Custom Fonts -->
+    <MauiFont Include="Resources\Fonts\*" />
+    <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.100" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.100" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Maui.Core" Version="8.0.100" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Nanoid" Version="3.1.0" />
+    <PackageReference Include="System.Memory" Version="4.6.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Program.cs" />
+    <Compile Remove="WebConfig.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="Components\RoutesWeb.razor" />
+    <Content Remove="Pages\_Host.cshtml" />
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\favicon.svg">
+      <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.css">
+      <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.scss">
+      <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Content\**\*.map">
+      <Link>wwwroot\Content\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.js">
+      <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.ts">
+      <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Scripts\**\*.map">
+      <Link>wwwroot\Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\Images\**\*.*">
+      <Link>wwwroot\Images\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.scss">
+      <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.css">
+      <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\TeReoLocalizer.Shared\wwwroot\**\app.css.map">
+      <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Remove="wwwroot\indexBuilt.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TeReoLocalizer.Shared\TeReoLocalizer.Shared.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <HostPageTemplatePath>wwwroot/index.html</HostPageTemplatePath>
+    <HostPagePath>wwwroot/index.g.html</HostPagePath>
+    <BuildEntropy>$([System.Guid]::NewGuid().ToString().Replace("-",""))</BuildEntropy>
+  </PropertyGroup>
+  <Target Name="GenerateConstants" BeforeTargets="CoreCompile">
     <PropertyGroup>
-        <HostPageTemplatePath>wwwroot/index.html</HostPageTemplatePath>
-        <HostPagePath>wwwroot/index.g.html</HostPagePath>
-        <BuildEntropy>$([System.Guid]::NewGuid().ToString().Replace("-",""))</BuildEntropy>
-    </PropertyGroup>
-    
-    <Target Name="GenerateConstants" BeforeTargets="CoreCompile">
-        <PropertyGroup>
-            <ConstantsFileContent><![CDATA[namespace TeReoLocalizer
+      <ConstantsFileContent><![CDATA[namespace TeReoLocalizer
 {
     public static class BuildConstants
     {
         public const string HostPage = "wwwroot/index.g.html"%3B
     }
 }]]></ConstantsFileContent>
-        </PropertyGroup>
-
-        <WriteLinesToFile
-                File="$(IntermediateOutputPath)BuildConstants.g.cs"
-                Lines="$(ConstantsFileContent)"
-                Overwrite="true" />
-
-        <ItemGroup>
-            <Compile Include="$(IntermediateOutputPath)BuildConstants.g.cs" />
-        </ItemGroup>
-    </Target>
-
-    <UsingTask TaskName="GenerateHostPage"
-               TaskFactory="RoslynCodeTaskFactory"
-               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-        <Task>
-            <Reference Include="netstandard" />
-            <Using Namespace="System"/>
-            <Using Namespace="System.IO"/>
-            <Code Source="$(MSBuildProjectDirectory)\build\GenerateHostPage.cs" />
-        </Task>
-    </UsingTask>
-
-    <Target Name="GenerateHostPage" BeforeTargets="PrepareForBuild">
-        <GenerateHostPage
-                OutputPath="$(ProjectDir)$(HostPagePath)"
-                ProjectDir="$(MSBuildProjectDirectory)"
-                Entropy="$(BuildEntropy)" />
-    </Target>
-
+    </PropertyGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)BuildConstants.g.cs" Lines="$(ConstantsFileContent)" Overwrite="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)BuildConstants.g.cs" />
+    </ItemGroup>
+  </Target>
+  <UsingTask TaskName="GenerateHostPage" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <Task>
+      <Reference Include="netstandard" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Source="$(MSBuildProjectDirectory)\build\GenerateHostPage.cs" />
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateHostPage" BeforeTargets="PrepareForBuild">
+    <GenerateHostPage OutputPath="$(ProjectDir)$(HostPagePath)" ProjectDir="$(MSBuildProjectDirectory)" Entropy="$(BuildEntropy)" />
+  </Target>
 </Project>
