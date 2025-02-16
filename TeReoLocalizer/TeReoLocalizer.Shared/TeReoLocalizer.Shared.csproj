@@ -38,6 +38,7 @@
       <None Update="appCfg.json5">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Remove="DataProtectionKeys\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -59,6 +60,7 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </EmbeddedResource>
       <TypeScriptCompile Include="wwwroot\Scripts\Scoped\vselect.ts" />
+      <EmbeddedResource Remove="DataProtectionKeys\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -89,10 +91,16 @@
       <Content Update="Components\Pages\Localize.razor.scss">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </Content>
+      <Content Remove="reoBoot.json" />
+      <Content Remove="DataProtectionKeys\**" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="Code\ThirdParty\" />
       <Folder Include="wwwroot\Images\Flags\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="DataProtectionKeys\**" />
     </ItemGroup>
 </Project>

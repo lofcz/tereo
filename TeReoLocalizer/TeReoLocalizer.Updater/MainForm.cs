@@ -17,7 +17,6 @@ namespace TeReoLocalizer.Updater
         readonly GitHubClient githubClient = new GitHubClient(new ProductHeaderValue("TeReoUpdater"));
 
         readonly string tempPath;
-        string updatePath;
         readonly string parentPath;
 
         public MainForm()
@@ -26,8 +25,7 @@ namespace TeReoLocalizer.Updater
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             tempPath = Path.Combine(Path.GetTempPath(), "TeReoUpdate");
-            updatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update.zip");
-
+  
             string currentPath = AppDomain.CurrentDomain.BaseDirectory;
             parentPath = Directory.GetParent(Directory.GetParent(currentPath).FullName).FullName;
         }
@@ -194,6 +192,16 @@ namespace TeReoLocalizer.Updater
                 {
                     log.WriteLine($"\n=== Update started at {DateTime.Now} ===");
 
+                    // backup reoboot.json
+                    string reoBootPath = Path.Combine(parentPath, "reoBoot.json");
+                    string reoBootBackup = null;
+                    if (File.Exists(reoBootPath))
+                    {
+                        reoBootBackup = Path.Combine(Path.GetTempPath(), "reoBoot.json.backup");
+                        File.Copy(reoBootPath, reoBootBackup, true);
+                        log.WriteLine($"Backed up reoBoot.json to: {reoBootBackup}");
+                    }
+                    
                     // Rename the running updater.exe to updater.bak
                     string currentUpdaterPath = Path.Combine(parentPath, "updater", "updater.exe");
                     string backupUpdaterPath = Path.Combine(parentPath, "updater", "updater.bak");
@@ -262,6 +270,22 @@ namespace TeReoLocalizer.Updater
                         }
 
                         CopyDirectoryWithLogging(dir, targetPath, true, log);
+                    }
+                    
+                    // restore reoboot.json
+                    if (reoBootBackup != null && File.Exists(reoBootBackup))
+                    {
+                        File.Copy(reoBootBackup, reoBootPath, true);
+                        log.WriteLine($"Restored reoBoot.json from backup");
+                        try
+                        {
+                            File.Delete(reoBootBackup);
+                            log.WriteLine("Deleted reoBoot.json backup");
+                        }
+                        catch (Exception ex)
+                        {
+                            log.WriteLine($"Failed to delete reoBoot.json backup: {ex.Message}");
+                        }
                     }
 
                     // Create a batch file to complete the update
