@@ -16,19 +16,22 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+    permissions:
+      packages: write
+      contents: write
+
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4.2.2
       with:
         fetch-depth: 0
     
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v4.3.0
       with:
         dotnet-version: 8.0.x
         
     - name: Setup Windows SDK
-      uses: microsoft/setup-msbuild@v1.3.1
+      uses: microsoft/setup-msbuild@v2
     
     - name: Calculate New Version
       id: version_check
@@ -151,15 +154,16 @@ jobs:
   
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: ncipollo/release-action@v1.15.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ env.NEW_VERSION }}
-        release_name: Release v${{ env.NEW_VERSION }}
+        name: Release v${{ env.NEW_VERSION }}
+        tag: v${{ env.NEW_VERSION }}
         body: ${{ env.RELEASE_NOTES }}
         draft: false
-        prerelease: false
+        prerelease: false,
+        commit: "master"
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
