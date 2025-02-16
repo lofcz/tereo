@@ -92,10 +92,11 @@ jobs:
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v2.0.1
       
-    - name: Restore NuGet packages
+    - name: Restore NuGet packages for .NET Framework projects
       working-directory: ./TeReoLocalizer
       run: |
-        nuget restore TeReoLocalizer.sln
+        nuget restore TeReoLocalizer.Updater/TeReoLocalizer.Updater.csproj
+        nuget restore TeReoLocalizer.Launcher/TeReoLocalizer.Launcher.csproj
 
     - name: Install MAUI Workload
       run: |
