@@ -1,5 +1,16 @@
 @echo off
 
+REM Build TeReoLocalizer.Launcher
+echo Building TeReoLocalizer.Launcher...
+pushd ..\TeReoLocalizer.Launcher
+dotnet msbuild -t:Build -p:Configuration=Release
+if errorlevel 1 (
+    echo Failed to build TeReoLocalizer.Launcher
+    exit /b 1
+)
+copy /Y "bin\Release\net472\TeReoLocalizer.Launcher.exe" "bin\Release\net472\reo.exe"
+popd
+
 REM Publish
 dotnet msbuild -t:GenerateHostPage
 dotnet publish -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
@@ -37,8 +48,8 @@ mkdir "%tempDir%"
 REM Copy all files to temp
 xcopy "%absolutePath%\*" "%tempDir%\TeReoLocalizer\" /s /y /i
 
-REM Copy reo_launcher.exe to temp
-copy "reo_launcher.exe" "%tempDir%"
+REM Copy reo.exe to temp
+copy "..\TeReoLocalizer.Launcher\bin\Release\net472\reo.exe" "%tempDir%"
 
 if defined AUTOMATION_MODE (
     echo Running in automation mode...

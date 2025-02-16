@@ -28,7 +28,8 @@ class Program
             {
                 FileName = fullPath,
                 UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                WindowStyle = ProcessWindowStyle.Hidden,
+                WorkingDirectory = Path.Combine(baseDirectory, "TeReoLocalizer")
             };
 
             using Process? process = Process.Start(startInfo);
