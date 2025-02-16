@@ -7,6 +7,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <ApplicationIcon>favicon.ico</ApplicationIcon>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <Platforms>x64</Platforms>
     </PropertyGroup>
 
 </Project>
