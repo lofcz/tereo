@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Octokit;
 using Application = System.Windows.Forms.Application;
@@ -138,19 +139,21 @@ namespace TeReoLocalizer.Updater
         {
             Process[] runningInstances = Process.GetProcessesByName("TeReoLocalizer");
             List<int> failedProcesses = [];
-
+            
             foreach (Process proc in runningInstances)
             {
                 try
                 {
                     proc.Kill();
-                    proc.WaitForExit(1000);
+                    proc.WaitForExit(500);
                 }
                 catch (Exception)
                 {
                     failedProcesses.Add(proc.Id);
                 }
             }
+            
+            CheckAndUpdateUi();
 
             if (failedProcesses.Count > 0)
             {
