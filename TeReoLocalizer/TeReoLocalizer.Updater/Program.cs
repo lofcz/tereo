@@ -14,7 +14,7 @@ namespace TeReoLocalizer.Updater
 {
     public static class EntryAssemblyInfo
     {
-        private static string _executablePath;
+        static string _executablePath;
 
         public static string ExecutablePath
         {
@@ -42,8 +42,8 @@ namespace TeReoLocalizer.Updater
             }
         }
     }
-    
-    static class Program
+
+    internal static class Program
     {
         /// <summary>
         /// The main entry point for the application.

@@ -171,4 +171,10 @@
     <Message Text="Writing version: $(VersionContent)" Importance="high" />
     <WriteLinesToFile File="$(OutDir)reoVersion.txt" Lines="$(VersionContent)" Overwrite="true" Encoding="UTF-8" />
   </Target>
+  <Target Name="CopyVersionFile" AfterTargets="Publish">
+    <Copy
+            SourceFiles="$(OutDir)reoVersion.txt"
+            DestinationFolder="$(PublishDir)"
+    />
+  </Target>
 </Project>
