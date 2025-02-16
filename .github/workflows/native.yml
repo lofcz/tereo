@@ -111,14 +111,14 @@ jobs:
       run: |
         $previousTag = $(git describe --tags --abbrev=0 2>$null) ?? ""
         $commits = if ($previousTag) {
-            git log ${previousTag}..HEAD --pretty=format:"%s" --no-merges
+            git log ${previousTag}..HEAD --pretty=format:"- %s" --no-merges
         } else {
-            git log --pretty=format:"%s" --no-merges
+            git log --pretty=format:"- %s" --no-merges
         }
-        $commitsList = $commits -split "`n" | ForEach-Object { "- $_`n" }
-        $releaseNotes = "## What's Changed`n`n$($commitsList -join '')"
-        $releaseNotes = $releaseNotes -replace "`n", "%0A"
-        echo "RELEASE_NOTES=$releaseNotes" >> $env:GITHUB_ENV
+        $releaseNotes = "## What's Changed`n`n$commits"
+        echo "RELEASE_NOTES<<EOF" >> $env:GITHUB_ENV
+        echo "$releaseNotes" >> $env:GITHUB_ENV
+        echo "EOF" >> $env:GITHUB_ENV
   
     - name: Create Release
       id: create_release
