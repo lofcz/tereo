@@ -162,6 +162,15 @@ jobs:
         
         echo "RELEASE_NOTES=$releaseNotes" >> $env:GITHUB_ENV
   
+    - name: Commit version update
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add ./TeReoLocalizer/TeReoLocalizer/TeReoLocalizer.csproj
+        git commit -m "Update version to v${{ env.NEW_VERSION }}"
+        git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
+        git push --follow-tags
+
     - name: Create Release
       id: create_release
       uses: ncipollo/release-action@v1.15.0
@@ -175,15 +184,6 @@ jobs:
         prerelease: false
         commit: "master"
         artifacts: "TeReoLocalizer-v${{ env.NEW_VERSION }}.zip"
-
-    - name: Commit version update
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add ./TeReoLocalizer/TeReoLocalizer/TeReoLocalizer.csproj
-        git commit -m "Update version to v${{ env.NEW_VERSION }}"
-        git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
-        git push --follow-tags
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
