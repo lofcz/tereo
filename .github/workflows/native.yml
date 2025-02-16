@@ -1,7 +1,17 @@
-name: Build Native Application
+name: Build Native Application and Create Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
   build:
@@ -9,6 +19,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -17,6 +29,34 @@ jobs:
         
     - name: Setup Windows SDK
       uses: microsoft/setup-msbuild@v1.3.1
+    
+    - name: Calculate New Version
+      id: version_check
+      shell: pwsh
+      run: |
+        $projPath = "./TeReoLocalizer/TeReoLocalizer/TeReoLocalizer.csproj"
+        $xml = [xml](Get-Content $projPath)
+        $currentVersion = $xml.Project.PropertyGroup.Version
+        
+        if (-not $currentVersion) {
+            $currentVersion = "1.0.0"
+        }
+        
+        $versionParts = $currentVersion.Split('.')
+        $major = [int]$versionParts[0]
+        $minor = [int]$versionParts[1]
+        $patch = [int]$versionParts[2]
+        
+        switch ("${{ github.event.inputs.release_type }}") {
+            "major" { $newVersion = "$($major + 1).0.0" }
+            "minor" { $newVersion = "$major.$($minor + 1).0" }
+            "patch" { $newVersion = "$major.$minor.$($patch + 1)" }
+        }
+        
+        $xml.Project.PropertyGroup.Version = $newVersion
+        $xml.Save($projPath)
+        
+        echo "NEW_VERSION=$newVersion" >> $env:GITHUB_ENV
         
     - name: Install MAUI Workload
       run: |
@@ -37,6 +77,57 @@ jobs:
       run: |
         set "AUTOMATION_MODE=1"
         call publish.bat
+
+    - name: Create Release ZIP
+      shell: pwsh
+      run: |
+        Compress-Archive -Path "./TeReoLocalizer/TeReoLocalizer/bin/Release/net8.0-windows10.0.19041.0/win10-x64/dist/*" -DestinationPath "TeReoLocalizer-v${{ env.NEW_VERSION }}.zip"
+
+    - name: Generate Release Notes
+      id: release_notes
+      shell: pwsh
+      run: |
+        $previousTag = $(git describe --tags --abbrev=0 2>$null) ?? ""
+        $commits = if ($previousTag) {
+            git log ${previousTag}..HEAD --pretty=format:"- %s" --no-merges
+        } else {
+            git log --pretty=format:"- %s" --no-merges
+        }
+        $releaseNotes = "## What's Changed`n$commits"
+        echo "RELEASE_NOTES<<EOF" >> $env:GITHUB_ENV
+        echo $releaseNotes >> $env:GITHUB_ENV
+        echo "EOF" >> $env:GITHUB_ENV
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.NEW_VERSION }}
+        release_name: Release v${{ env.NEW_VERSION }}
+        body: ${{ env.RELEASE_NOTES }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./TeReoLocalizer-v${{ env.NEW_VERSION }}.zip
+        asset_name: TeReoLocalizer-v${{ env.NEW_VERSION }}.zip
+        asset_content_type: application/zip
+
+    - name: Commit version update
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update version to v${{ env.NEW_VERSION }}"
+        git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
+        git push --follow-tags
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
