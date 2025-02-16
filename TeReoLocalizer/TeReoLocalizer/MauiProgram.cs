@@ -64,10 +64,11 @@ public static class MauiProgram
 		
 		Program.AddSharedServices(builder.Services);
 		
-#if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
+		
+		#if DEBUG
 		builder.Logging.AddDebug();
-#endif
+		#endif
 		
 		builder.ConfigureLifecycleEvents(events =>  
 		{  
