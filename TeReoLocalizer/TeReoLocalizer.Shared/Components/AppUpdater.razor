@@ -36,9 +36,11 @@
         
         ProcessStartInfo startInfo = new ProcessStartInfo
         {
-            FileName = "updater.exe",
+            FileName = "cmd.exe",
+            Arguments = $"/C start /b \"\" \"{Path.Combine(baseDirectory, "updater.exe")}\"",
             UseShellExecute = true,
-            WorkingDirectory = baseDirectory
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
         };
 
         Process.Start(startInfo);
