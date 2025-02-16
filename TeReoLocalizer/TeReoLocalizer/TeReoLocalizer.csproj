@@ -19,8 +19,8 @@
     <RunAOTCompilation>false</RunAOTCompilation>
     <UseInterpreter>true</UseInterpreter>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.0.6</Version>
-    <AssemblyVersion>1.0.6</AssemblyVersion>
+    <Version>1.0.7</Version>
+    <AssemblyVersion>1.0.7</AssemblyVersion>
     <!-- Display name -->
     <ApplicationTitle>TeReoLocalizer</ApplicationTitle>
     <!-- App Identifier -->
@@ -169,10 +169,6 @@
     <Message Text="AssemblyVersion: $(AssemblyVersion)" Importance="high" />
     <Message Text="ApplicationDisplayVersion: $(ApplicationDisplayVersion)" Importance="high" />
     <Message Text="Writing version: $(VersionContent)" Importance="high" />
-    <WriteLinesToFile
-            File="$(OutDir)reoVersion.txt"
-            Lines="$(VersionContent)"
-            Overwrite="true"
-            Encoding="UTF-8"/>
+    <WriteLinesToFile File="$(OutDir)reoVersion.txt" Lines="$(VersionContent)" Overwrite="true" Encoding="UTF-8" />
   </Target>
 </Project>
