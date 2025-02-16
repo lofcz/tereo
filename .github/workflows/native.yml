@@ -96,8 +96,8 @@ jobs:
     - name: Restore workloads
       working-directory: ./TeReoLocalizer
       run: |
-        dotnet workload restore
-   
+        dotnet workload restore TeReoLocalizer/TeReoLocalizer.csproj
+  
     - name: Restore dependencies
       working-directory: ./TeReoLocalizer
       run: dotnet restore TeReoLocalizer.sln
