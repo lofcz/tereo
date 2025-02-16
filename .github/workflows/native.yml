@@ -127,6 +127,14 @@ jobs:
       run: |
         Compress-Archive -Path "./TeReoLocalizer/TeReoLocalizer/bin/Release/net8.0-windows10.0.19041.0/win10-x64/dist/*" -DestinationPath "TeReoLocalizer-v${{ env.NEW_VERSION }}.zip"
 
+    - name: Check ZIP file exists
+      run: |
+        if (!(Test-Path "TeReoLocalizer-v${{ env.NEW_VERSION }}.zip")) {
+          Write-Error "ZIP file not found!"
+          exit 1
+        }
+      shell: pwsh
+
     - name: Generate Release Notes
       id: release_notes
       shell: pwsh
@@ -164,15 +172,9 @@ jobs:
         tag: v${{ env.NEW_VERSION }}
         body: ${{ fromJSON(toJSON(env.RELEASE_NOTES)) }}
         draft: false
-        prerelease: false,
+        prerelease: false
         commit: "master"
-
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v2.2.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: ./TeReoLocalizer-v${{ env.NEW_VERSION }}.zip
+        artifacts: "TeReoLocalizer-v${{ env.NEW_VERSION }}.zip"
 
     - name: Commit version update
       run: |
@@ -182,7 +184,6 @@ jobs:
         git commit -m "Update version to v${{ env.NEW_VERSION }}"
         git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
         git push --follow-tags
-  
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
