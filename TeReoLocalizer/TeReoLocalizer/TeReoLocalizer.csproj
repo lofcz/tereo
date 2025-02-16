@@ -161,4 +161,18 @@
   <Target Name="GenerateHostPage" BeforeTargets="PrepareForBuild">
     <GenerateHostPage OutputPath="$(ProjectDir)$(HostPagePath)" ProjectDir="$(MSBuildProjectDirectory)" Entropy="$(BuildEntropy)" />
   </Target>
+  <Target Name="WriteVersion" AfterTargets="Build">
+    <PropertyGroup>
+      <VersionContent>$(AssemblyVersion)</VersionContent>
+    </PropertyGroup>
+    <Message Text="Version: $(Version)" Importance="high" />
+    <Message Text="AssemblyVersion: $(AssemblyVersion)" Importance="high" />
+    <Message Text="ApplicationDisplayVersion: $(ApplicationDisplayVersion)" Importance="high" />
+    <Message Text="Writing version: $(VersionContent)" Importance="high" />
+    <WriteLinesToFile
+            File="$(OutDir)reoVersion.txt"
+            Lines="$(VersionContent)"
+            Overwrite="true"
+            Encoding="UTF-8"/>
+  </Target>
 </Project>

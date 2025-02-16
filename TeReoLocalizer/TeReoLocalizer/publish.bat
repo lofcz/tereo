@@ -11,6 +11,17 @@ if errorlevel 1 (
 copy /Y "bin\Release\net472\TeReoLocalizer.Launcher.exe" "bin\Release\net472\reo.exe"
 popd
 
+REM Build TeReoLocalizer.Updater
+echo Building TeReoLocalizer.Updater...
+pushd ..\TeReoLocalizer.Updater
+dotnet msbuild -t:Build -p:Configuration=Release
+if errorlevel 1 (
+    echo Failed to build TeReoLocalizer.Updater
+    exit /b 1
+)
+copy /Y "bin\Release\TeReoLocalizer.Updater.exe" "bin\Release\updater.exe"
+popd
+
 REM Publish
 dotnet msbuild -t:GenerateHostPage
 dotnet publish -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
@@ -50,6 +61,8 @@ xcopy "%absolutePath%\*" "%tempDir%\TeReoLocalizer\" /s /y /i
 
 REM Copy reo.exe to temp
 copy "..\TeReoLocalizer.Launcher\bin\Release\net472\reo.exe" "%tempDir%"
+REM Copy updater.exe to temp/TeReoLocalizer
+copy "..\TeReoLocalizer.Updater\bin\Release\updater.exe" "%tempDir%\TeReoLocalizer"
 
 if defined AUTOMATION_MODE (
     echo Running in automation mode...

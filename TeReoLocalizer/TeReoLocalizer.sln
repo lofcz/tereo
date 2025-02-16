@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeReoLocalizer.Shared.Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeReoLocalizer.Launcher", "TeReoLocalizer.Launcher\TeReoLocalizer.Launcher.csproj", "{A4EF5563-8AAA-4B8E-943F-BF4BD20ED179}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeReoLocalizer.Updater", "TeReoLocalizer.Updater\TeReoLocalizer.Updater.csproj", "{B877BA62-519A-41F1-A3C2-72593778F0F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{A4EF5563-8AAA-4B8E-943F-BF4BD20ED179}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4EF5563-8AAA-4B8E-943F-BF4BD20ED179}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4EF5563-8AAA-4B8E-943F-BF4BD20ED179}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B877BA62-519A-41F1-A3C2-72593778F0F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B877BA62-519A-41F1-A3C2-72593778F0F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B877BA62-519A-41F1-A3C2-72593778F0F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B877BA62-519A-41F1-A3C2-72593778F0F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
