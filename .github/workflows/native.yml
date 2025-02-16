@@ -19,6 +19,7 @@ jobs:
     permissions:
       packages: write
       contents: write
+      repository-projects: write
 
     steps:
     - uses: actions/checkout@v4.2.2
@@ -98,8 +99,8 @@ jobs:
     - name: Restore NuGet packages for .NET Framework projects
       working-directory: ./TeReoLocalizer
       run: |
-        nuget restore TeReoLocalizer.Updater/TeReoLocalizer.Updater.csproj
-        nuget restore TeReoLocalizer.Launcher/TeReoLocalizer.Launcher.csproj
+        nuget restore TeReoLocalizer.Updater/TeReoLocalizer.Updater.csproj -SolutionDirectory .
+        nuget restore TeReoLocalizer.Launcher/TeReoLocalizer.Launcher.csproj -SolutionDirectory .
 
     - name: Install MAUI Workload
       run: |
