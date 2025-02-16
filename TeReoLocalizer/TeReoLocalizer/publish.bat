@@ -1,6 +1,7 @@
 @echo off
 
 REM Publish
+dotnet msbuild -t:GenerateHostPage
 dotnet publish -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
 
 REM Storing paths
@@ -18,7 +19,13 @@ mkdir "%tempDir%" 2>nul
 mkdir "%distPath%" 2>nul
 
 REM Copying assets
+echo Copying wwwroot content...
 xcopy "%sourcePath%\*" "%publishPath%\wwwroot\" /s /y /i
+xcopy "wwwroot\index.g.html" "%publishPath%\wwwroot\" /y
+
+REM Verify wwwroot content
+echo Verifying wwwroot content...
+dir "%publishPath%\wwwroot"
 
 REM Deleting secrets
 if exist "%publishPath%\appCfg.json5" del "%publishPath%\appCfg.json5"
@@ -33,22 +40,15 @@ xcopy "%absolutePath%\*" "%tempDir%\TeReoLocalizer\" /s /y /i
 REM Create shortcut
 powershell -Command "$WS = New-Object -ComObject WScript.Shell; $SC = $WS.CreateShortcut('%tempDir%\TeReoLocalizer.lnk'); $SC.TargetPath = '%tempDir%\TeReoLocalizer\TeReoLocalizer.exe'; $SC.Save()"
 
-cls
-
 if defined AUTOMATION_MODE (
-    echo Skipping ZIP creation for automation mode...
-    REM Copy files directly to dist folder
+    echo Running in automation mode...
     rd /s /q "%distPath%" 2>nul
     mkdir "%distPath%"
     xcopy "%tempDir%\*" "%distPath%\" /s /y /i
 ) else (
     echo Creating ZIP file...
-    REM Create ZIP only for local execution
     powershell -Command "Compress-Archive -Path '%tempDir%\*' -DestinationPath '%distPath%\TeReoLocalizer.zip' -Force"
-    
-    REM Get clean path
     for /f "delims=" %%i in ('powershell -Command "(Resolve-Path '%distPath%\TeReoLocalizer.zip').Path"') do set "cleanPath=%%i"
-    
     echo.
     echo Final ZIP location:
     echo [93m%cleanPath%[0m

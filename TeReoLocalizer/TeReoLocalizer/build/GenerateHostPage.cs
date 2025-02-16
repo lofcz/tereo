@@ -15,32 +15,34 @@ public class GenerateHostPage : Microsoft.Build.Utilities.Task
 
     public override bool Execute()
     {
-        string content = GenerateHtmlContent();
+        Log.LogMessage(MessageImportance.High, $"Generating host page at {OutputPath}");
+        
+        string templatePath = Path.Combine(ProjectDir, "wwwroot", "index.html");
+        string sharedTemplatePath = Path.Combine(ProjectDir, "..", "TeReoLocalizer.Shared", "wwwroot", "index.html");
+        
+        string? finalTemplatePath = File.Exists(templatePath) ? templatePath : File.Exists(sharedTemplatePath) ? sharedTemplatePath : null;
+
+        if (finalTemplatePath is null)
+        {
+            Log.LogError($"Template file not found at {templatePath} or {sharedTemplatePath}");
+            return false;
+        }
+
+        Log.LogMessage(MessageImportance.High, $"Using template at: {finalTemplatePath}");
+
+        string content = GenerateHtmlContent(finalTemplatePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputPath));
         File.WriteAllText(OutputPath, content);
+        
+        Log.LogMessage(MessageImportance.High, "Host page generated successfully");
         return true;
     }
 
-    string GenerateHtmlContent()
+    string GenerateHtmlContent(string templatePath)
     {
-        string templatePath = Path.Combine(ProjectDir, "wwwroot", "index.html");
-        
-        if (File.Exists(templatePath))
-        {
-            string template = File.ReadAllText(templatePath);
-            
-            template = template.Replace("{ENTROPY}", $"_{Entropy}");
-            template = $"<!-- this is a generated file, do not modify manually. Changes will be lost.-->\n{template}";
-            
-            return template;
-        }
-        
-        return $"""
-                <!DOCTYPE html>
-                <html>
-                <body>
-                <p>Missing file {templatePath}</p>
-                </body>
-                </html>
-                """;
+        string template = File.ReadAllText(templatePath);
+        template = template.Replace("{ENTROPY}", $"_{Entropy}");
+        template = $"<!-- this is a generated file, do not modify manually. Changes will be lost.-->\n{template}";
+        return template;
     }
 }
