@@ -8,6 +8,9 @@ using System.Linq;
 using System.Net.Http;
 using System.Windows.Forms;
 using Octokit;
+using Application = System.Windows.Forms.Application;
+using Exception = System.Exception;
+using Label = System.Windows.Forms.Label;
 
 namespace TeReoLocalizer.Updater
 {
@@ -18,6 +21,11 @@ namespace TeReoLocalizer.Updater
 
         readonly string tempPath;
         readonly string parentPath;
+        
+        Label processLabel;
+        Button killButton;
+        Timer processTimer;
+        bool canProceed = false;
 
         public MainForm()
         {
@@ -30,131 +38,264 @@ namespace TeReoLocalizer.Updater
             parentPath = Directory.GetParent(Directory.GetParent(currentPath).FullName).FullName;
         }
 
-        async void Form1_Load(object sender, EventArgs e)
+        void Form1_Load(object sender, EventArgs e)
         {
+            SetMainUiVisible(false);
+            label1.Visible = true;
+            label1.Text = "Probíhá příprava na aktualizaci";
+            label2.Visible = false;
+            
             try
             {
                 button1.Visible = false;
-
-                try
-                {
-                    label1.Text = "Získávání informací o poslední verzi";
-
-                    string localVersionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reoVersion.txt");
-                    if (!File.Exists(localVersionPath))
-                    {
-                        progressBar1.Visible = false;
-                        label1.Text = "Není možné určit aktuální verzi, protože chybí soubor reoVersion.txt";
-                        return;
-                    }
-
-                    string localVersion = File.ReadAllText(localVersionPath).Trim();
-                    Version currentVersion = Version.Parse(localVersion);
-
-                    IReadOnlyList<Release> releases = await githubClient.Repository.Release.GetAll("lofcz", "tereo");
-                    Release latestRelease = releases[0];
-
-                    ReleaseAsset asset = latestRelease.Assets.FirstOrDefault(a => a.Name.StartsWith("TeReoLocalizer-v") && a.Name.EndsWith(".zip"));
-
-                    if (asset == null)
-                    {
-                        MessageBox.Show("Nebyl nalezen ZIP soubor ke stažení.", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    string upstreamVersionStr = asset.Name.Replace("TeReoLocalizer-v", "").Replace(".zip", "");
-                    Version upstreamVersion = Version.Parse(upstreamVersionStr);
-
-                    if (currentVersion >= upstreamVersion)
-                    {
-                        progressBar1.Visible = false;
-                        label1.Text = $"Reo je aktuální, verze {localVersion}";
-                        return;
-                    }
-
-                    string updatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update.zip");
-                    
-                    if (File.Exists(updatePath))
-                    {
-                        try
-                        {
-                            File.Delete(updatePath);
-                        }
-                        catch (Exception fe)
-                        {
-                            
-                        }
-                    }
-
-                    label1.Text = $"Probíhá stažení aktualizace {localVersion}\u2192{upstreamVersionStr}";
-
-                    using (HttpResponseMessage response = await httpClient.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        long totalBytes = response.Content.Headers.ContentLength ?? -1L;
-
-                        using (Stream stream = await response.Content.ReadAsStreamAsync())
-                        using (FileStream fileStream = File.Create(updatePath))
-                        {
-                            byte[] buffer = new byte[8192];
-                            long bytesRead = 0L;
-                            int count;
-
-                            while ((count = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                            {
-                                await fileStream.WriteAsync(buffer, 0, count);
-                                bytesRead += count;
-
-                                if (totalBytes != -1)
-                                {
-                                    int percentage = (int)((bytesRead * 100) / totalBytes);
-                                    progressBar1.Value = percentage;
-                                }
-                            }
-                        }
-                    }
-
-                    label1.Text = "Probíhá rozbalení aktualizace";
-
-                    try
-                    {
-                        if (Directory.Exists(tempPath))
-                        {
-                            try
-                            {
-                                Directory.Delete(tempPath, true);
-                            }
-                            catch (Exception e2)
-                            {
-                            }
-                        }
-
-                        Directory.CreateDirectory(tempPath);
-
-                        ZipFile.ExtractToDirectory(updatePath, tempPath);
-
-                        if (!CanUpdateFiles())
-                        {
-                            button1.Visible = true;
-                            label1.Text = "Některé procesy blokují aktualizaci. Ukončete je a stiskněte tlačítko pokračovat.";
-                            return;
-                        }
-
-                        PerformUpdate();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Chyba při aktualizaci: {ex.Message}", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Došlo k chybě při aktualizaci: {ex.Message}", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                CheckProcesses();
             }
             catch (Exception eOuter)
             {
                 MessageBox.Show($"Došlo k neošetřené chybě při aktualizaci: {eOuter.Message}", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        void CheckProcesses()
+        {
+            processTimer = new Timer();
+            processTimer.Interval = 1000;
+            processTimer.Tick += ProcessTimer_Tick;
+            processTimer.Start();
+            
+            CheckAndUpdateUi();
+        }
+        
+        void ProcessTimer_Tick(object sender, EventArgs e)
+        {
+            CheckAndUpdateUi();
+            
+            if (canProceed)
+            {
+                processTimer.Stop();
+                processTimer.Dispose();
+                processLabel?.Dispose();
+                killButton?.Dispose();
+                SetMainUiVisible(false);
+                StartDownload();
+            }
+        }
+
+        void SetMainUiVisible(bool visible)
+        {
+            if (!visible)
+            {
+                button1.Hide();
+                progressBar1.Hide();
+                label1.Hide();   
+            }
+            else
+            {
+                button1.Show();
+                progressBar1.Show();
+                label1.Show();
+            }
+        }
+        
+        void CheckAndUpdateUi()
+        {
+            Process[] runningInstances = Process.GetProcessesByName("TeReoLocalizer");
+
+            if (runningInstances.Length > 0)
+            {
+                canProceed = false;
+
+                SetMainUiVisible(false);
+                
+                if (processLabel == null)
+                {
+                    processLabel = new Label();
+                    processLabel.AutoSize = true;
+                    processLabel.Location = new Point(10, 10);
+                    Controls.Add(processLabel);
+                }
+                
+                processLabel.Text = $"Před aktualizací je potřeba ukončit běžící procesy Rea ({runningInstances.Length}):\n" +
+                                    string.Join("\n", runningInstances.Select(p => $"PID: {p.Id}"));
+                
+                if (killButton == null)
+                {
+                    killButton = new Button();
+                    killButton.AutoSize = true;
+                    killButton.Text = "Ukončit";
+                    killButton.Location = new Point(10, processLabel.Bottom + 10);
+                    killButton.Click += KillButton_Click;
+                    Controls.Add(killButton);
+                }
+            }
+            else
+            {
+                canProceed = true;
+            }
+        }
+        
+        private void KillButton_Click(object sender, EventArgs e)
+        {
+            Process[] runningInstances = Process.GetProcessesByName("TeReoLocalizer");
+            List<int> failedProcesses = [];
+
+            foreach (Process proc in runningInstances)
+            {
+                try
+                {
+                    proc.Kill();
+                    proc.WaitForExit(1000);
+                }
+                catch (Exception)
+                {
+                    failedProcesses.Add(proc.Id);
+                }
+            }
+
+            if (failedProcesses.Count > 0)
+            {
+                MessageBox.Show(
+                    $"Nepodařilo se ukončit následující procesy:\n{string.Join(", ", failedProcesses)}",
+                    "Varování",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+
+        async void StartDownload()
+        {
+            try
+            {
+                SetMainUiVisible(true);
+                button1.Visible = false;
+                label1.Text = "Získávání informací o poslední verzi";
+
+                string localVersionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reoVersion.txt");
+                if (!File.Exists(localVersionPath))
+                {
+                    button1.Visible = false;
+                    progressBar1.Visible = false;
+                    label1.Text = "Není možné určit aktuální verzi, protože chybí soubor reoVersion.txt";
+                    return;
+                }
+
+                string localVersion = File.ReadAllText(localVersionPath).Trim();
+                Version currentVersion = Version.Parse(localVersion);
+
+                IReadOnlyList<Release> releases = await githubClient.Repository.Release.GetAll("lofcz", "tereo");
+                Release latestRelease = releases[0];
+
+                ReleaseAsset asset = latestRelease.Assets.FirstOrDefault(a => a.Name.StartsWith("TeReoLocalizer-v") && a.Name.EndsWith(".zip"));
+
+                if (asset == null)
+                {
+                    MessageBox.Show("Nebyl nalezen ZIP soubor ke stažení.", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                string upstreamVersionStr = asset.Name.Replace("TeReoLocalizer-v", "").Replace(".zip", "");
+                Version upstreamVersion = Version.Parse(upstreamVersionStr);
+
+                if (currentVersion >= upstreamVersion)
+                {
+                    progressBar1.Visible = false;
+                    label1.Text = $"Reo je aktuální, verze {localVersion}";
+                    button1.Hide();
+                    return;
+                }
+
+                string updatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update.zip");
+
+                if (File.Exists(updatePath))
+                {
+                    try
+                    {
+                        File.Delete(updatePath);
+                    }
+                    catch (Exception fe)
+                    {
+                    }
+                }
+
+                label1.Text = $"Probíhá stažení aktualizace {localVersion}\u2192{upstreamVersionStr}";
+
+                using (HttpResponseMessage response = await httpClient.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
+                {
+                    response.EnsureSuccessStatusCode();
+                    long totalBytes = response.Content.Headers.ContentLength ?? -1L;
+
+                    using (Stream stream = await response.Content.ReadAsStreamAsync())
+                    using (FileStream fileStream = File.Create(updatePath))
+                    {
+                        byte[] buffer = new byte[16_384];
+                        long bytesRead = 0L;
+                        int count;
+
+                        while ((count = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer, 0, count);
+                            bytesRead += count;
+
+                            if (totalBytes != -1)
+                            {
+                                int percentage = (int)((bytesRead * 100) / totalBytes);
+                                double mbRead = bytesRead / (1024.0 * 1024.0);
+                                double mbTotal = totalBytes / (1024.0 * 1024.0);
+
+                                progressBar1.Maximum = 100;
+                                progressBar1.Value = percentage;
+   
+                                label2.Visible = true;
+                                label2.Text = $"Staženo {mbRead:F2}/{mbTotal:F2} MB ({percentage:F2}%)";
+                                label2.Refresh();
+                            }
+                        }
+                    }
+                }
+
+                progressBar1.Hide();
+                label2.Hide();
+                progressBar1.Refresh();
+                label2.Refresh();
+                
+                label1.Text = "Probíhá rozbalení aktualizace, okamžik strpení..";
+                label1.Refresh();
+                Application.DoEvents();
+                
+                try
+                {
+                    if (Directory.Exists(tempPath))
+                    {
+                        try
+                        {
+                            Directory.Delete(tempPath, true);
+                        }
+                        catch (Exception e2)
+                        {
+                        }
+                    }
+
+                    Directory.CreateDirectory(tempPath);
+
+                    ZipFile.ExtractToDirectory(updatePath, tempPath);
+
+                    if (!CanUpdateFiles())
+                    {
+                        button1.Visible = true;
+                        label1.Text = "Některé procesy blokují aktualizaci. Ukončete je a stiskněte tlačítko pokračovat.";
+                        return;
+                    }
+
+                    PerformUpdate();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Chyba při aktualizaci: {ex.Message}", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Došlo k chybě při aktualizaci: {ex.Message}", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -283,6 +424,8 @@ namespace TeReoLocalizer.Updater
 
                     string batchContent = $@"
 @echo off
+title Te Reo - dokončení aktualizace
+
 :retry
 timeout /t 2 /nobreak > nul
 tasklist /FI ""IMAGENAME eq updater.exe"" 2>nul | find /I /N ""updater.exe"">nul
