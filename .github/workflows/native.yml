@@ -89,6 +89,14 @@ jobs:
         
         echo "NEW_VERSION=$newVersion" >> $env:GITHUB_ENV
         
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2.0.1
+      
+    - name: Restore NuGet packages
+      working-directory: ./TeReoLocalizer
+      run: |
+        nuget restore TeReoLocalizer.sln
+
     - name: Install MAUI Workload
       run: |
         dotnet workload install maui-windows --ignore-failed-sources --skip-manifest-update
