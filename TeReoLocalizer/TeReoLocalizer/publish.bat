@@ -37,8 +37,14 @@ mkdir "%tempDir%"
 REM Copy all files to temp
 xcopy "%absolutePath%\*" "%tempDir%\TeReoLocalizer\" /s /y /i
 
-REM Create shortcut with relative path
-powershell -Command "$WS = New-Object -ComObject WScript.Shell; $SC = $WS.CreateShortcut('%tempDir%\TeReoLocalizer.lnk'); $SC.TargetPath = '.\TeReoLocalizer\TeReoLocalizer.exe'; $SC.WorkingDirectory = '.'; $SC.Save()"
+REM Create shortcut
+powershell -Command "
+$WS = New-Object -ComObject WScript.Shell;
+$SC = $WS.CreateShortcut('%tempDir%\TeReoLocalizer.lnk');
+$SC.TargetPath = '.\TeReoLocalizer\TeReoLocalizer.exe';
+$SC.WorkingDirectory = '.\TeReoLocalizer';
+$SC.Save();
+"
 
 if defined AUTOMATION_MODE (
     echo Running in automation mode...

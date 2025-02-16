@@ -31,7 +31,7 @@ public static class BootService
         if (!File.Exists("reoBoot.json"))
         {
             created = true;
-            File.Create("reoBoot.json");
+            await File.WriteAllTextAsync("reoBoot.json", "{}");
         }
 
         string bootDataStr = await File.ReadAllTextAsync("reoBoot.json"); 
