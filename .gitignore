@@ -17,3 +17,8 @@ TeReoLocalizer/TeReoLocalizer/wwwroot/indexBuilt.html
 TeReoLocalizer/TeReoLocalizer.Shared/reoBoot.json
 /TeReoLocalizer/TeReoLocalizer.Shared/DataProtectionKeys
 /TeReoLocalizer/packages
+/Plugins/Rider/.kotlin
+/Plugins/Rider/.intellijPlatform
+/Plugins/Rider/.kotlin
+/Plugins/Rider/.run
+/Plugins/Rider/gradle

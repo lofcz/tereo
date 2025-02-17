@@ -1,0 +1,23 @@
+<idea-plugin>
+    <id>com.github.lofcz.tereo</id>
+    <name>TeReo</name>
+    <version>1.0.1</version>
+    <description>Official TeReo integration for Rider. TeReo is a modern localization platform for .NET</description>
+    <vendor email="stagl@wattlescript.org">Matěj "lofcz" Štágl</vendor>
+
+    <depends>com.intellij.modules.rider</depends>
+    <idea-version since-build="233" until-build="243.*" />
+
+    <actions>
+        <action id="com.lofcz.tereo.ShowSelectedTextAction"
+                class="com.lofcz.tereo.ShowSelectedTextAction"
+                text="Localize Using TeReo"
+                description="Localizes the selected text.">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="lofcz.tereo.notification.test" displayType="BALLOON" />
+    </extensions>
+</idea-plugin>

@@ -44,7 +44,8 @@
         };
 
         Process.Start(startInfo);
-        Environment.Exit(0);
+        // let updater kill us?
+        // Environment.Exit(0);
     }
     
     protected override async Task OnInitializedAsync()
