@@ -30,10 +30,11 @@
       <PackageReference Include="Octokit" Version="14.0.0" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     </ItemGroup>
-
+    
     <Target Name="GeneratePrebakedJs" BeforeTargets="BeforeBuild">
         <Exec Command="npx tsc wwwroot/Scripts/reoMgrProto.ts --outDir wwwroot/Scripts --sourceMap --target ES2020 --lib es2015,es2016,es2017,es2018,es2019,es2020,es2021,es2022,es2023,dom,dom.iterable --moduleResolution node --module esnext --skipLibCheck --allowUmdGlobalAccess --removeComments"
-              Condition="Exists('wwwroot/Scripts/reoMgrProto.ts')" />
+              Condition="Exists('wwwroot/Scripts/reoMgrProto.ts')"
+              ContinueOnError="true" />
 
         <Copy SourceFiles="wwwroot/Scripts/reoMgrProto.js" DestinationFiles="reoMgrProto.prebaked.js.txt"
               Condition="Exists('wwwroot/Scripts/reoMgrProto.js')" />
