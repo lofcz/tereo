@@ -13,7 +13,7 @@ public class CmdRenameGroup : BaseCommand
         NewName = newName.Trim();
     }
     
-    public override Task<DataOrException<bool>> Do(bool firstTime)
+    public override async Task<DataOrException<bool>> Do(bool firstTime)
     {
         if (firstTime)
         {
@@ -22,17 +22,19 @@ public class CmdRenameGroup : BaseCommand
         
         if (NewName.IsNullOrWhiteSpace())
         {
-            return Task.FromResult(new DataOrException<bool>(new Exception("Název skupiny nemůže být prázdný")));
+            return new DataOrException<bool>(new Exception("Název skupiny nemůže být prázdný"));
         }
         
         Decl.Name = NewName;
-        return Task.FromResult(new DataOrException<bool>(true));
+        await Owner.SaveProject();
+        
+        return new DataOrException<bool>(true);
     }
 
-    public override Task Undo()
+    public override async Task Undo()
     {
         Decl.Name = OldName;
-        return Task.FromResult(new DataOrException<bool>(true));
+        await Owner.SaveProject();
     }
 
     public override string GetName()

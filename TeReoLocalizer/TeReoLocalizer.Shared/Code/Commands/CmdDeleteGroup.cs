@@ -1,4 +1,5 @@
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer.Shared.Code.Commands;
 
@@ -60,6 +61,9 @@ public class CmdDeleteGroup : BaseCommand
         await Owner.SaveUserSettings();
 
         Owner.RecomputeVisibleKeys();
+        
+        Owner.ScheduleGenerate(true);
+        
         return new DataOrException<bool>(true);
     }
 
@@ -113,6 +117,8 @@ public class CmdDeleteGroup : BaseCommand
         await Owner.SaveUserSettings();
         
         Owner.RecomputeVisibleKeys();
+        
+        Owner.ScheduleGenerate(true);
     }
 
     public override string GetName()

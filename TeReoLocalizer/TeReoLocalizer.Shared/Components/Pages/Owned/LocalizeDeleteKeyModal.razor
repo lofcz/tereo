@@ -1,0 +1,80 @@
+@using BlazingModal
+@using TeReoLocalizer.Shared.Code
+@using TeReoLocalizer.Shared.Code.Commands
+@code {
+    [Parameter]
+    public Key Key { get; set; }
+    [Parameter]
+    public Localize Owner { get; set; }
+    [CascadingParameter] 
+    BlazingModalInstance BlazoredModal { get; set; } = default!;
+
+    bool deleting;
+    string title, desc;
+    List<Decl> declsWithKey = [], otherDecls = [];
+    bool deleteInOtherGroups;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        
+        declsWithKey = Owner.Project.Decls.Where(x => x.Keys.TryGetValue(Key.Name, out _)).ToList();
+        otherDecls = declsWithKey.Where(x => x.Id != Owner.Decl.Id).ToList();
+        
+        title = declsWithKey.Count is 1 ? $"Potvrďte odstranění klíče [x]{Key.Name}[/x]" : $"Potvrďte odstranění klíče [x]{Key.Name}[/x] ze skupiny [x]{Owner.Decl.Name}[/x]";
+        desc = declsWithKey.Count is 1 ? string.Empty : $"Tento klíč je přítomný i ve {(otherDecls.Count is 1 ? $"skupině [x]{otherDecls[0].Name}[/x], v této skupině nebude klíč odstraněn." : $"skupinách {otherDecls.Select(x => $"[x]{x.Name}[/x]").ToCsv(", ")}, v těchto skupinách nebude klíč odstraněn.")}";
+
+        // retarded legacy razor compiler..
+        title = title.Replace("[x]", "<code>").Replace("[/x]", "</code>");
+        desc = desc.Replace("[x]", "<code>").Replace("[/x]", "</code>");
+    }
+
+    Task HandleDeleteInOtherGroupsChanged(IInputComponent cmp)
+    {
+        desc = declsWithKey.Count is 1 ? string.Empty : $"Tento klíč je přítomný i ve {(otherDecls.Count is 1 ? $"skupině [x]{otherDecls[0].Name}[/x], v této skupině {(deleteInOtherGroups ? "bude klíč odstraněn také." : "nebude klíč odstraněn.")}" : $"skupinách {otherDecls.Select(x => $"[x]{x.Name}[/x]").ToCsv(", ")}, v těchto skupinách {(deleteInOtherGroups ? "bude klíč odstraněn také." : "nebude klíč odstraněn.")}.")}";
+        desc = desc.Replace("[x]", "<code>").Replace("[/x]", "</code>");
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+    
+    async Task Submit()
+    {
+        if (deleting)
+        {
+            return;
+        }
+        
+        deleting = true;
+        StateHasChanged();
+
+        await Owner.Execute(new CmdDeleteKey(Key.Name, deleteInOtherGroups), ExecuteErrorHandleTypes.Toast);
+        
+        deleting = false;
+        StateHasChanged();
+        await BlazoredModal.CloseAsync();
+    }
+    
+    async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync();
+    }
+}
+
+<EdModal Title="@title">
+    <p>@((MarkupString)desc)</p>
+    
+    @if (otherDecls.Count > 0)
+    {
+        <EdCheckbox OnUpdate="HandleDeleteInOtherGroupsChanged" @bind-Value="deleteInOtherGroups" Label="Odstranit i v ostatních skupinách" />
+    }
+    
+    @if (deleting)
+    {
+        <p>Probíhá odstranění klíče..</p>
+    }
+    
+    <EdButtonsContainer>
+        <EdButton OnClick="Submit">Odstranit</EdButton>
+        <EdButton OnClick="Cancel" Design="ButtonDesigns.Cancel">Zrušit</EdButton>
+    </EdButtonsContainer>
+</EdModal>

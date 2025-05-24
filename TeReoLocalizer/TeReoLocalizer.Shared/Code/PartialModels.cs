@@ -95,7 +95,7 @@ public class Project
     }
     
     public static readonly int LatestVersionMajor = 1;
-    public static readonly int LatestVersionMinor = 3;
+    public static readonly int LatestVersionMinor = 4;
     public static readonly int LatestVersionPatch = 0;
     
     public static string LatestVersion => $"{LatestVersionMajor}.{LatestVersionMinor}.{LatestVersionPatch}";
@@ -348,12 +348,21 @@ public class DeclSettings
     public DeclSettingsCodegen Codegen { get; set; } = new DeclSettingsCodegen();
 }
 
+public static class PrebakedJsFiles
+{
+    public const string ReoMgrProtoJs = "";
+    public const string ReoMgrProtoJsMap = "";
+}
+
 public class DeclSettingsCodegen
 {
     public bool Frontend { get; set; }
     public bool Backend { get; set; } = true;
     public bool FrontendStandalone { get; set; }
     public string? FrontendStandaloneName { get; set; }
+    
+    [JsonIgnore]
+    public bool FrontendExclusive => Frontend && !Backend && FrontendStandalone;
 }
 
 public class LangsData
@@ -386,8 +395,6 @@ public class LangData
     public bool Visible { get; set; } = true;
     [JsonIgnore]
     public ConcurrentDictionary<string, string> PersistedData { get; set; } = [];
-    [JsonIgnore]
-    public ConcurrentDictionary<string, string> UncommitedChanges { get; set; } = [];
     [JsonIgnore]
     public ConcurrentDictionary<string, string> FocusData { get; set; } = [];
 }
@@ -438,6 +445,7 @@ public class UserSettings
     public Languages? KeySearchLang { get; set; }
     public bool AutoSave { get; set; } = true;
     public bool DisableTips { get; set; }
+    public bool AutogenCode { get; set; }
     public bool KeySearchAllGroups { get; set; }
     public UserSettingsApiKeys ApiKeys { get; set; } = new UserSettingsApiKeys();
         
@@ -517,6 +525,12 @@ public class HistoryItem
     }
 }
 
+public enum ExecuteErrorHandleTypes
+{
+    Passtrough,
+    Toast
+}
+
 public abstract class BaseCommand : ICommand
 {
     public ProjectCtx Ctx { get; set; } = default!;
@@ -550,6 +564,12 @@ public abstract class BaseCommand : ICommand
     public override string ToString()
     {
         return GetName();
+    }
+    
+    public bool TryGetBackendOrSharedKey(string key, [NotNullWhen(true)] out Decl? decl)
+    {
+        decl = Project.Decls.Where(x => !x.Settings.Codegen.FrontendExclusive).FirstOrDefault(x => x.Keys.Any(y => y.Key == key));
+        return decl is not null;
     }
 }
 

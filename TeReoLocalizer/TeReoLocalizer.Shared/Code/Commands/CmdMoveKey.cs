@@ -24,6 +24,21 @@ public class CmdMoveKey : BaseCommand
             return new DataOrException<bool>(new Exception("Přesun je možný pouze do jiné skupiny, než ve které klíč aktuálně je."));
         }
         
+        if (NewDecl.Settings.Codegen.FrontendExclusive)
+        {
+            if (NewDecl.Keys.TryGetValue(Key, out Key? existingKey))
+            {
+                return new DataOrException<bool>(new Exception($"Skupina již obsahuje klíč s názvem <code>{Key}</code>."));
+            }
+        }
+        else
+        {
+            if (TryGetBackendOrSharedKey(Key, out Decl? decl) && decl.Id != OldDecl.Id)
+            {
+                return new DataOrException<bool>(new Exception($"Skupina {decl.Name} již obsahuje klíč s názvem <code>{Key}</code>."));
+            }
+        }
+        
         if (firstTime)
         {
             OldDeclName = OldDecl.Name;
@@ -40,6 +55,8 @@ public class CmdMoveKey : BaseCommand
         await Owner.SaveProject();
         Owner.ApplySearch(true, false);
 
+        Owner.ScheduleGenerate(true);
+        
         return new DataOrException<bool>(true);
     }
 
@@ -56,6 +73,8 @@ public class CmdMoveKey : BaseCommand
             await Owner.SaveProject();
             Owner.ApplySearch(true, false);
         }
+        
+        Owner.ScheduleGenerate(true);
     }
 
     public override string GetName()

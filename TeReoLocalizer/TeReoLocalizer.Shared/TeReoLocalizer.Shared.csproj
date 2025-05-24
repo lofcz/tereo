@@ -10,17 +10,17 @@
     
     <ItemGroup>
       <PackageReference Include="BlazingModal" Version="1.0.7" />
-      <PackageReference Include="DeepL.net" Version="1.14.0" />
+      <PackageReference Include="DeepL.net" Version="1.15.0" />
       <PackageReference Include="DiffPlex" Version="1.7.2" />
       <PackageReference Include="Enums.NET" Version="5.0.0" />
-      <PackageReference Include="FastCloner" Version="3.3.2" />
+      <PackageReference Include="FastCloner" Version="3.3.4" />
       <PackageReference Include="Json5Core" Version="1.0.11" />
       <PackageReference Include="Lofcz.Forks.DiffMatchPatch" Version="1.0.0" />
       <PackageReference Include="Lucene.Net" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.Highlighter" Version="4.8.0-beta00016" />
       <PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00016" />
-      <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
+      <PackageReference Include="Microsoft.Build.Locator" Version="1.9.1" />
       <PackageReference Include="Microsoft.CodeAnalysis" Version="4.12.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
@@ -30,6 +30,17 @@
       <PackageReference Include="Octokit" Version="14.0.0" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     </ItemGroup>
+
+    <Target Name="GeneratePrebakedJs" BeforeTargets="BeforeBuild">
+        <Exec Command="npx tsc wwwroot/Scripts/reoMgrProto.ts --outDir wwwroot/Scripts --sourceMap --target ES2020 --lib es2015,es2016,es2017,es2018,es2019,es2020,es2021,es2022,es2023,dom,dom.iterable --moduleResolution node --module esnext --skipLibCheck --allowUmdGlobalAccess --removeComments"
+              Condition="Exists('wwwroot/Scripts/reoMgrProto.ts')" />
+
+        <Copy SourceFiles="wwwroot/Scripts/reoMgrProto.js" DestinationFiles="reoMgrProto.prebaked.js.txt"
+              Condition="Exists('wwwroot/Scripts/reoMgrProto.js')" />
+
+        <Copy SourceFiles="wwwroot/Scripts/reoMgrProto.js.map" DestinationFiles="reoMgrProto.prebaked.js.map.txt"
+              Condition="Exists('wwwroot/Scripts/reoMgrProto.js.map')" />
+    </Target>
 
     <ItemGroup>
       <ProjectReference Include="..\TeReoLocalizer.Annotations\TeReoLocalizer.Annotations.csproj" />

@@ -92,6 +92,7 @@ public partial class Localize
 
             string data = await File.ReadAllTextAsync(str, ctx);
             LangData parsed = JsonSerializer.Deserialize<LangData>(data) ?? new LangData();
+            
             parsed.PersistedData = new ConcurrentDictionary<string, string>(parsed.Data);
             LangsData.Langs.TryAdd(result, parsed);
         });
@@ -106,7 +107,6 @@ public partial class Localize
     {
         LangData source = LangsData.Langs[language];
         source.PersistedData = new ConcurrentDictionary<string, string>(source.Data);
-        source.UncommitedChanges.Clear();
         StateHasChanged();
 
         string data = LangsData.Langs[language].ToJson();

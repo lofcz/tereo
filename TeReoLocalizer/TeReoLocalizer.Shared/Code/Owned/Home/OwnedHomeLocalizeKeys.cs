@@ -45,7 +45,7 @@ public partial class Localize
             return;
         }
         
-        await Execute(new CmdSetKeyValue(language, key, value));
+        await Execute(new CmdSetKeyValue(language, key, value), ExecuteErrorHandleTypes.Toast);
     }
     
     async Task AddKey()
@@ -60,12 +60,7 @@ public partial class Localize
             return;
         }
 
-        DataOrException<bool> result = await Execute(new CmdAddKey(NewKey));
-
-        if (result.Exception is not null)
-        {
-            await Js.Toast(ToastTypes.Error, result.Exception.Message);
-        }
+        await Execute(new CmdAddKey(NewKey), ExecuteErrorHandleTypes.Toast);
     }
     
     void SetKeyValue(Languages language, string key, string value)
@@ -249,7 +244,7 @@ public partial class Localize
     
     public async Task TransferKey(Key key, Decl newOwner)
     {
-        await Execute(new CmdMoveKey(key.Name, key.Owner, newOwner));
+        await Execute(new CmdMoveKey(key.Name, key.Owner, newOwner), ExecuteErrorHandleTypes.Toast);
     }
 
     async Task KeySearchModeSelected(KeySearchModes mode)
@@ -278,16 +273,49 @@ public partial class Localize
         InputToFocus = inputToFocus;
     }
 
-    async Task Delete(Key key)
+    Task Delete(Key key)
     {
-        Md.ShowConfirmActionModal($"Potvrďte odstranění klíče <code>{key.Name}</code>", async () =>
+        Md.ShowModal<LocalizeDeleteKeyModal>(new
         {
-            await Execute(new CmdDeleteKey(key.Name));
+            Key = key,
+            Owner = this
         });
-    }
 
-    public async Task Generate()
+        return Task.CompletedTask;
+    }
+    
+    private CancellationTokenSource? generateCts;
+
+    public void ScheduleGenerate(bool silent = false, bool onlyWhenAutogenEnabled = true)
     {
+        if (onlyWhenAutogenEnabled && !Settings.AutogenCode)
+        {
+            return;
+        }
+        
+        generateCts?.Cancel();
+        generateCts?.Dispose();
+        
+        generateCts = new CancellationTokenSource();
+        CancellationToken cancellationToken = generateCts.Token;
+    
+        AsyncService.Fire(async () =>
+        {
+            try
+            {
+                await Generate(silent, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                
+            }
+        }, cancellationToken);
+    }
+    
+    public async Task Generate(bool silent = false, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
         Localizer l = new Localizer(Project, LangsData);
         CodegenResult code = await l.Generate();
 
@@ -308,13 +336,16 @@ public partial class Localize
                 }
             }
             
-            await File.WriteAllTextAsync(backendFile, code.Backend);
+            await File.WriteAllTextAsync(backendFile, code.Backend, cancellationToken);
         }
 
-        if (code.Frontend.Decls.Count > 0 || code.Frontend.Declarations is not null)
+        if (!code.Frontend.Decls.IsEmpty || code.Frontend.Declarations is not null)
         {
             string frontendDir = $"{basePath}/wwwroot/Scripts/reo";
             Directory.CreateDirectory(frontendDir);
+
+            string frontendGroupsDir = $"{frontendDir}/groups";
+            Directory.CreateDirectory(frontendGroupsDir);
             
             Dictionary<string, string> requiredFiles = new Dictionary<string, string>();
 
@@ -330,7 +361,8 @@ public partial class Localize
 
             if (code.Frontend.Mgr is not null)
             {
-                requiredFiles[$"{frontendDir}/reolib.ts"] = code.Frontend.Mgr.Ts;
+                // skip ts files so clients don't cause issues by transpiling them on their own
+                //requiredFiles[$"{frontendDir}/reolib.ts"] = code.Frontend.Mgr.Ts;
                 requiredFiles[$"{frontendDir}/reolib.js"] = code.Frontend.Mgr.Js;
                 requiredFiles[$"{frontendDir}/reolib.js.map"] = code.Frontend.Mgr.Map;
             }
@@ -355,21 +387,26 @@ public partial class Localize
                 requiredFiles[$"{frontendDir}/{pair.Key.decl}.{pair.Key.language.ToString().ToLowerInvariant()}.json"] = pair.Value;
             }
             
-            Dictionary<string, bool> localFiles = Directory.GetFiles(frontendDir, "*.*", SearchOption.AllDirectories).ToDictionary(f => f, f => true);
+            Dictionary<string, bool> localFiles = Directory.GetFiles(frontendDir, "*.*", SearchOption.AllDirectories).ToDictionary(x => x, x => true);
             
             foreach (string existingFile in localFiles.Keys.Where(x => !requiredFiles.ContainsKey(x)))
             {
                 File.Delete(existingFile);
             }
             
-            await Parallel.ForEachAsync(requiredFiles, async (pair, token) =>
+            await Parallel.ForEachAsync(requiredFiles, cancellationToken, async (pair, token) =>
             {
                 await File.WriteAllTextAsync(pair.Key, pair.Value, token);
             });
         }
 
         await UpgradeProjectIfNeeded();
-        await Js.Toast(ToastTypes.Success, "Kód vygenerován a zapsán");
+
+        if (!silent)
+        {
+            await Js.Toast(ToastTypes.Success, "Kód vygenerován a zapsán");   
+        }
+        
         StateHasChanged();
     }
 
@@ -385,12 +422,7 @@ public partial class Localize
         Translated = 0;
         StateHasChanged();
 
-        DataOrException<bool> result = await Execute(new CmdGenerateMissingKeyValues());
-
-        if (result.Exception is not null)
-        {
-            await Js.Toast(ToastTypes.Error, result.Exception.Message);
-        }
+        await Execute(new CmdGenerateMissingKeyValues(), ExecuteErrorHandleTypes.Toast);
 
         ToTranslate.Clear();
         Translated = 0;

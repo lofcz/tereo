@@ -1,4 +1,5 @@
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer.Shared.Code.Commands;
 
@@ -8,12 +9,14 @@ namespace TeReoLocalizer.Shared.Code.Commands;
 public class CmdDeleteKey : BaseCommand
 {
     string Key { get; set; }
+    bool DeleteInAllDecls { get; set; }
     Dictionary<Languages, string> OriginalLangValues { get; set; } = [];
     Key? OriginalKeyDeclaration { get; set; }
     
-    public CmdDeleteKey(string key)
+    public CmdDeleteKey(string key, bool deleteInAllDecls)
     {
         Key = key;
+        DeleteInAllDecls = deleteInAllDecls;
     }
     
     public override async Task<DataOrException<bool>> Do(bool firstTime)
@@ -27,16 +30,48 @@ public class CmdDeleteKey : BaseCommand
                     OriginalLangValues[x.Key] = value;
                 }
             }
-
+            
             if (Decl.Keys.TryGetValue(Key, out Key? keyDecl))
             {
                 OriginalKeyDeclaration = keyDecl;
             }
         }
 
-        await Owner.DeleteKey(Key);
+        if (DeleteInAllDecls)
+        {
+            foreach (Decl decl in Project.Decls)
+            {
+                decl.Keys.TryRemove(Key, out _);
+            }
+            
+            foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
+            {
+                x.Value.Data.TryRemove(Key, out _);
+            }
+
+            await Owner.SaveLanguages();   
+        }
+        else
+        {
+            if (Decl.Keys.TryRemove(Key, out _))
+            {
+                if (!Project.Decls.Any(x => x.Keys.TryGetValue(Key, out _)))
+                {
+                    foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
+                    {
+                        x.Value.Data.TryRemove(Key, out _);
+                    }
+
+                    await Owner.SaveLanguages();   
+                }
+            }   
+        }
         
+        await Owner.SaveProject();
         Owner.RecomputeVisibleKeys();
+        
+        Owner.ScheduleGenerate(true);
+        
         return new DataOrException<bool>(true);
     }
 
@@ -52,11 +87,24 @@ public class CmdDeleteKey : BaseCommand
 
         if (OriginalKeyDeclaration is not null)
         {
-            Decl.Keys[Key] = OriginalKeyDeclaration;
+            if (DeleteInAllDecls)
+            {
+                foreach (Decl decl in Project.Decls)
+                {
+                    decl.Keys[Key] = OriginalKeyDeclaration;
+                }
+            }
+            else
+            {
+                Decl.Keys[Key] = OriginalKeyDeclaration;
+            }
         }
 
         await Owner.SaveLanguages();
         await Owner.SaveProject();
+        
+        Owner.ScheduleGenerate(true);
+        
         Owner.RecomputeVisibleKeys();
     }
 

@@ -4,6 +4,7 @@ using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using DiffPlex.Model;
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer.Shared.Code.Commands;
 
@@ -75,6 +76,8 @@ public class CmdSetKeyValue : BaseCommand
             await Owner.SaveLanguages();
         }
         
+        Owner.ScheduleGenerate(true);
+        
         return new DataOrException<bool>(true);
     }
 
@@ -105,6 +108,8 @@ public class CmdSetKeyValue : BaseCommand
         {
             await Owner.SaveLanguages();
         }
+        
+        Owner.ScheduleGenerate(true);
     }
 
     public override string GetName()

@@ -12,6 +12,8 @@ public class CmdRenameKey : BaseCommand
     string NewKeyName { get; set; }
     IProgress<CommandProgress>? RenameProgress { get; set; }
     KeyRenameReasons Reason { get; set; }
+    bool RenameFrontend { get; set; }
+    bool RenameBackend { get; set; }
 
     public override IProgress<CommandProgress>? Progress
     {
@@ -45,6 +47,14 @@ public class CmdRenameKey : BaseCommand
         {
             return new DataOrException<bool>(new Exception($"Klíč <code>{dupe.Name}</code> je již ve skupině <code>{(Decl.Name ?? "výchozí skupina")}</code> deklarovaný"));
         }
+
+        if (!Decl.Settings.Codegen.FrontendExclusive)
+        {
+            if (TryGetBackendOrSharedKey(NewKeyName, out Decl? decl))
+            {
+                return new DataOrException<bool>(new Exception($"Skupina {decl} již obsahuje klíč <code>{NewKeyName}</code>."));
+            }
+        }
         
         foreach (KeyValuePair<Languages, LangData> x in LangsData.Langs)
         {
@@ -57,27 +67,35 @@ public class CmdRenameKey : BaseCommand
         
         await Owner.SaveLanguages();
 
-        if (Decl.Keys.TryGetValue(OldKeyName, out Key? kVal))
+        foreach (Decl decl in Project.Decls)
         {
-            kVal.Name = NewKeyName;
-            Decl.Keys.TryRemove(OldKeyName, out _);
-            Decl.Keys.TryAdd(NewKeyName, kVal);
+            if (decl.Keys.TryGetValue(OldKeyName, out Key? kVal))
+            {
+                if (decl.Settings.Codegen.Backend)
+                {
+                    RenameBackend = true;
+                }
 
-            Owner.RecomputeVisibleKeys(true, kVal.Name);
-            
-            await Owner.SaveProject();
+                if (decl.Settings.Codegen.Frontend)
+                {
+                    RenameFrontend = true;
+                }
+                
+                kVal.Name = NewKeyName;
+                decl.Keys.TryRemove(OldKeyName, out _);
+                decl.Keys.TryAdd(NewKeyName, kVal);
+            }   
         }
-
+        
+        Owner.RecomputeVisibleKeys(true, NewKeyName);
+        await Owner.SaveProject();
+        
         if (BootedProject.CsprojExists)
         {
-            RenameResult renameResult = await SymbolRenamer.RenameSymbol(BootedProject.Path, OldKeyName, NewKeyName, RenameProgress);
-
-            if (renameResult.TotalReplacements > 0)
-            {
-                await Owner.Generate();
-            }
+            await SymbolRenamer.RenameSymbol(BootedProject.Path, OldKeyName, NewKeyName, RenameProgress, RenameBackend, RenameFrontend);
         }
 
+        Owner.ScheduleGenerate(true);
         return new DataOrException<bool>(true);
     }
 
@@ -94,26 +112,25 @@ public class CmdRenameKey : BaseCommand
         
         await Owner.SaveLanguages();
         
-        if (Decl.Keys.TryGetValue(NewKeyName, out Key? kVal))
+        foreach (Decl decl in Project.Decls)
         {
-            kVal.Name = OldKeyName;
-            Decl.Keys.TryRemove(NewKeyName, out _);
-            Decl.Keys.TryAdd(OldKeyName, kVal);
-
-            Owner.RecomputeVisibleKeys(true, kVal.Name);
-        
-            await Owner.SaveProject();
+            if (decl.Keys.TryGetValue(NewKeyName, out Key? kVal))
+            {
+                kVal.Name = OldKeyName;
+                decl.Keys.TryRemove(NewKeyName, out _);
+                decl.Keys.TryAdd(OldKeyName, kVal);
+            }   
         }
+        
+        Owner.RecomputeVisibleKeys(true, OldKeyName);
+        await Owner.SaveProject();
         
         if (BootedProject.CsprojExists)
         {
-            RenameResult renameResult = await SymbolRenamer.RenameSymbol(BootedProject.Path, NewKeyName, OldKeyName, RenameProgress);
-
-            if (renameResult.TotalReplacements > 0)
-            {
-                await Owner.Generate();
-            }
+            await SymbolRenamer.RenameSymbol(BootedProject.Path, NewKeyName, OldKeyName, RenameProgress, RenameBackend, RenameFrontend);
         }
+        
+        Owner.ScheduleGenerate(true);
     }
 
     public override string GetName()

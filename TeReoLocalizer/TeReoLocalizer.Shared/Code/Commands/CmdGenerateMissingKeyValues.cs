@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using DeepL;
 using DeepL.Model;
 using TeReoLocalizer.Annotations;
+using TeReoLocalizer.Shared.Code.Services;
 
 namespace TeReoLocalizer.Shared.Code.Commands;
 
@@ -122,6 +123,9 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
         Owner.Translating = false;
 
         await Owner.SaveLanguages();
+        
+        Owner.ScheduleGenerate(true);
+        
         return new DataOrException<bool>(true);
     }
 
@@ -141,6 +145,8 @@ public partial class CmdGenerateMissingKeyValues : BaseCommand
 
         Owner.RecomputeVisibleInputHeights();
         await Ctx.Owner.SaveLanguages();
+        
+        Owner.ScheduleGenerate(true);
     }
 
     public override string GetName()

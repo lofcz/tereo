@@ -37,11 +37,19 @@ public class CmdAddKey : BaseCommand
             return new DataOrException<bool>(new Exception("Název klíče nemůže být prázdný"));
         }
 
-        Decl? dupeKey = Project.Decls.FirstOrDefault(x => x.Keys.Any(y => y.Key == newKeyCopy));
-
-        if (dupeKey is not null)
+        if (Decl.Settings.Codegen.FrontendExclusive)
         {
-            return new DataOrException<bool>(new Exception($"Klíč <code>{newKeyCopy}</code> již existuje ve skupině <code>{dupeKey.Name}</code>"));
+            if (Decl.Keys.TryGetValue(newKeyCopy, out Key? _))
+            {
+                return new DataOrException<bool>(new Exception($"Klíč <code>{newKeyCopy}</code> již existuje v této skupině"));
+            } 
+        }
+        else
+        {
+            if (TryGetBackendOrSharedKey(newKeyCopy, out Decl? dupeKey))
+            {
+                return new DataOrException<bool>(new Exception($"Klíč <code>{newKeyCopy}</code> již existuje ve skupině <code>{dupeKey.Name}</code>"));
+            }
         }
         
         Key localKey = new Key
@@ -93,6 +101,24 @@ public class CmdAddKey : BaseCommand
             Owner.SetInputToFocus($"input_{Owner.Project.Settings.PrimaryLanguage}_{newKeyCopy}");
             Owner.RecomputeVisibleKeys(true, newKeyCopy);
             Owner.StateHasChanged();
+            
+            List<Decl> declsWithKey = Project.Decls.Where(x => x.Id != Decl.Id && x.Keys.TryGetValue(localKey.Name, out _)).ToList();
+
+            switch (declsWithKey.Count)
+            {
+                case 1:
+                {
+                    await Js.Toast(ToastTypes.Info, $"Klíč je sdílený se skupinou <code>{declsWithKey[0].Name}</code>");
+                    break;
+                }
+                case > 1:
+                {
+                    await Js.Toast(ToastTypes.Info, $"Klíč je sdílený se skupinami {declsWithKey.Select(x => $"<code>{x.Name}</code>").ToCsv(", ")}");
+                    break;
+                }
+            }
+
+            Owner.ScheduleGenerate(true);
         }
         else
         {
@@ -148,6 +174,8 @@ public class CmdAddKey : BaseCommand
             Owner.RecomputeVisibleKeys(true, KeyToFocus);
             Owner.InputToFocus = $"input_{Owner.Project.Settings.PrimaryLanguage}_{KeyToFocus}";
             Owner.StateHasChanged();
+
+            Owner.ScheduleGenerate(true);
         }
     }
 }

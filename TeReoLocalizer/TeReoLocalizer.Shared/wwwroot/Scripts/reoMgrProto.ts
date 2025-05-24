@@ -1,3 +1,5 @@
+/// <reference path="./reoAmbient.d.ts" />
+
 "use strict";
 (function (root, factory) {
     if (typeof window["define"] === 'function' && window["define"].amd) {
@@ -18,7 +20,7 @@
         private currentLang: string = this.getCurrentLang();
         private loadingMapPromise: Promise<void> | null = null;
         private translationMap: Record<string, string[]> | null = null;
-        private isDevelopment = window["mcfDebug"] || false;
+        private isDevelopment = window["mcfDebug"] || true;
         
         constructor() {
             if (this.isDevelopment) {

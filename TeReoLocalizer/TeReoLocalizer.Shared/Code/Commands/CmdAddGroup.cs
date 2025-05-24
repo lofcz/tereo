@@ -49,6 +49,8 @@ public class CmdAddGroup : BaseCommand
         await Owner.SaveUserSettings();
 
         Owner.RecomputeVisibleKeys();
+
+        Owner.ScheduleGenerate();
         
         return new DataOrException<bool>(true);
     }
@@ -77,6 +79,8 @@ public class CmdAddGroup : BaseCommand
         await Owner.SaveUserSettings();
         
         Owner.RecomputeVisibleKeys();
+        
+        Owner.ScheduleGenerate();
     }
     
     public override string GetName()

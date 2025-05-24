@@ -18,7 +18,7 @@
             this.currentLang = this.getCurrentLang();
             this.loadingMapPromise = null;
             this.translationMap = null;
-            this.isDevelopment = window["mcfDebug"] || false;
+            this.isDevelopment = window["mcfDebug"] || true;
             if (this.isDevelopment) {
                 return new Proxy(this, {
                     get: (target, prop) => {

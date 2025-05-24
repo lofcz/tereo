@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using TeReoLocalizer.Annotations;
 using TeReoLocalizer.Shared.Code;
+using TeReoLocalizer.Shared.Code.Services;
 using TeReoLocalizer.Shared.Components.Pages.Owned;
 
 namespace TeReoLocalizer.Shared.Components.Pages;
@@ -22,11 +23,20 @@ public partial class Localize
         });
     }
     
-    public async Task<DataOrException<bool>> Execute(ICommand cmd)
+    public async Task<DataOrException<bool>> Execute(ICommand cmd, ExecuteErrorHandleTypes errorHandleType = ExecuteErrorHandleTypes.Passtrough)
     {
         cmd.Ctx = GetCtx();
         DataOrException<bool> result = await CommandManager.Execute(cmd);
         StateHasChanged();
+
+        if (errorHandleType is ExecuteErrorHandleTypes.Toast)
+        {
+            if (result.Exception is not null)
+            {
+                await Js.Toast(ToastTypes.Error, result.Exception.Message);
+            }
+        }
+        
         return result;
     }
     

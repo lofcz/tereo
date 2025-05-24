@@ -22,3 +22,6 @@ TeReoLocalizer/TeReoLocalizer.Shared/reoBoot.json
 /Plugins/Rider/.kotlin
 /Plugins/Rider/.run
 /Plugins/Rider/gradle
+TeReoLocalizer/TeReoLocalizer.Shared/PrebakedJsFiles.generated.cs
+TeReoLocalizer/TeReoLocalizer.Shared/reoMgrProto.prebaked.js.txt
+TeReoLocalizer/TeReoLocalizer.Shared/reoMgrProto.prebaked.js.map.txt
