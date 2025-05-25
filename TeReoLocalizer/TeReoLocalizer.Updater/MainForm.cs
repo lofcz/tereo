@@ -426,9 +426,14 @@ namespace TeReoLocalizer.Updater
                 
                 if (string.IsNullOrEmpty(reoPath))
                 {
-                    log.WriteLine("Error: reo.exe not found in any subdirectory");
-                    MessageBox.Show("Aktualizace dokončena úspěšně. Nová verze reo.exe nenalezena, spusťe aplikaci ručně.", "Aktualizace dokončena");
-                    return;
+                    reoPath = Directory.GetFiles(parentPath, "TeReoLocalizer.exe", SearchOption.AllDirectories).FirstOrDefault();
+
+                    if (string.IsNullOrEmpty(reoPath))
+                    {
+                        log.WriteLine("Error: reo.exe/TeReoLocalizer.exe not found in any subdirectory");
+                        MessageBox.Show("Aktualizace dokončena úspěšně. Nová verze reo.exe nenalezena, spusťe aplikaci ručně.", "Aktualizace dokončena");
+                        return;   
+                    }
                 }
 
                 string batchContent = $@"
