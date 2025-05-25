@@ -111,9 +111,9 @@ public partial class Localizer(Project project, LangsData langsData)
                   """,
             Js = $"""
                   {AutogenComment}
-                  {File.ReadAllText("reoMgrProto.prebaked.js.txt")}
+                  {Linker.LinkFileContent("reoMgrProto.prebaked.js.txt")}
                   """,
-            Map = File.Exists("reoMgrProto.prebaked.js.map.txt") ? File.ReadAllText("reoMgrProto.prebaked.js.map.txt") : string.Empty
+            Map = Linker.LinkFileContent("reoMgrProto.prebaked.js.map.txt") ?? string.Empty
         };
     }
 

@@ -47,7 +47,28 @@
               Condition="Exists('wwwroot/Scripts/reoMgrProto.js.map')" />
     </Target>
 
+    <ItemGroup>
+        <Content Include="reoMgrProto.prebaked.js.txt" Condition="Exists('reoMgrProto.prebaked.js.txt')">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </Content>
+        <Content Include="reoMgrProto.prebaked.js.map.txt" Condition="Exists('reoMgrProto.prebaked.js.map.txt')">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </Content>
+    </ItemGroup>
+    
+    <Target Name="CopyPrebakedFiles" BeforeTargets="_CopyResolvedFilesToPublishPreserveNewest;_CopyResolvedFilesToPublishAlways">
+        <ItemGroup>
+            <PrebakedFiles Include="reoMgrProto.prebaked.js.txt" Condition="Exists('reoMgrProto.prebaked.js.txt')" />
+            <PrebakedFiles Include="reoMgrProto.prebaked.js.map.txt" Condition="Exists('reoMgrProto.prebaked.js.map.txt')" />
+        </ItemGroup>
 
+        <Copy SourceFiles="@(PrebakedFiles)"
+              DestinationFolder="$(PublishDir)"
+              Condition="'@(PrebakedFiles)' != ''" />
+    </Target>
+    
     <ItemGroup>
       <ProjectReference Include="..\TeReoLocalizer.Annotations\TeReoLocalizer.Annotations.csproj" />
     </ItemGroup>
