@@ -33,7 +33,8 @@ namespace TeReoLocalizer.Updater
         {
             InitializeComponent();
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
+            ShowInTaskbar = true;
+            
             tempPath = Path.Combine(Path.GetTempPath(), "TeReoUpdate");
   
             string currentPath = AppDomain.CurrentDomain.BaseDirectory;
