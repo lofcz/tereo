@@ -130,6 +130,16 @@ namespace TeReoLocalizer.Updater
                     killButton.Click += KillButton_Click;
                     Controls.Add(killButton);
                 }
+
+                Task.Run(async () =>
+                {
+                    await Task.Delay(500);
+                    
+                    if (!IsDisposed && IsHandleCreated)
+                    {
+                        Invoke(new Action(KillBlockingProcesses));
+                    }
+                });
             }
             else
             {
@@ -138,6 +148,11 @@ namespace TeReoLocalizer.Updater
         }
 
         void KillButton_Click(object sender, EventArgs e)
+        {
+            KillBlockingProcesses();
+        }
+
+        void KillBlockingProcesses()
         {
             Process[] runningInstances = Process.GetProcessesByName("TeReoLocalizer");
             List<int> failedProcesses = [];
