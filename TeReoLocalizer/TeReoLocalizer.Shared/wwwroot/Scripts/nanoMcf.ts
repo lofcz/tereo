@@ -1691,6 +1691,22 @@ var moduleCommonFunctions = {
     },
     eraseCookie: (name) => {
         document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;SameSite=Lax';
-    }
+    },
+    getAppVersion: () => {
+        let v = "x";
+
+        if (window["mcfIsolatedContext"]) {
+            return v;
+        }
+
+        try {
+            v = window.localStorage.getItem("appVersion");
+        }
+        catch {
+
+        }
+
+        return v;
+    },
 };
 var mcf = moduleCommonFunctions;
