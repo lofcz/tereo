@@ -105,7 +105,7 @@
             state.isLoading = true;
             state.promise = new Promise(async (resolve, reject) => {
                 try {
-                    let v = window["mcf"] ? mcf.getAppVersion() : "v1";
+                    let v = window["mcf"] ? window["mcf"]["getAppVersion"]() : "v1";
                     const url = `/scripts/reo/${moduleKey}.${lang}.json?v=${v}`;
                     const response = await fetch(url);
                     if (!response.ok) {
