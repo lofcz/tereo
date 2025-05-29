@@ -14,8 +14,8 @@ An opinionated localization system replacing <code>resx</code> files. Reo is an 
 - Generate translations with one click (DeepL).
 - Performs `~3x` better than `resx` on .NET 8+ at runtime (measured on a project with several thousand keys).
 - Group keys into logical groups and set codegen targets on each group separately.
-- Strongly typed TS codegen with full intellisense that works for frontend just as amazingly as `Reo.X` for backend, while loading keys lazily at runtime.
-- WYSIWYG editor for keys with markup.
+- Strongly typed TS codegen with full intellisense that works for frontend just as amazingly as `Reo.KeyName` for backend, while loading keys lazily at runtime (`reo.require("groupName")`, `reo.KeyName`).
+- [WYSIWYG editor](https://github.com/lofcz/tiptap-blazor) for keys with markup.
 - Smart codegen supporting `MarkupString` for projects using Blazor.
 - Standalone application for managing translations, usable as a web app or a native MAUI executable.
 - Infinite undo/redo with full history jumping.
