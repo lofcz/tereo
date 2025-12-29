@@ -384,6 +384,7 @@ public partial class Localizer(Project project, LangsData langsData)
                                   Languages.Polish => KnownLangs.PL,
                                   Languages.Spanish => KnownLangs.ES,
                                   Languages.Russian => KnownLangs.RU,
+                                  Languages.Slovak => KnownLangs.SK,
                                   _ => null
                               };
                           }
